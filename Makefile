@@ -40,13 +40,13 @@ db-health: ## Check DB health status
 .PHONY: build run test
 
 build: ## Compile the Spring Boot service
-	cd service && ./mvnw compile -q
+	cd service && mvn compile -q
 
 run: ## Run the service with dev profile
-	cd service && ./mvnw spring-boot:run -Dspring-boot.run.profiles=$(ENV)
+	cd service && mvn spring-boot:run -Dspring-boot.run.profiles=$(ENV)
 
 test: ## Run tests
-	cd service && ./mvnw test
+	cd service && mvn test
 
 # --- Help ---
 
