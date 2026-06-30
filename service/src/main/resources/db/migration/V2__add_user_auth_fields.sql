@@ -1,0 +1,3 @@
+ALTER TABLE users ADD COLUMN email VARCHAR(255) NOT NULL UNIQUE;
+ALTER TABLE users ADD COLUMN password_hash VARCHAR(255) NOT NULL;
+CREATE INDEX idx_users_email ON users(email);
