@@ -42,6 +42,9 @@ public class Game extends BaseEntity {
 
     private LocalDateTime endedAt;
 
+    @Column(unique = true, length = 6)
+    private String token;
+
     public Duration getDuration() {
         if (startedAt == null || endedAt == null) {
             return null;
