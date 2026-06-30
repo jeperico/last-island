@@ -5,7 +5,7 @@ meta {
 }
 
 post {
-  url: {{baseUrl}}/api/auth/register
+  url: {{baseUrl}}/api/v1/auth/register
   body: json
   auth: none
 }
@@ -23,5 +23,64 @@ script:post-response {
   if (res.status === 201) {
     bru.setVar("accessToken", res.body.accessToken);
     bru.setVar("refreshToken", res.body.refreshToken);
+  }
+}
+
+example {
+  name: luffy-example
+  
+  request: {
+    url: {{baseUrl}}/api/v1/auth/register
+    method: POST
+    mode: json
+    body:json: {
+      {
+        "name": "Monkey D. Luffy",
+        "email": "luffy@strawhat.dev",
+        "password": "gomugomu123",
+        "filiation": "PIRATA"
+      }
+    }
+  }
+  
+  response: {
+    headers: {
+      x-content-type-options: nosniff
+      x-xss-protection: 0
+      cache-control: no-cache, no-store, max-age=0, must-revalidate
+      pragma: no-cache
+      expires: 0
+      x-frame-options: DENY
+      content-type: application/json
+      content-length: 713
+      date: Tue, 30 Jun 2026 21:13:15 GMT
+      keep-alive: timeout=60
+      connection: keep-alive
+    }
+  
+    status: {
+      code: 201
+      text: Created
+    }
+  
+    body: {
+      type: json
+      content: '''
+        {
+          "accessToken": "eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiJiOWU4YmQ5Ny00ZDRkLTQzZDYtYjU2My1jNDBmODQyNWI4NGUiLCJlbWFpbCI6Imx1ZmZ5QHN0cmF3aGF0LmRldiIsIm5hbWUiOiJNb25rZXkgRC4gTHVmZnkiLCJ0eXBlIjoiYWNjZXNzIiwiaWF0IjoxNzgyODUzOTk0LCJleHAiOjE3ODI4NTc1OTR9.pV1b8ArITj0dMNTsbQwWb7L_SOdJQ-C6HcWgu-kPTd_QF7Ze4emTDOKLtVbm8gxZ",
+          "refreshToken": "eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiJiOWU4YmQ5Ny00ZDRkLTQzZDYtYjU2My1jNDBmODQyNWI4NGUiLCJ0eXBlIjoicmVmcmVzaCIsImlhdCI6MTc4Mjg1Mzk5NSwiZXhwIjoxNzgzNDU4Nzk1fQ.5LpdLUBr4eiThyTpKbKvxFEolNWKW7-dURL-oqjiND60-IPaPP2zhMhMXictaIbi",
+          "user": {
+            "id": "b9e8bd97-4d4d-43d6-b563-c40f8425b84e",
+            "name": "Monkey D. Luffy",
+            "email": "luffy@strawhat.dev",
+            "filiation": "PIRATA",
+            "rank": "ROOKIE",
+            "bounty": 0,
+            "wins": 0,
+            "losses": 0
+          }
+        }
+      '''
+    }
   }
 }

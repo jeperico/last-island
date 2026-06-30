@@ -43,7 +43,7 @@ build: ## Compile the Spring Boot service
 	cd service && mvn compile -q
 
 run: ## Run the service with dev profile
-	cd service && mvn spring-boot:run -Dspring-boot.run.profiles=$(ENV)
+	cd service && export $$(cat ../$(ENV_FILE) | grep -v '^\#' | xargs) && mvn spring-boot:run -Dspring-boot.run.profiles=$(ENV)
 
 test: ## Run tests
 	cd service && mvn test

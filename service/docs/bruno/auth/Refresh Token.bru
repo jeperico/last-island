@@ -5,7 +5,7 @@ meta {
 }
 
 post {
-  url: {{baseUrl}}/api/auth/refresh
+  url: {{baseUrl}}/api/v1/auth/refresh
   body: json
   auth: none
 }
@@ -20,5 +20,61 @@ script:post-response {
   if (res.status === 200) {
     bru.setVar("accessToken", res.body.accessToken);
     bru.setVar("refreshToken", res.body.refreshToken);
+  }
+}
+
+example {
+  name: luffy-example
+  
+  request: {
+    url: {{baseUrl}}/api/v1/auth/refresh
+    method: POST
+    mode: json
+    body:json: {
+      {
+        "refreshToken": "{{refreshToken}}"
+      }
+    }
+  }
+  
+  response: {
+    headers: {
+      x-content-type-options: nosniff
+      x-xss-protection: 0
+      cache-control: no-cache, no-store, max-age=0, must-revalidate
+      pragma: no-cache
+      expires: 0
+      x-frame-options: DENY
+      content-type: application/json
+      content-length: 713
+      date: Tue, 30 Jun 2026 21:15:38 GMT
+      keep-alive: timeout=60
+      connection: keep-alive
+    }
+  
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      type: json
+      content: '''
+        {
+          "accessToken": "eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiJiOWU4YmQ5Ny00ZDRkLTQzZDYtYjU2My1jNDBmODQyNWI4NGUiLCJlbWFpbCI6Imx1ZmZ5QHN0cmF3aGF0LmRldiIsIm5hbWUiOiJNb25rZXkgRC4gTHVmZnkiLCJ0eXBlIjoiYWNjZXNzIiwiaWF0IjoxNzgyODU0MTM4LCJleHAiOjE3ODI4NTc3Mzh9.M4NuZE20A5AbGev9R0fCCyi5Ax1z7hfwjXyS6yixpOvojW4UOrbxGd4HgDsocAlx",
+          "refreshToken": "eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiJiOWU4YmQ5Ny00ZDRkLTQzZDYtYjU2My1jNDBmODQyNWI4NGUiLCJ0eXBlIjoicmVmcmVzaCIsImlhdCI6MTc4Mjg1NDEzOCwiZXhwIjoxNzgzNDU4OTM4fQ.JKHkpHdPq3rP8-d1EyuuB0ExmIaqVH9MGbfEC5DNFYtbixQMcPvwD5c2q5zP9wh2",
+          "user": {
+            "id": "b9e8bd97-4d4d-43d6-b563-c40f8425b84e",
+            "name": "Monkey D. Luffy",
+            "email": "luffy@strawhat.dev",
+            "filiation": "PIRATA",
+            "rank": "ROOKIE",
+            "bounty": 0,
+            "wins": 0,
+            "losses": 0
+          }
+        }
+      '''
+    }
   }
 }
