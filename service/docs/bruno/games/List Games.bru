@@ -1,0 +1,67 @@
+meta {
+  name: List Games
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/games?page=0&size=10
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+example {
+  name: example
+  
+  request: {
+    url: {{baseUrl}}/games?page=0&size=10
+    method: GET
+    mode: none
+  }
+  
+  response: {
+    headers: {
+      x-content-type-options: nosniff
+      x-xss-protection: 0
+      cache-control: no-cache, no-store, max-age=0, must-revalidate
+      pragma: no-cache
+      expires: 0
+      x-frame-options: DENY
+      content-type: application/json
+      content-length: 216
+      date: Tue, 30 Jun 2026 21:43:42 GMT
+      keep-alive: timeout=60
+      connection: keep-alive
+    }
+  
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      type: json
+      content: '''
+        {
+          "content": [
+            {
+              "id": "55e2d00b-af9f-4307-bb4c-3a032a108f6f",
+              "token": "967410",
+              "bluePlayerName": "Monkey D. Luffy",
+              "createdAt": "2026-06-30T18:43:26.518536"
+            }
+          ],
+          "page": 0,
+          "size": 10,
+          "totalElements": 1,
+          "totalPages": 1,
+          "last": true
+        }
+      '''
+    }
+  }
+}

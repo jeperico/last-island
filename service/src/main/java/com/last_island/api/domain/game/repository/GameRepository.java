@@ -13,7 +13,8 @@ import java.util.UUID;
 
 public interface GameRepository extends JpaRepository<Game, UUID> {
 
-    Optional<Game> findByTokenAndIsActiveTrue(String token);
+    @Query("SELECT g FROM Game g LEFT JOIN FETCH g.blueBoard bb LEFT JOIN FETCH bb.owner LEFT JOIN FETCH g.redBoard rb LEFT JOIN FETCH rb.owner WHERE g.token = :token AND g.isActive = true")
+    Optional<Game> findByTokenAndIsActiveTrue(@Param("token") String token);
 
     Page<Game> findByPhaseAndIsActiveTrue(GamePhase phase, Pageable pageable);
 

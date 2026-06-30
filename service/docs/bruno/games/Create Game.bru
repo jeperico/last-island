@@ -1,0 +1,64 @@
+meta {
+  name: Create Game
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/games
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+script:post-response {
+  if (res.status === 201) {
+    bru.setVar("gameToken", res.body.token);
+  }
+}
+
+example {
+  name: example
+  
+  request: {
+    url: {{baseUrl}}/games
+    method: POST
+    mode: none
+  }
+  
+  response: {
+    headers: {
+      x-content-type-options: nosniff
+      x-xss-protection: 0
+      cache-control: no-cache, no-store, max-age=0, must-revalidate
+      pragma: no-cache
+      expires: 0
+      x-frame-options: DENY
+      content-type: application/json
+      content-length: 133
+      date: Tue, 30 Jun 2026 21:43:26 GMT
+      keep-alive: timeout=60
+      connection: keep-alive
+    }
+  
+    status: {
+      code: 201
+      text: Created
+    }
+  
+    body: {
+      type: json
+      content: '''
+        {
+          "id": "55e2d00b-af9f-4307-bb4c-3a032a108f6f",
+          "token": "967410",
+          "phase": "WAITING_OPPONENT",
+          "createdAt": "2026-06-30T18:43:26.518535861"
+        }
+      '''
+    }
+  }
+}
