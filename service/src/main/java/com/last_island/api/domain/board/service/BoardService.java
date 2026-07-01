@@ -13,8 +13,10 @@ import com.last_island.api.domain.board.enums.ShipType;
 import com.last_island.api.domain.board.enums.ShotResult;
 import com.last_island.api.domain.board.mapper.BoardMapper;
 import com.last_island.api.domain.game.entity.Game;
+import com.last_island.api.domain.game.entity.GameResult;
 import com.last_island.api.domain.game.enums.GamePhase;
 import com.last_island.api.domain.game.repository.GameRepository;
+import com.last_island.api.domain.game.repository.GameResultRepository;
 import com.last_island.api.domain.user.entity.User;
 import com.last_island.api.domain.user.enums.Filiation;
 import org.springframework.http.HttpStatus;
@@ -30,9 +32,11 @@ import java.util.stream.Collectors;
 public class BoardService {
 
     private final GameRepository gameRepository;
+    private final GameResultRepository gameResultRepository;
 
-    public BoardService(GameRepository gameRepository) {
+    public BoardService(GameRepository gameRepository, GameResultRepository gameResultRepository) {
         this.gameRepository = gameRepository;
+        this.gameResultRepository = gameResultRepository;
     }
 
     @Transactional
@@ -216,21 +220,48 @@ public class BoardService {
                 .build();
         opponentBoard.getShots().add(shot);
 
-        // 9. Switch turn to opponent
-        game.setCurrentTurn(opponentBoard.getOwner());
-
-        // 10. Update attacker stats
+        // 9. Update attacker stats
         User attacker = playerBoard.getOwner();
         attacker.setTotalShots(attacker.getTotalShots() + 1);
         if (result == ShotResult.HIT || result == ShotResult.SUNK) {
             attacker.setTotalHits(attacker.getTotalHits() + 1);
         }
 
-        // 11. Save game (cascades)
+        // 10. Check win condition
+        String sunkShipType = (result == ShotResult.SUNK && hitShip != null) ? hitShip.getType().name() : null;
+
+        if (result == ShotResult.SUNK && opponentBoard.getShips().stream().allMatch(Ship::isSunk)) {
+            // All enemy vessels have been sunk — victory!
+            game.setPhase(GamePhase.FINISHED);
+            game.setEndedAt(LocalDateTime.now());
+
+            int totalTurns = game.getBlueBoard().getShots().size() + game.getRedBoard().getShots().size();
+
+            User loser = opponentBoard.getOwner();
+            GameResult gameResult = GameResult.builder()
+                    .game(game)
+                    .winner(attacker)
+                    .loser(loser)
+                    .turns(totalTurns)
+                    .build();
+            gameResultRepository.save(gameResult);
+
+            attacker.setWins(attacker.getWins() + 1);
+            loser.setLosses(loser.getLosses() + 1);
+
+            // Do NOT switch turn — game is over
+            gameRepository.save(game);
+
+            return new ShotResponse(result, sunkShipType, request.row(), request.col(), true, attacker.getName());
+        }
+
+        // 11. Switch turn to opponent (game continues)
+        game.setCurrentTurn(opponentBoard.getOwner());
+
+        // 12. Save game (cascades)
         gameRepository.save(game);
 
-        // 12. Return response
-        String sunkShipType = (result == ShotResult.SUNK && hitShip != null) ? hitShip.getType().name() : null;
-        return new ShotResponse(result, sunkShipType, request.row(), request.col());
+        // 13. Return response
+        return new ShotResponse(result, sunkShipType, request.row(), request.col(), false, null);
     }
 }

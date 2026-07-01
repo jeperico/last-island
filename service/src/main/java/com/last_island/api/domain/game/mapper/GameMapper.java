@@ -1,9 +1,17 @@
 package com.last_island.api.domain.game.mapper;
 
+import com.last_island.api.domain.board.dto.MyBoardResponse;
+import com.last_island.api.domain.board.dto.OpponentBoardResponse;
+import com.last_island.api.domain.board.entity.Board;
+import com.last_island.api.domain.board.mapper.BoardMapper;
 import com.last_island.api.domain.game.dto.CreateGameResponse;
 import com.last_island.api.domain.game.dto.GameResponse;
+import com.last_island.api.domain.game.dto.GameStateResponse;
 import com.last_island.api.domain.game.dto.GameSummaryResponse;
 import com.last_island.api.domain.game.entity.Game;
+import com.last_island.api.domain.game.enums.GamePhase;
+
+import java.util.UUID;
 
 public final class GameMapper {
 
@@ -47,5 +55,63 @@ public final class GameMapper {
                 game.getBlueBoard().getOwner().getName(),
                 game.getCreatedAt()
         );
+    }
+
+    public static GameStateResponse toStateResponse(Game game, UUID userId) {
+        String redPlayerName = game.getRedBoard() != null
+                ? game.getRedBoard().getOwner().getName()
+                : null;
+
+        String currentTurnPlayerName = game.getCurrentTurn() != null
+                ? game.getCurrentTurn().getName()
+                : null;
+
+        Board myBoard;
+        Board opponentBoard;
+        if (game.getBlueBoard().getOwner().getId().equals(userId)) {
+            myBoard = game.getBlueBoard();
+            opponentBoard = game.getRedBoard();
+        } else {
+            myBoard = game.getRedBoard();
+            opponentBoard = game.getBlueBoard();
+        }
+
+        MyBoardResponse myBoardResponse = BoardMapper.toMyBoardResponse(myBoard);
+        OpponentBoardResponse opponentBoardResponse = opponentBoard != null
+                ? BoardMapper.toOpponentBoardResponse(opponentBoard)
+                : null;
+
+        String winnerName = null;
+        if (game.getPhase() == GamePhase.FINISHED) {
+            winnerName = determineWinner(game);
+        }
+
+        return new GameStateResponse(
+                game.getId(),
+                game.getToken(),
+                game.getPhase().name(),
+                game.getBlueBoard().getOwner().getName(),
+                redPlayerName,
+                currentTurnPlayerName,
+                winnerName,
+                game.getStartedAt(),
+                game.getEndedAt(),
+                game.getCreatedAt(),
+                myBoardResponse,
+                opponentBoardResponse
+        );
+    }
+
+    private static String determineWinner(Game game) {
+        Board blueBoard = game.getBlueBoard();
+        Board redBoard = game.getRedBoard();
+
+        if (redBoard != null && redBoard.getShips().stream().allMatch(s -> s.isSunk())) {
+            return blueBoard.getOwner().getName();
+        }
+        if (blueBoard.getShips().stream().allMatch(s -> s.isSunk())) {
+            return redBoard != null ? redBoard.getOwner().getName() : null;
+        }
+        return null;
     }
 }

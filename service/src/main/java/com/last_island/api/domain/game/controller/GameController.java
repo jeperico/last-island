@@ -8,6 +8,7 @@ import com.last_island.api.domain.board.dto.ShotResponse;
 import com.last_island.api.domain.board.service.BoardService;
 import com.last_island.api.domain.game.dto.CreateGameResponse;
 import com.last_island.api.domain.game.dto.GameResponse;
+import com.last_island.api.domain.game.dto.GameStateResponse;
 import com.last_island.api.domain.game.dto.GameSummaryResponse;
 import com.last_island.api.domain.game.service.GameService;
 import com.last_island.api.infrastructure.security.principal.AuthenticatedUser;
@@ -46,7 +47,7 @@ public class GameController {
     }
 
     @GetMapping("/{token}")
-    public GameResponse getGame(@PathVariable String token,
+    public GameStateResponse getGame(@PathVariable String token,
                                 @AuthenticationPrincipal AuthenticatedUser principal) {
         return gameService.getGame(token, principal.getId());
     }

@@ -5,6 +5,7 @@ import com.last_island.api.common.mapper.PageMapper;
 import com.last_island.api.domain.board.entity.Board;
 import com.last_island.api.domain.game.dto.CreateGameResponse;
 import com.last_island.api.domain.game.dto.GameResponse;
+import com.last_island.api.domain.game.dto.GameStateResponse;
 import com.last_island.api.domain.game.dto.GameSummaryResponse;
 import com.last_island.api.domain.game.entity.Game;
 import com.last_island.api.domain.game.enums.GamePhase;
@@ -106,11 +107,18 @@ public class GameService {
     }
 
     @Transactional(readOnly = true)
-    public GameResponse getGame(String token, UUID userId) {
+    public GameStateResponse getGame(String token, UUID userId) {
         Game game = gameRepository.findByTokenAndIsActiveTrue(token)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Battle not found"));
 
-        return GameMapper.toResponse(game);
+        boolean isBlue = game.getBlueBoard().getOwner().getId().equals(userId);
+        boolean isRed = game.getRedBoard() != null && game.getRedBoard().getOwner().getId().equals(userId);
+
+        if (!isBlue && !isRed) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You are not a participant in this battle");
+        }
+
+        return GameMapper.toStateResponse(game, userId);
     }
 
     private String generateUniqueToken() {
