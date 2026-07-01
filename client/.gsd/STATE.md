@@ -1,7 +1,7 @@
 # State
 
 ## Position
-Working on: REQ-9 (Win/loss detection — polish game-over screen) — REVIEWED
+Working on: MVP Fixes (API URL, CORS proxy, JoinGameResponse type) — PLANNED
 
 ## Decisions
 - 2026-07-01: React 19 + Next.js 15 (App Router) + TypeScript + Tailwind CSS 4

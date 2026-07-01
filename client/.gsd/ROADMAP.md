@@ -11,16 +11,7 @@
 - 2026-07-01: REQ-9 Win/loss detection (commit 63e3970)
 
 ## Now
-- REQ-10: WebSocket integration — real-time turn notifications via STOMP
+- MVP fixes: correct API URL, add Next.js proxy rewrites (CORS bypass), fix JoinGameResponse type
 
 ## Next
-- REQ-11: API client layer
-- REQ-2: Auth pages
-- REQ-3: Auth state management
-- REQ-4: Game lobby
-- REQ-5: Ship placement
-- REQ-6: Battle screen
-- REQ-7: Turn-based flow
-- REQ-8: Shot feedback
-- REQ-9: Win/loss detection
-- REQ-10: WebSocket integration
+- REQ-10: WebSocket integration (v2)

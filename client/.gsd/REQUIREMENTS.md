@@ -10,10 +10,10 @@
 - [ ] REQ-7: Turn-based flow — indicate whose turn it is, disable shooting when not your turn
 - [ ] REQ-8: Shot feedback — display MISS/HIT/SUNK results on opponent board
 - [ ] REQ-9: Win/loss detection — show game result when match ends
-- [ ] REQ-10: WebSocket integration — real-time turn notifications via STOMP
 - [ ] REQ-11: API client layer — typed service functions for all backend endpoints
 
 ## v2 (next)
+- [ ] REQ-10: WebSocket integration — real-time turn notifications via STOMP
 - [ ] REQ-12: One Piece theming (ship skins, rank badges, sound effects)
 - [ ] REQ-13: Reconnection handling (rejoin mid-game after disconnect)
 - [ ] REQ-14: Game history / replay viewer
