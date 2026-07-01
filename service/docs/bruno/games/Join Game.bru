@@ -13,3 +13,50 @@ post {
 auth:bearer {
   token: {{accessToken}}
 }
+
+example {
+  name: example
+  
+  request: {
+    url: {{baseUrl}}/games/{{gameToken}}
+    method: POST
+    mode: none
+  }
+  
+  response: {
+    headers: {
+      x-content-type-options: nosniff
+      x-xss-protection: 0
+      cache-control: no-cache, no-store, max-age=0, must-revalidate
+      pragma: no-cache
+      expires: 0
+      x-frame-options: DENY
+      content-type: application/json
+      content-length: 261
+      date: Wed, 01 Jul 2026 11:56:08 GMT
+      keep-alive: timeout=60
+      connection: keep-alive
+    }
+  
+    status: {
+      code: 200
+      text: OK
+    }
+  
+    body: {
+      type: json
+      content: '''
+        {
+          "id": "71b9b9e1-ff5f-44af-8850-d72cba44635b",
+          "token": "904861",
+          "phase": "PLACING_SHIPS",
+          "bluePlayerName": "Monkey D. Luffy 2",
+          "redPlayerName": "Monkey D. Luffy 3",
+          "currentTurnPlayerName": "Monkey D. Luffy 3",
+          "startedAt": null,
+          "createdAt": "2026-07-01T08:55:32.929772"
+        }
+      '''
+    }
+  }
+}
