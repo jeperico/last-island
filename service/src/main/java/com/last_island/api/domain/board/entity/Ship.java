@@ -28,7 +28,7 @@ public class Ship extends BaseEntity {
     @Column(nullable = false)
     private Orientation orientation;
 
-    @Column(nullable = false)
+    @Column(name = "\"row\"", nullable = false)
     private int row;
 
     @Column(nullable = false)

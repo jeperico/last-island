@@ -36,11 +36,11 @@ public class GameService {
     @Transactional
     public CreateGameResponse createGame(UUID userId) {
         if (gameRepository.hasActiveGame(userId)) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Player already has an active game");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "You already have an active battle");
         }
 
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Pirate not found"));
 
         String token = generateUniqueToken();
 
@@ -62,22 +62,22 @@ public class GameService {
     @Transactional
     public GameResponse joinGame(String token, UUID userId) {
         Game game = gameRepository.findByTokenAndIsActiveTrue(token)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Battle not found"));
 
         if (game.getPhase() != GamePhase.WAITING_OPPONENT) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Game is not available for joining");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "This battle is not accepting new pirates");
         }
 
         if (game.getBlueBoard().getOwner().getId().equals(userId)) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Cannot join your own game");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Cannot join your own battle");
         }
 
         if (gameRepository.hasActiveGame(userId)) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Player already has an active game");
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "You already have an active battle");
         }
 
         User joiner = userRepository.findById(userId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Pirate not found"));
 
         Board redBoard = Board.builder()
                 .owner(joiner)
@@ -108,7 +108,7 @@ public class GameService {
     @Transactional(readOnly = true)
     public GameResponse getGame(String token, UUID userId) {
         Game game = gameRepository.findByTokenAndIsActiveTrue(token)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Game not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Battle not found"));
 
         return GameMapper.toResponse(game);
     }
@@ -121,6 +121,6 @@ public class GameService {
                 return token;
             }
         }
-        throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Unable to generate unique game token");
+        throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Unable to generate unique battle token");
     }
 }

@@ -1,6 +1,9 @@
 package com.last_island.api.domain.game.controller;
 
 import com.last_island.api.common.dto.PageResponse;
+import com.last_island.api.domain.board.dto.BoardResponse;
+import com.last_island.api.domain.board.dto.PlaceShipsRequest;
+import com.last_island.api.domain.board.service.BoardService;
 import com.last_island.api.domain.game.dto.CreateGameResponse;
 import com.last_island.api.domain.game.dto.GameResponse;
 import com.last_island.api.domain.game.dto.GameSummaryResponse;
@@ -16,9 +19,11 @@ import org.springframework.web.bind.annotation.*;
 public class GameController {
 
     private final GameService gameService;
+    private final BoardService boardService;
 
-    public GameController(GameService gameService) {
+    public GameController(GameService gameService, BoardService boardService) {
         this.gameService = gameService;
+        this.boardService = boardService;
     }
 
     @PostMapping
@@ -42,5 +47,12 @@ public class GameController {
     public GameResponse getGame(@PathVariable String token,
                                 @AuthenticationPrincipal AuthenticatedUser principal) {
         return gameService.getGame(token, principal.getId());
+    }
+
+    @PostMapping("/{token}/place-ships")
+    public BoardResponse placeShips(@PathVariable String token,
+                                    @RequestBody PlaceShipsRequest request,
+                                    @AuthenticationPrincipal AuthenticatedUser principal) {
+        return boardService.placeShips(token, principal.getId(), request);
     }
 }

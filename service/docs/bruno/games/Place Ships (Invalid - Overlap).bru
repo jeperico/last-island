@@ -1,0 +1,27 @@
+meta {
+  name: Place Ships (Invalid - Overlap)
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/games/{{gameToken}}/place-ships
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "ships": [
+      { "type": "THOUSAND_SUNNY", "orientation": "HORIZONTAL", "row": 0, "col": 0 },
+      { "type": "MOBY_DICK", "orientation": "VERTICAL", "row": 0, "col": 2 },
+      { "type": "RED_FORCE", "orientation": "HORIZONTAL", "row": 2, "col": 0 },
+      { "type": "POLAR_TANG", "orientation": "HORIZONTAL", "row": 4, "col": 0 },
+      { "type": "GOING_MERRY", "orientation": "HORIZONTAL", "row": 6, "col": 0 }
+    ]
+  }
+}

@@ -1,0 +1,27 @@
+meta {
+  name: Place Ships (Marine)
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/games/{{gameToken}}/place-ships
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "ships": [
+      { "type": "BUSTER_CALL", "orientation": "HORIZONTAL", "row": 0, "col": 0 },
+      { "type": "COURACADO", "orientation": "HORIZONTAL", "row": 2, "col": 0 },
+      { "type": "FRAGATA", "orientation": "VERTICAL", "row": 4, "col": 0 },
+      { "type": "DESTROYER", "orientation": "VERTICAL", "row": 4, "col": 2 },
+      { "type": "PATRULHA", "orientation": "HORIZONTAL", "row": 8, "col": 0 }
+    ]
+  }
+}
