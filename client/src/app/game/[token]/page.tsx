@@ -2,12 +2,12 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams } from "next/navigation";
-import Link from "next/link";
 import { useRequireAuth, useAuth } from "@/lib/auth";
 import { getGame } from "@/lib/api";
 import type { GamePhase, GameStateResponse } from "@/lib/api/types";
 import { ShipPlacement } from "./ship-placement";
 import { BattleScreen } from "./battle-screen";
+import { GameOverPanel } from "./game-over-panel";
 
 export default function GamePage() {
   const { user, isLoading: authLoading } = useRequireAuth();
@@ -180,36 +180,49 @@ export default function GamePage() {
   // Phase: FINISHED
   if (gameState.phase === "FINISHED") {
     const isWinner = gameState.winnerName === user.name;
+    const opponentName =
+      gameState.bluePlayerName === user.name
+        ? gameState.redPlayerName ?? "Unknown"
+        : gameState.bluePlayerName;
+    const myShots = gameState.opponentBoard?.shotsFired.length ?? 0;
+    const myHits =
+      gameState.opponentBoard?.shotsFired.filter(
+        (s) => s.result === "HIT" || s.result === "SUNK",
+      ).length ?? 0;
+    const opponentShots = gameState.myBoard?.shotsReceived.length ?? 0;
+    const opponentHits =
+      gameState.myBoard?.shotsReceived.filter(
+        (s) => s.result === "HIT" || s.result === "SUNK",
+      ).length ?? 0;
+    const durationSeconds =
+      gameState.startedAt && gameState.endedAt
+        ? (new Date(gameState.endedAt).getTime() -
+            new Date(gameState.startedAt).getTime()) /
+          1000
+        : null;
 
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-6 px-4 py-6">
-        {isWinner ? (
-          <h1 className="text-2xl font-bold text-green-600 dark:text-green-400">
-            You won! 🎉
-          </h1>
-        ) : (
-          <h1 className="text-2xl font-bold text-red-600 dark:text-red-400">
-            You lost. Better luck next time!
-          </h1>
-        )}
+        <GameOverPanel
+          isWinner={isWinner}
+          winnerName={gameState.winnerName ?? "Unknown"}
+          opponentName={opponentName}
+          myShots={myShots}
+          myHits={myHits}
+          opponentShots={opponentShots}
+          opponentHits={opponentHits}
+          durationSeconds={durationSeconds}
+        />
 
         {gameState.myBoard && gameState.opponentBoard && (
-          <div className="flex flex-wrap items-start justify-center gap-8">
-            <BattleScreen
-              gameState={gameState}
-              user={user}
-              gameToken={token}
-              onGameStateUpdate={setGameState}
-            />
-          </div>
+          <BattleScreen
+            gameState={gameState}
+            user={user}
+            gameToken={token}
+            onGameStateUpdate={setGameState}
+            readOnly
+          />
         )}
-
-        <Link
-          href="/"
-          className="rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600"
-        >
-          Back to Lobby
-        </Link>
       </div>
     );
   }

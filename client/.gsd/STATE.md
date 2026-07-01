@@ -1,7 +1,7 @@
 # State
 
 ## Position
-Working on: REQ-6 + REQ-7 + REQ-8 (Battle screen with turn flow and shot feedback) — DONE
+Working on: REQ-9 (Win/loss detection — polish game-over screen) — REVIEWED
 
 ## Decisions
 - 2026-07-01: React 19 + Next.js 15 (App Router) + TypeScript + Tailwind CSS 4
@@ -14,4 +14,4 @@ Working on: REQ-6 + REQ-7 + REQ-8 (Battle screen with turn flow and shot feedbac
 (none)
 
 ## Last verification
-PASS at 2026-07-01T14:25:35-03:00 — REQ-6+7+8: tsc --noEmit exit 0, npm run build compiled successfully (Turbopack, routes: /, /_not-found, /game/[token], /login, /register), npm run lint clean, 10/10 grep assertions pass
+PASS at 2026-07-01T14:37:43-03:00 — REQ-9: tsc --noEmit exit 0, npm run build compiled successfully (Turbopack), npm run lint clean, 6/6 grep assertions pass

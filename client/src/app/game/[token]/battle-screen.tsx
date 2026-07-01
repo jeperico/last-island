@@ -15,6 +15,7 @@ interface BattleScreenProps {
   user: UserResponse;
   gameToken: string;
   onGameStateUpdate: (state: GameStateResponse) => void;
+  readOnly?: boolean;
 }
 
 export function BattleScreen({
@@ -22,6 +23,7 @@ export function BattleScreen({
   user,
   gameToken,
   onGameStateUpdate,
+  readOnly,
 }: BattleScreenProps) {
   const [firing, setFiring] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -47,9 +49,9 @@ export function BattleScreen({
   // Build Opponent Board cell map
   const opponentBoardCells = buildOpponentBoardCells(allShotsFired);
 
-  // Polling: active when it's not my turn
+  // Polling: active when it's not my turn (disabled when readOnly)
   useEffect(() => {
-    if (isMyTurn || gameState.phase === "FINISHED") {
+    if (readOnly || isMyTurn || gameState.phase === "FINISHED") {
       if (pollingRef.current) {
         clearInterval(pollingRef.current);
         pollingRef.current = null;
@@ -81,7 +83,7 @@ export function BattleScreen({
         pollingRef.current = null;
       }
     };
-  }, [isMyTurn, gameState.phase, gameToken, onGameStateUpdate, user.name]);
+  }, [readOnly, isMyTurn, gameState.phase, gameToken, onGameStateUpdate, user.name]);
 
   const handleFire = useCallback(
     async (row: number, col: number) => {
@@ -131,18 +133,20 @@ export function BattleScreen({
 
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-6 px-4 py-6">
-      {/* Turn indicator */}
-      <div className="flex items-center justify-center">
-        {isMyTurn ? (
-          <span className="rounded-full bg-green-100 px-4 py-2 text-sm font-semibold text-green-800 dark:bg-green-900/30 dark:text-green-400">
-            Your Turn — Fire!
-          </span>
-        ) : (
-          <span className="animate-pulse rounded-full bg-amber-100 px-4 py-2 text-sm font-semibold text-amber-800 dark:bg-amber-900/30 dark:text-amber-400">
-            Opponent&apos;s Turn — Waiting…
-          </span>
-        )}
-      </div>
+      {/* Turn indicator (hidden when readOnly) */}
+      {!readOnly && (
+        <div className="flex items-center justify-center">
+          {isMyTurn ? (
+            <span className="rounded-full bg-green-100 px-4 py-2 text-sm font-semibold text-green-800 dark:bg-green-900/30 dark:text-green-400">
+              Your Turn — Fire!
+            </span>
+          ) : (
+            <span className="animate-pulse rounded-full bg-amber-100 px-4 py-2 text-sm font-semibold text-amber-800 dark:bg-amber-900/30 dark:text-amber-400">
+              Opponent&apos;s Turn — Waiting…
+            </span>
+          )}
+        </div>
+      )}
 
       {/* Grids */}
       <div className="flex flex-wrap items-start justify-center gap-8">
@@ -150,21 +154,21 @@ export function BattleScreen({
         <BoardGrid
           title="Enemy Waters"
           cells={opponentBoardCells}
-          interactive={true}
-          disabled={!isMyTurn || firing}
+          interactive={!readOnly}
+          disabled={readOnly || !isMyTurn || firing}
           onCellClick={handleFire}
         />
       </div>
 
       {/* Firing indicator */}
-      {firing && (
+      {!readOnly && firing && (
         <p className="text-sm text-gray-500 dark:text-gray-400">
           Firing…
         </p>
       )}
 
       {/* Error banner */}
-      {error && (
+      {!readOnly && error && (
         <div className="flex items-center gap-2 rounded border border-red-300 bg-red-50 px-4 py-2 text-sm text-red-700 dark:border-red-700 dark:bg-red-900/20 dark:text-red-400">
           <span>{error}</span>
           <button

@@ -55,3 +55,11 @@ Implementer: modified `src/lib/api/types.ts` (added `gameOver: boolean` + `winne
 Reviewer: PASS — tsc --noEmit exit 0, npm run build compiled successfully (Turbopack, routes: /, /_not-found, /game/[token], /login, /register), npm run lint clean, 10/10 grep assertions pass (fireShot count=2, isMyTurn/currentTurnPlayerName present, IN_PROGRESS in page.tsx, gameOver/winnerName in types.ts, sunkShipType in types.ts, disabled/pointer-events-none in board-grid.tsx, My Fleet non-interactive confirmed)
 
 Commit: uncommitted
+
+## 2026-07-01 — REQ-9: Win/Loss Detection — Polish Game-Over Screen
+
+Implementer: modified `src/app/game/[token]/battle-screen.tsx` (added `readOnly?: boolean` prop; when true: skips polling, hides turn indicator, disables opponent board interactivity, hides firing/error UI; net +10 lines). Created `src/app/game/[token]/game-over-panel.tsx` (125 lines — Victory/Defeat heading with green/red styling, "vs opponent" subtitle, stats grid with duration/shots/hits/accuracy per player + winner row, Back to Lobby link, dark mode support). Modified `src/app/game/[token]/page.tsx` (replaced inline FINISHED heading+Link with GameOverPanel + computed stats from gameState: opponentName, myShots, myHits, opponentShots, opponentHits, durationSeconds; passes readOnly to BattleScreen; removed unused Link import; net +25 lines). Total net: +160 lines across 3 files. All verifications pass: tsc --noEmit exit 0, npm run build compiled (Turbopack), npm run lint clean, 6/6 grep assertions pass.
+
+Reviewer: PASS — tsc --noEmit exit 0, npm run build compiled successfully (Turbopack, routes: /, /_not-found, /game/[token], /login, /register), npm run lint clean, 6/6 grep assertions pass (GameOverPanel exported + used in page.tsx, readOnly prop in battle-screen with turn indicator hidden, stats computed in FINISHED block, opponentName displayed)
+
+Commit: uncommitted

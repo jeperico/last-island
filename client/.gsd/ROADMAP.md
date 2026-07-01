@@ -7,9 +7,10 @@
 - 2026-07-01: REQ-3 Auth state management (commit 7105a81)
 - 2026-07-01: REQ-4 Game lobby (commit 0e3bde1)
 - 2026-07-01: REQ-5 Ship placement (commit eb35e3a)
+- 2026-07-01: REQ-6+7+8 Battle screen + turn flow + shot feedback (commit bbad387)
 
 ## Now
-- REQ-6: Battle screen — own board + opponent board (fog of war, click to shoot)
+- REQ-9: Win/loss detection — show game result when match ends
 
 ## Next
 - REQ-11: API client layer
