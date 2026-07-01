@@ -25,7 +25,7 @@ export type MarineRank =
   | "ENSIGN";
 
 export type GamePhase =
-  | "WAITING_FOR_PLAYERS"
+  | "WAITING_OPPONENT"
   | "PLACING_SHIPS"
   | "IN_PROGRESS"
   | "FINISHED";
@@ -95,16 +95,16 @@ export interface UserResponse {
 }
 
 export interface CreateGameResponse {
+  id: string;
   token: string;
   phase: GamePhase;
-  bluePlayerName: string;
+  createdAt: string;
 }
 
 export interface GameSummaryResponse {
+  id: string;
   token: string;
-  phase: GamePhase;
   bluePlayerName: string;
-  redPlayerName: string | null;
   createdAt: string;
 }
 

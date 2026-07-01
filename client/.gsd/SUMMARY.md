@@ -31,3 +31,11 @@ Implementer: modified `src/lib/auth-storage.ts` (+4 SSR guards, net +4 lines). M
 Reviewer: PASS — 9/9 checks green (tsc --noEmit exit 0, npm run build compiled successfully via Turbopack, npm run lint clean; Providers in layout ✓; setTokenProvider in AuthProvider useEffect ✓; useRequireAuth defined + used in page.tsx ✓; useRedirectIfAuthenticated in login + register ✓; attemptRefresh + refreshPromise dedup in client.ts ✓)
 
 Commit: uncommitted
+
+## 2026-07-01 — REQ-4: Game Lobby — Create, Join, and List Games
+
+Implementer: modified `src/lib/api/types.ts` (fixed GamePhase enum WAITING_FOR_PLAYERS → WAITING_OPPONENT, fixed CreateGameResponse adding id/createdAt removing bluePlayerName, fixed GameSummaryResponse adding id removing phase/redPlayerName; net ±5 lines). Rewrote `src/app/page.tsx` (full lobby with auth protection, create game button, join-by-token input, paginated game list with prev/next, error handling, logout; net +241 → +252 lines after lint fix). Created `src/app/game/[token]/page.tsx` (29 lines — protected placeholder showing token). Total net: +260 lines across 3 files. All verifications pass: tsc --noEmit exit 0, npm run build compiled (routes: /, /_not-found, /game/[token], /login, /register), npm run lint clean, 7/7 grep assertions pass.
+
+Reviewer: PASS — 10/10 checks green (tsc --noEmit exit 0, npm run build compiled successfully via Turbopack with routes /, /_not-found, /game/[token], /login, /register; npm run lint clean; useRequireAuth in page.tsx ✓; createGame+joinGame+listGames used ✓; WAITING_OPPONENT enum ✓; old WAITING_FOR_PLAYERS removed ✓; router.push redirect ✓; CreateGameResponse has id ✓; game placeholder protected ✓)
+
+Commit: uncommitted

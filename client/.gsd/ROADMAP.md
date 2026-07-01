@@ -4,9 +4,10 @@
 - 2026-07-01: REQ-1 Project scaffolding (commit 076e401)
 - 2026-07-01: REQ-11 API client layer (commit b7cfcae)
 - 2026-07-01: REQ-2 Auth pages (commit 49f728b)
+- 2026-07-01: REQ-3 Auth state management (commit 7105a81)
 
 ## Now
-- REQ-3: Auth state management — persist tokens, attach to requests, refresh flow
+- REQ-4: Game lobby — create game, join game by friendly token, list available games
 
 ## Next
 - REQ-11: API client layer
