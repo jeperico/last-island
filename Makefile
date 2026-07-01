@@ -36,18 +36,18 @@ db-shell: ## Open psql shell in the container
 db-health: ## Check DB health status
 	docker inspect --format='{{.State.Health.Status}}' lastisland-db
 
-# --- Service ---
+# --- Service (Java/Spring Boot) ---
 
-.PHONY: build run test install status
+.PHONY: service-build service-run service-test service-install
 
-build: ## Compile the Spring Boot service
+service-build: ## Compile the Spring Boot service
 	cd service && mvn compile -q
 
-run: ## Run the service with dev profile
-	cd service && export $$(cat ../$(ENV_FILE) | grep -v '^\#' | xargs) && ./mvnw spring-boot:run -Dspring-boot.run.profiles=$(ENV)
+service-run: ## Run the API (dev profile, :8081)
+	cd service && export $$(cat ../$(ENV_FILE) | grep -v '^\#' | xargs) && mvn spring-boot:run -Dspring-boot.run.profiles=$(ENV)
 
-test: ## Run tests
-	@TMP_LOG=$$(mktemp /home/perico/work/last-island/.test-output.XXXXXX); \
+service-test: ## Run service tests with pretty output
+	@TMP_LOG=$$(mktemp /tmp/.lastisland-test.XXXXXX); \
 	cleanup() { rm -f "$$TMP_LOG"; }; \
 	trap cleanup EXIT INT TERM; \
 	use_color=true; \
@@ -65,11 +65,11 @@ test: ## Run tests
 		RED=""; GREEN=""; YELLOW=""; CYAN=""; BOLD=""; RESET=""; \
 	fi; \
 	if [[ -n "$$VERBOSE" ]]; then \
-		echo "$${CYAN}$${BOLD}▶ Running tests (verbose)...$${RESET}"; \
+		echo "$${CYAN}$${BOLD}▶ Running service tests (verbose)...$${RESET}"; \
 		cd service && mvn clean test 2>&1 | tee "$$TMP_LOG"; \
 		EXIT_CODE=$${PIPESTATUS[0]}; \
 	else \
-		echo -n "$${CYAN}$${BOLD}▶ Running tests...$${RESET} "; \
+		echo -n "$${CYAN}$${BOLD}▶ Running service tests...$${RESET} "; \
 		START=$$(date +%s%N); \
 		cd service && mvn clean test > "$$TMP_LOG" 2>&1 & \
 		MVN_PID=$$!; \
@@ -78,7 +78,7 @@ test: ## Run tests
 		while kill -0 $$MVN_PID 2>/dev/null; do \
 			NOW=$$(date +%s%N); \
 			ELAPSED=$$(( (NOW - START) / 1000000000 )); \
-			printf "\r$${CYAN}$${BOLD}▶ Running tests...$${RESET} $${YELLOW}%s$${RESET} %ds" "$${SPINNER:i++%$${#SPINNER}:1}" "$$ELAPSED"; \
+			printf "\r$${CYAN}$${BOLD}▶ Running service tests...$${RESET} $${YELLOW}%s$${RESET} %ds" "$${SPINNER:i++%$${#SPINNER}:1}" "$$ELAPSED"; \
 			sleep 0.1; \
 		done; \
 		wait $$MVN_PID; \
@@ -120,8 +120,42 @@ test: ## Run tests
 	cleanup; \
 	exit $$EXIT_CODE
 
-install: ## Install (skip tests)
+service-install: ## Install service (skip tests)
 	cd service && mvn clean install -DskipTests -q
+
+# --- Client (Next.js) ---
+
+.PHONY: client-install client-run client-build client-lint
+
+client-install: ## Install client dependencies
+	cd client && npm install
+
+client-run: ## Run the frontend (dev mode, :3000)
+	cd client && npm run dev
+
+client-build: ## Build client for production
+	cd client && npm run build
+
+client-lint: ## Lint client code
+	cd client && npm run lint
+
+# --- Shortcuts ---
+
+.PHONY: run build test install
+
+run: ## Run both service + client (use with make -j2 run)
+	@echo "Use: make service-run  OR  make client-run"
+	@echo "For both: make -j2 service-run client-run"
+
+build: service-build client-build ## Build service + client
+
+test: service-test ## Run all tests
+
+install: service-install client-install ## Install all dependencies
+
+# --- Status ---
+
+.PHONY: status
 
 status: ## Show project status
 	@use_color=true; \
@@ -146,6 +180,6 @@ status: ## Show project status
 
 .PHONY: help
 help: ## Show this help
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-15s\033[0m %s\n", $$1, $$2}'
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-18s\033[0m %s\n", $$1, $$2}'
 
 .DEFAULT_GOAL := help
