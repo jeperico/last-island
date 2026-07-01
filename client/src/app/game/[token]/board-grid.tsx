@@ -20,19 +20,19 @@ function cellKey(row: number, col: number): string {
 }
 
 function getCellClasses(state: CellState, interactive: boolean): string {
-  const base = "h-8 w-8 flex items-center justify-center text-xs font-bold border border-gray-300 dark:border-gray-600 transition-colors";
+  const base = "h-8 w-8 flex items-center justify-center text-xs font-bold border border-border transition-colors";
 
   switch (state.type) {
     case "empty":
-      return `${base} bg-blue-100 dark:bg-blue-900 ${interactive ? "cursor-pointer hover:bg-blue-200 dark:hover:bg-blue-800" : ""}`;
+      return `${base} bg-sky-900/40 ${interactive ? "cursor-pointer hover:bg-sky-800/50" : ""}`;
     case "ship":
-      return `${base} bg-green-400 dark:bg-green-600`;
+      return `${base} bg-teal-700 text-white`;
     case "hit":
-      return `${base} bg-red-500 text-white`;
+      return `${base} bg-[var(--color-danger)] text-white`;
     case "miss":
-      return `${base} bg-gray-300 dark:bg-gray-600 text-gray-700 dark:text-gray-300`;
+      return `${base} bg-slate-700 text-text-muted opacity-70`;
     case "sunk":
-      return `${base} bg-purple-600 text-white border-purple-800 dark:border-purple-400`;
+      return `${base} bg-purple-800 text-white border-purple-900`;
     default:
       return base;
   }
@@ -69,7 +69,7 @@ export function BoardGrid({
           {COL_LABELS.map((label) => (
             <div
               key={label}
-              className="flex h-6 w-8 items-center justify-center text-xs font-medium text-gray-500 dark:text-gray-400"
+              className="flex h-6 w-8 items-center justify-center text-xs font-medium text-text-muted"
             >
               {label}
             </div>
@@ -79,7 +79,7 @@ export function BoardGrid({
         {ROW_LABELS.map((rowLabel, rowIdx) => (
           <div key={rowLabel} className="flex">
             {/* Row label */}
-            <div className="flex h-8 w-6 items-center justify-center text-xs font-medium text-gray-500 dark:text-gray-400">
+            <div className="flex h-8 w-6 items-center justify-center text-xs font-medium text-text-muted">
               {rowLabel}
             </div>
             {/* Cells */}

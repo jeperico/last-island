@@ -8,6 +8,7 @@ import type {
   ShotCellResponse,
 } from "@/lib/api/types";
 import { getShipCells, cellKey } from "@/lib/game";
+import { Badge, Alert, Spinner } from "@/components/ui";
 import { BoardGrid, type CellState } from "./board-grid";
 
 interface BattleScreenProps {
@@ -137,13 +138,9 @@ export function BattleScreen({
       {!readOnly && (
         <div className="flex items-center justify-center">
           {isMyTurn ? (
-            <span className="rounded-full bg-green-100 px-4 py-2 text-sm font-semibold text-green-800 dark:bg-green-900/30 dark:text-green-400">
-              Your Turn — Fire!
-            </span>
+            <Badge variant="success">Your Turn — Fire!</Badge>
           ) : (
-            <span className="animate-pulse rounded-full bg-amber-100 px-4 py-2 text-sm font-semibold text-amber-800 dark:bg-amber-900/30 dark:text-amber-400">
-              Opponent&apos;s Turn — Waiting…
-            </span>
+            <Badge variant="warning" pulse>Opponent&apos;s Turn — Waiting…</Badge>
           )}
         </div>
       )}
@@ -162,23 +159,16 @@ export function BattleScreen({
 
       {/* Firing indicator */}
       {!readOnly && firing && (
-        <p className="text-sm text-gray-500 dark:text-gray-400">
-          Firing…
-        </p>
+        <span className="flex items-center gap-2 text-sm text-text-muted">
+          <Spinner size="sm" /> Firing…
+        </span>
       )}
 
       {/* Error banner */}
       {!readOnly && error && (
-        <div className="flex items-center gap-2 rounded border border-red-300 bg-red-50 px-4 py-2 text-sm text-red-700 dark:border-red-700 dark:bg-red-900/20 dark:text-red-400">
-          <span>{error}</span>
-          <button
-            onClick={() => setError(null)}
-            className="ml-2 font-bold hover:text-red-900 dark:hover:text-red-300"
-            aria-label="Dismiss error"
-          >
-            ✕
-          </button>
-        </div>
+        <Alert variant="error" dismissible onDismiss={() => setError(null)}>
+          {error}
+        </Alert>
       )}
     </div>
   );

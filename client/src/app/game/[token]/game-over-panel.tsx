@@ -38,77 +38,77 @@ export function GameOverPanel({
     <div className="flex flex-col items-center gap-6">
       {/* Victory / Defeat heading */}
       {isWinner ? (
-        <h1 className="text-3xl font-bold text-green-600 dark:text-green-400">
+        <h1 className="text-3xl font-bold text-[var(--color-success)]">
           Victory! 🏴‍☠️
         </h1>
       ) : (
-        <h1 className="text-3xl font-bold text-red-600 dark:text-red-400">
+        <h1 className="text-3xl font-bold text-[var(--color-danger)]">
           Defeat…
         </h1>
       )}
 
       {/* Opponent subtitle */}
-      <p className="text-lg text-gray-600 dark:text-gray-300">
+      <p className="text-lg text-text-secondary">
         vs <span className="font-semibold">{opponentName}</span>
       </p>
 
       {/* Stats grid */}
-      <div className="grid w-full max-w-md grid-cols-3 gap-4 rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm dark:border-gray-700 dark:bg-gray-800/50">
+      <div className="grid w-full max-w-md grid-cols-3 gap-4 rounded-lg border border-[var(--color-border)] bg-[var(--color-surface-elevated)] p-4 text-sm">
         {/* Header row */}
-        <div className="font-medium text-gray-500 dark:text-gray-400" />
-        <div className="text-center font-medium text-gray-500 dark:text-gray-400">
+        <div className="font-medium text-text-muted" />
+        <div className="text-center font-medium text-text-muted">
           You
         </div>
-        <div className="text-center font-medium text-gray-500 dark:text-gray-400">
+        <div className="text-center font-medium text-text-muted">
           Opponent
         </div>
 
         {/* Duration row */}
-        <div className="font-medium text-gray-700 dark:text-gray-300">
+        <div className="font-medium text-text-secondary">
           Duration
         </div>
-        <div className="col-span-2 text-center text-gray-700 dark:text-gray-300">
+        <div className="col-span-2 text-center text-text-secondary">
           {formatDuration(durationSeconds)}
         </div>
 
         {/* Shots row */}
-        <div className="font-medium text-gray-700 dark:text-gray-300">
+        <div className="font-medium text-text-secondary">
           Shots
         </div>
-        <div className="text-center text-gray-700 dark:text-gray-300">
+        <div className="text-center text-text-secondary">
           {myShots}
         </div>
-        <div className="text-center text-gray-700 dark:text-gray-300">
+        <div className="text-center text-text-secondary">
           {opponentShots}
         </div>
 
         {/* Hits row */}
-        <div className="font-medium text-gray-700 dark:text-gray-300">
+        <div className="font-medium text-text-secondary">
           Hits
         </div>
-        <div className="text-center text-gray-700 dark:text-gray-300">
+        <div className="text-center text-text-secondary">
           {myHits}
         </div>
-        <div className="text-center text-gray-700 dark:text-gray-300">
+        <div className="text-center text-text-secondary">
           {opponentHits}
         </div>
 
         {/* Accuracy row */}
-        <div className="font-medium text-gray-700 dark:text-gray-300">
+        <div className="font-medium text-text-secondary">
           Accuracy
         </div>
-        <div className="text-center text-gray-700 dark:text-gray-300">
+        <div className="text-center text-text-secondary">
           {myAccuracy}%
         </div>
-        <div className="text-center text-gray-700 dark:text-gray-300">
+        <div className="text-center text-text-secondary">
           {opponentAccuracy}%
         </div>
 
         {/* Winner row */}
-        <div className="font-medium text-gray-700 dark:text-gray-300">
+        <div className="font-medium text-text-secondary">
           Winner
         </div>
-        <div className="col-span-2 text-center font-semibold text-green-600 dark:text-green-400">
+        <div className="col-span-2 text-center font-semibold text-[var(--color-success)]">
           {winnerName}
         </div>
       </div>
@@ -116,7 +116,7 @@ export function GameOverPanel({
       {/* Back to Lobby */}
       <Link
         href="/"
-        className="rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600"
+        className="inline-flex items-center justify-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-primary-ring"
       >
         Back to Lobby
       </Link>

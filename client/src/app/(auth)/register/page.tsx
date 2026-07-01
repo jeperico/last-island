@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useAuth, useRedirectIfAuthenticated } from "@/lib/auth";
 import type { ApiError } from "@/lib/api/client";
 import type { Filiation } from "@/lib/api/types";
+import { Alert, Input, Button } from "@/components/ui";
 
 interface FormData {
   name: string;
@@ -55,103 +56,104 @@ export default function RegisterPage() {
 
   return (
     <div>
-      <h1 className="mb-6 text-center text-2xl font-bold text-[var(--foreground)]">
+      <h1 className="mb-6 text-center text-2xl font-bold text-text-primary">
         Create Account
       </h1>
 
       {error && (
-        <div className="mb-4 rounded border border-red-300 bg-red-50 px-4 py-2 text-sm text-red-700 dark:border-red-700 dark:bg-red-900/20 dark:text-red-400">
+        <Alert variant="error" className="mb-4">
           {error}
-        </div>
+        </Alert>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div>
-          <label htmlFor="name" className="mb-1 block text-sm font-medium text-[var(--foreground)]">
-            Name
-          </label>
-          <input
-            id="name"
-            type="text"
-            required
-            value={formData.name}
-            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
-          />
-        </div>
+        <Input
+          label="Name"
+          id="name"
+          type="text"
+          required
+          value={formData.name}
+          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+        />
 
-        <div>
-          <label htmlFor="email" className="mb-1 block text-sm font-medium text-[var(--foreground)]">
-            Email
-          </label>
-          <input
-            id="email"
-            type="email"
-            required
-            value={formData.email}
-            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-            className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
-          />
-        </div>
+        <Input
+          label="Email"
+          id="email"
+          type="email"
+          required
+          value={formData.email}
+          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+        />
 
-        <div>
-          <label htmlFor="password" className="mb-1 block text-sm font-medium text-[var(--foreground)]">
-            Password
-          </label>
-          <input
-            id="password"
-            type="password"
-            required
-            minLength={8}
-            value={formData.password}
-            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-            className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
-          />
-        </div>
+        <Input
+          label="Password"
+          id="password"
+          type="password"
+          required
+          minLength={8}
+          value={formData.password}
+          onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+        />
 
         <fieldset>
-          <legend className="mb-2 text-sm font-medium text-[var(--foreground)]">
-            Filiation
-          </legend>
-          <div className="flex gap-6">
-            <label className="flex items-center gap-2 text-sm text-[var(--foreground)]">
-              <input
-                type="radio"
-                name="filiation"
-                value="PIRATE"
-                required
-                checked={formData.filiation === "PIRATE"}
-                onChange={(e) => setFormData({ ...formData, filiation: e.target.value as Filiation })}
-                className="accent-blue-600"
-              />
-              Pirate
-            </label>
-            <label className="flex items-center gap-2 text-sm text-[var(--foreground)]">
-              <input
-                type="radio"
-                name="filiation"
-                value="MARINE"
-                checked={formData.filiation === "MARINE"}
-                onChange={(e) => setFormData({ ...formData, filiation: e.target.value as Filiation })}
-                className="accent-blue-600"
-              />
-              Marine
-            </label>
+          <legend className="sr-only">Filiation</legend>
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() => setFormData({ ...formData, filiation: "PIRATE" })}
+              className={`flex flex-col items-center gap-2 rounded-lg border-2 px-4 py-5 transition-all cursor-pointer ${
+                formData.filiation === "PIRATE"
+                  ? "border-primary bg-primary/10 shadow-[0_0_12px_rgba(212,160,23,0.3)]"
+                  : "border-[var(--color-border)] hover:border-primary/50 hover:bg-[var(--color-surface-secondary)]"
+              }`}
+              aria-pressed={formData.filiation === "PIRATE"}
+            >
+              <span className="text-4xl">🏴‍☠️</span>
+              <span className={`text-sm font-semibold ${
+                formData.filiation === "PIRATE" ? "text-primary" : "text-text-primary"
+              }`}>
+                Pirate
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setFormData({ ...formData, filiation: "MARINE" })}
+              className={`flex flex-col items-center gap-2 rounded-lg border-2 px-4 py-5 transition-all cursor-pointer ${
+                formData.filiation === "MARINE"
+                  ? "border-ocean bg-ocean/10 shadow-[0_0_12px_rgba(56,189,248,0.3)]"
+                  : "border-[var(--color-border)] hover:border-ocean/50 hover:bg-[var(--color-surface-secondary)]"
+              }`}
+              aria-pressed={formData.filiation === "MARINE"}
+            >
+              <span className="text-4xl">⚓</span>
+              <span className={`text-sm font-semibold ${
+                formData.filiation === "MARINE" ? "text-ocean" : "text-text-primary"
+              }`}>
+                Marine
+              </span>
+            </button>
           </div>
+          {/* Hidden radio for form validation (required) */}
+          <input
+            type="radio"
+            name="filiation"
+            value={formData.filiation}
+            checked={formData.filiation !== ""}
+            required
+            className="sr-only"
+            aria-hidden="true"
+            readOnly
+          />
         </fieldset>
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {loading ? "Creating account..." : "Sign Up"}
-        </button>
+        <Button variant="primary" fullWidth loading={loading} type="submit">
+          Sign Up
+        </Button>
       </form>
 
-      <p className="mt-4 text-center text-sm text-gray-600 dark:text-gray-400">
+      <p className="mt-4 text-center text-sm text-text-secondary">
         Already have an account?{" "}
-        <Link href="/login" className="text-blue-600 hover:underline dark:text-blue-400">
+        <Link href="/login" className="text-primary hover:underline">
           Log in
         </Link>
       </p>

@@ -18,6 +18,7 @@ import {
   hasOverlap,
   cellKey,
 } from "@/lib/game";
+import { Alert, Button } from "@/components/ui";
 
 const GRID_SIZE = 10;
 const ROW_LABELS = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"];
@@ -278,9 +279,9 @@ export function ShipPlacement({
       </h1>
 
       {error && (
-        <div className="mb-4 w-full max-w-3xl rounded border border-red-300 bg-red-50 px-4 py-2 text-sm text-red-700 dark:border-red-700 dark:bg-red-900/20 dark:text-red-400">
+        <Alert variant="error" className="mb-4 w-full max-w-3xl">
           {error}
-        </div>
+        </Alert>
       )}
 
       <div className="flex w-full max-w-4xl flex-col gap-6 md:flex-row">
@@ -301,10 +302,10 @@ export function ShipPlacement({
                   onClick={() => handleShipSelect(shipType)}
                   className={`flex w-full items-center gap-2 rounded border px-3 py-2 text-left text-sm transition-colors ${
                     isSelected
-                      ? "border-blue-500 bg-blue-50 dark:border-blue-400 dark:bg-blue-900/30"
+                      ? "border-[var(--color-ocean)] bg-blue-900/30"
                       : isPlaced
-                        ? "border-green-300 bg-green-50 opacity-70 dark:border-green-700 dark:bg-green-900/20"
-                        : "border-gray-200 hover:border-gray-300 hover:bg-gray-50 dark:border-gray-700 dark:hover:border-gray-600 dark:hover:bg-gray-800"
+                        ? "border-green-700 bg-green-900/30 opacity-70"
+                        : "border-[var(--color-border)] hover:border-[var(--color-border-light)] hover:bg-[var(--color-surface-secondary)]"
                   }`}
                 >
                   <div className="flex-1">
@@ -317,15 +318,15 @@ export function ShipPlacement({
                           key={i}
                           className={`h-2.5 w-2.5 rounded-sm ${
                             isPlaced
-                              ? "bg-green-500 dark:bg-green-400"
-                              : "bg-gray-400 dark:bg-gray-500"
+                              ? "bg-green-500"
+                              : "bg-text-muted"
                           }`}
                         />
                       ))}
                     </div>
                   </div>
                   {isPlaced && (
-                    <span className="text-xs text-green-600 dark:text-green-400">
+                    <span className="text-xs text-green-400">
                       ✓
                     </span>
                   )}
@@ -338,13 +339,13 @@ export function ShipPlacement({
           <div className="mt-4">
             <button
               onClick={toggleOrientation}
-              className="w-full rounded border border-gray-200 px-3 py-2 text-sm text-[var(--foreground)] hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800"
+              className="w-full rounded border border-[var(--color-border)] px-3 py-2 text-sm text-[var(--foreground)] hover:bg-[var(--color-surface-secondary)]"
             >
               Orientation:{" "}
               <span className="font-medium">
                 {orientation === "HORIZONTAL" ? "→ Horizontal" : "↓ Vertical"}
               </span>
-              <span className="ml-2 text-xs text-gray-500">(R)</span>
+              <span className="ml-2 text-xs text-text-muted">(R)</span>
             </button>
           </div>
         </div>
@@ -358,7 +359,7 @@ export function ShipPlacement({
               {Array.from({ length: GRID_SIZE }).map((_, col) => (
                 <div
                   key={col}
-                  className="flex h-8 w-8 items-center justify-center text-xs font-medium text-gray-500 dark:text-gray-400"
+                  className="flex h-8 w-8 items-center justify-center text-xs font-medium text-text-muted"
                 >
                   {col + 1}
                 </div>
@@ -369,7 +370,7 @@ export function ShipPlacement({
             {Array.from({ length: GRID_SIZE }).map((_, row) => (
               <div key={row} className="flex">
                 {/* Row label */}
-                <div className="flex h-8 w-8 items-center justify-center text-xs font-medium text-gray-500 dark:text-gray-400">
+                <div className="flex h-8 w-8 items-center justify-center text-xs font-medium text-text-muted">
                   {ROW_LABELS[row]}
                 </div>
 
@@ -379,14 +380,14 @@ export function ShipPlacement({
                   return (
                     <div
                       key={col}
-                      className={`h-8 w-8 cursor-pointer border border-gray-200 transition-colors dark:border-gray-700 ${
+                      className={`h-8 w-8 cursor-pointer border border-[var(--color-border)] transition-colors ${
                         state === "placed"
-                          ? "bg-teal-500 dark:bg-teal-600"
+                          ? "bg-teal-600"
                           : state === "preview-valid"
-                            ? "bg-green-400/60 dark:bg-green-500/40"
+                            ? "bg-green-400/60"
                             : state === "preview-invalid"
-                              ? "bg-red-400/60 dark:bg-red-500/40"
-                              : "bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700"
+                              ? "bg-red-400/60"
+                              : "bg-sky-900/40 hover:bg-sky-800/50"
                       }`}
                       onClick={() => handleCellClick(row, col)}
                       onMouseEnter={() => setHoveredCell({ row, col })}
@@ -406,19 +407,17 @@ export function ShipPlacement({
 
           {/* Action buttons */}
           <div className="mt-4 flex gap-3">
-            <button
+            <Button
+              variant="primary"
               onClick={handleDeploy}
-              disabled={!allPlaced || submitting}
-              className="rounded bg-blue-600 px-6 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+              loading={submitting}
+              disabled={!allPlaced}
             >
-              {submitting ? "Deploying..." : "Deploy Fleet"}
-            </button>
-            <button
-              onClick={handleReset}
-              className="rounded border border-gray-300 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
-            >
+              Deploy Fleet
+            </Button>
+            <Button variant="secondary" onClick={handleReset}>
               Reset
-            </button>
+            </Button>
           </div>
         </div>
       </div>

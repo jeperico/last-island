@@ -6,6 +6,15 @@ import { useRequireAuth, useAuth } from "@/lib/auth";
 import { createGame, joinGame, listGames } from "@/lib/api";
 import type { ApiError } from "@/lib/api/client";
 import type { GameSummaryResponse, PageResponse } from "@/lib/api/types";
+import {
+  PageHeader,
+  Alert,
+  Button,
+  Input,
+  Card,
+  EmptyState,
+  Skeleton,
+} from "@/components/ui";
 
 export default function Home() {
   const { user, isLoading } = useRequireAuth();
@@ -54,7 +63,7 @@ export default function Home() {
   if (isLoading) {
     return (
       <div className="flex flex-1 items-center justify-center">
-        <p className="text-sm text-gray-500">Loading...</p>
+        <p className="text-sm text-text-muted">Loading...</p>
       </div>
     );
   }
@@ -130,119 +139,131 @@ export default function Home() {
     <div className="flex flex-col flex-1 items-center px-4 py-8">
       <div className="w-full max-w-2xl">
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <h1 className="text-2xl font-bold text-[var(--foreground)]">
-            Welcome{user ? `, ${user.name}` : ""}
-          </h1>
-          <button
-            onClick={logout}
-            className="rounded border border-gray-300 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
-          >
-            Logout
-          </button>
-        </div>
+        <PageHeader
+          title={`Welcome${user ? `, ${user.name}` : ""}`}
+          actions={
+            <Button variant="secondary" size="sm" onClick={logout}>
+              Logout
+            </Button>
+          }
+        />
 
         {/* Error display */}
         {error && (
-          <div className="mb-4 rounded border border-red-300 bg-red-50 px-4 py-2 text-sm text-red-700 dark:border-red-700 dark:bg-red-900/20 dark:text-red-400">
+          <Alert
+            variant="error"
+            dismissible
+            onDismiss={() => setError(null)}
+            className="mb-4"
+          >
             {error}
-          </div>
+          </Alert>
         )}
 
         {/* Create Game */}
         <section className="mb-6">
-          <button
+          <Button
+            variant="primary"
+            fullWidth
+            loading={creatingGame}
             onClick={handleCreateGame}
-            disabled={creatingGame}
-            className="w-full rounded bg-blue-600 px-4 py-3 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {creatingGame ? "Creating..." : "Create Game"}
-          </button>
+            Create Battle
+          </Button>
         </section>
 
         {/* Join by Token */}
         <section className="mb-8">
-          <h2 className="mb-2 text-lg font-semibold text-[var(--foreground)]">
+          <h2 className="mb-2 text-lg font-semibold text-text-primary">
             Join by Token
           </h2>
           <div className="flex gap-2">
-            <input
-              type="text"
-              placeholder="Enter game token"
-              value={joinToken}
-              onChange={(e) => setJoinToken(e.target.value)}
-              className="flex-1 rounded border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100"
-            />
-            <button
+            <div className="flex-1">
+              <Input
+                id="join-token"
+                placeholder="Enter game token"
+                value={joinToken}
+                onChange={(e) => setJoinToken(e.target.value)}
+              />
+            </div>
+            <Button
+              variant="primary"
+              size="md"
               onClick={handleJoinGame}
-              disabled={joiningGame}
-              className="rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+              loading={joiningGame}
             >
-              {joiningGame ? "Joining..." : "Join"}
-            </button>
+              Join
+            </Button>
           </div>
         </section>
 
         {/* Available Games */}
         <section>
-          <h2 className="mb-3 text-lg font-semibold text-[var(--foreground)]">
+          <h2 className="mb-3 text-lg font-semibold text-text-primary">
             Available Games
           </h2>
 
           {loadingGames && (
-            <p className="text-sm text-gray-500">Loading games...</p>
+            <div className="space-y-2">
+              <Skeleton height="3.5rem" className="w-full" />
+              <Skeleton height="3.5rem" className="w-full" />
+              <Skeleton height="3.5rem" className="w-full" />
+            </div>
           )}
 
           {!loadingGames && gamesPage && gamesPage.content.length === 0 && (
-            <p className="text-sm text-gray-500">
-              No games available. Create one!
-            </p>
+            <EmptyState
+              title="No battles available"
+              description="Create one to start!"
+            />
           )}
 
           {!loadingGames && gamesPage && gamesPage.content.length > 0 && (
             <div className="space-y-2">
               {gamesPage.content.map((game) => (
-                <div
-                  key={game.id}
-                  className="flex items-center justify-between rounded border border-gray-200 px-4 py-3 dark:border-gray-700"
-                >
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-[var(--foreground)]">
-                      {game.bluePlayerName}
-                    </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      Token: {game.token} · {formatDate(game.createdAt)}
-                    </p>
+                <Card key={game.id} padding="md">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-text-primary">
+                        {game.bluePlayerName}
+                      </p>
+                      <p className="text-xs text-text-muted">
+                        Token: {game.token} · {formatDate(game.createdAt)}
+                      </p>
+                    </div>
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      onClick={() => handleJoinFromList(game.token)}
+                      loading={joiningGame}
+                    >
+                      Join
+                    </Button>
                   </div>
-                  <button
-                    onClick={() => handleJoinFromList(game.token)}
-                    disabled={joiningGame}
-                    className="rounded bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    Join
-                  </button>
-                </div>
+                </Card>
               ))}
 
               {/* Pagination */}
               <div className="flex items-center justify-between pt-3">
-                <button
+                <Button
+                  variant="secondary"
+                  size="sm"
                   onClick={handlePrevPage}
                   disabled={currentPage === 0}
-                  className="rounded border border-gray-300 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
                 >
                   Previous
-                </button>
-                <span className="text-sm text-gray-600 dark:text-gray-400">
+                </Button>
+                <span className="text-sm text-text-secondary">
                   Page {currentPage + 1} of {gamesPage.totalPages}
                 </span>
-                <button
+                <Button
+                  variant="secondary"
+                  size="sm"
                   onClick={handleNextPage}
                   disabled={gamesPage.last}
-                  className="rounded border border-gray-300 px-3 py-1.5 text-sm text-gray-700 hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800"
                 >
                   Next
-                </button>
+                </Button>
               </div>
             </div>
           )}

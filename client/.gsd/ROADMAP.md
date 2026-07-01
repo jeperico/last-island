@@ -9,9 +9,18 @@
 - 2026-07-01: REQ-5 Ship placement (commit eb35e3a)
 - 2026-07-01: REQ-6+7+8 Battle screen + turn flow + shot feedback (commit bbad387)
 - 2026-07-01: REQ-9 Win/loss detection (commit 63e3970)
+- 2026-07-01: MVP fixes: correct API URL, add Next.js proxy rewrites (CORS bypass), fix JoinGameResponse type
 
 ## Now
-- MVP fixes: correct API URL, add Next.js proxy rewrites (CORS bypass), fix JoinGameResponse type
+- DS: Design System & UI Refactoring
+  - DS-01: Design Tokens + globals.css
+  - DS-02: Core primitives (Button, Input, Alert, Card)
+  - DS-03: Secondary primitives (Badge, Spinner, Skeleton, PageHeader, EmptyState)
+  - DS-04: Auth pages refactor
+  - DS-05: Lobby page refactor
+  - DS-06: Game page — Waiting + Placement refactor
+  - DS-07: Battle + GameOver refactor
+  - DS-08: Layout polish + cleanup
 
 ## Next
 - REQ-10: WebSocket integration (v2)

@@ -8,6 +8,7 @@ import type { GamePhase, GameStateResponse } from "@/lib/api/types";
 import { ShipPlacement } from "./ship-placement";
 import { BattleScreen } from "./battle-screen";
 import { GameOverPanel } from "./game-over-panel";
+import { Spinner, Alert, EmptyState, Badge } from "@/components/ui";
 
 export default function GamePage() {
   const { user, isLoading: authLoading } = useRequireAuth();
@@ -101,17 +102,15 @@ export default function GamePage() {
   if (authLoading || loading) {
     return (
       <div className="flex flex-1 items-center justify-center">
-        <p className="text-sm text-gray-500">Loading...</p>
+        <Spinner size="lg" />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="flex flex-1 items-center justify-center">
-        <div className="rounded border border-red-300 bg-red-50 px-6 py-4 text-sm text-red-700 dark:border-red-700 dark:bg-red-900/20 dark:text-red-400">
-          {error}
-        </div>
+      <div className="flex flex-1 items-center justify-center px-4">
+        <Alert variant="error">{error}</Alert>
       </div>
     );
   }
@@ -119,7 +118,7 @@ export default function GamePage() {
   if (!gameState || !user) {
     return (
       <div className="flex flex-1 items-center justify-center">
-        <p className="text-sm text-gray-500">Loading...</p>
+        <Spinner size="lg" />
       </div>
     );
   }
@@ -128,12 +127,12 @@ export default function GamePage() {
   if (gameState.phase === "WAITING_OPPONENT") {
     return (
       <div className="flex flex-1 flex-col items-center justify-center px-4">
-        <h1 className="text-xl font-bold text-[var(--foreground)]">
-          Waiting for opponent to join…
-        </h1>
-        <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-          Share the game token: <span className="font-mono font-semibold">{token}</span>
-        </p>
+        <EmptyState
+          title="Waiting for opponent to join…"
+          description="Share the game token:"
+        >
+          <Badge variant="neutral">{token}</Badge>
+        </EmptyState>
       </div>
     );
   }
@@ -155,12 +154,10 @@ export default function GamePage() {
 
     return (
       <div className="flex flex-1 flex-col items-center justify-center px-4">
-        <h1 className="text-xl font-bold text-[var(--foreground)]">
-          Waiting for opponent to deploy fleet…
-        </h1>
-        <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">
-          Your ships are placed. The battle will begin once your opponent is ready.
-        </p>
+        <EmptyState
+          title="Waiting for opponent to deploy fleet…"
+          description="Your ships are placed. The battle will begin once your opponent is ready."
+        />
       </div>
     );
   }
