@@ -68,6 +68,6 @@ Commit: uncommitted
 
 Implementer: modified `.env.local.example` (changed URL to localhost:8081/api/v1, added comment about Next.js rewrites fallback; net ±1 line). Modified `next.config.ts` (added async rewrites() proxying /api/:path* → http://localhost:8081/api/v1/:path*; net +9 lines). Modified `src/lib/api/client.ts` (BASE_URL fallback changed from "http://localhost:8080" to "", buildUrl refactored to handle relative paths via string concatenation when BASE_URL is empty; net +17 lines). Modified `src/lib/api/auth.ts` (prefixed all 4 paths with /api; net ±0 lines). Modified `src/lib/api/games.ts` (prefixed all 4 paths with /api; net ±0 lines). Modified `src/lib/api/board.ts` (prefixed both paths with /api; net ±0 lines). Modified `src/lib/api/types.ts` (expanded JoinGameResponse from 2 fields to 8 fields matching backend GameResponse; net +6 lines). Total net: +33 lines across 7 files. All verifications pass: tsc --noEmit exit 0, npm run build compiled (Turbopack), npm run lint clean.
 
-Reviewer: pending
+Reviewer: PASS — tsc --noEmit exit 0, npm run build compiled successfully (Turbopack, routes: /, /_not-found, /game/[token], /login, /register), npm run lint clean, 8/8 grep assertions pass (.env.local.example has 8081/api/v1, rewrites in next.config.ts, client.ts empty-string fallback, /api/auth/register in auth.ts, /api/games in games.ts, bluePlayerName in JoinGameResponse)
 
 Commit: uncommitted
