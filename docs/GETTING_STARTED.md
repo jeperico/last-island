@@ -6,13 +6,12 @@ Local development setup for Last Island V1.
 
 ```bash
 # Terminal 1 — Database + API
-make up          # start PostgreSQL
-make run         # start Spring Boot API on :8081
+make up              # start PostgreSQL
+make service-run     # start Spring Boot API on :8081
 
 # Terminal 2 — Frontend
-cd client
-npm install
-npm run dev      # start Next.js on :3000
+make client-install   # install dependencies
+make client-run       # start Next.js on :3000
 ```
 
 Open http://localhost:3000 to play.
@@ -67,7 +66,7 @@ make db-health
 ## 3. Run the Service
 
 ```bash
-make run
+make service-run
 ```
 
 This starts the Spring Boot API on **http://localhost:8081/api/v1** with the `dev` profile.
@@ -79,9 +78,8 @@ On first start, Flyway automatically runs all migrations (V1–V4).
 In a separate terminal:
 
 ```bash
-cd client
-npm install
-npm run dev
+make client-install
+make client-run
 ```
 
 This starts the Next.js 16 frontend on **http://localhost:3000**.
@@ -181,10 +179,16 @@ make help
 |---------|-------------|
 | `make up` | Start PostgreSQL container |
 | `make down` | Stop containers |
-| `make run` | Run the API (dev profile) |
-| `make test` | Run tests with pretty output |
-| `make build` | Compile only |
-| `make install` | Install (skip tests) |
+| `make service-run` | Run the API (dev profile, :8081) |
+| `make service-test` | Run service tests with pretty output |
+| `make service-build` | Compile the service |
+| `make client-install` | Install client dependencies |
+| `make client-run` | Run the frontend (dev mode, :3000) |
+| `make client-build` | Build client for production |
+| `make client-lint` | Lint client code |
+| `make build` | Build service + client |
+| `make test` | Run all tests |
+| `make install` | Install all dependencies |
 | `make status` | Show containers + git info |
 | `make db-shell` | Open psql in the container |
 | `make logs` | Tail container logs |
