@@ -3,6 +3,8 @@ package com.last_island.api.domain.game.controller;
 import com.last_island.api.common.dto.PageResponse;
 import com.last_island.api.domain.board.dto.BoardResponse;
 import com.last_island.api.domain.board.dto.PlaceShipsRequest;
+import com.last_island.api.domain.board.dto.ShotRequest;
+import com.last_island.api.domain.board.dto.ShotResponse;
 import com.last_island.api.domain.board.service.BoardService;
 import com.last_island.api.domain.game.dto.CreateGameResponse;
 import com.last_island.api.domain.game.dto.GameResponse;
@@ -54,5 +56,12 @@ public class GameController {
                                     @RequestBody PlaceShipsRequest request,
                                     @AuthenticationPrincipal AuthenticatedUser principal) {
         return boardService.placeShips(token, principal.getId(), request);
+    }
+
+    @PostMapping("/{token}/shots")
+    public ShotResponse fireShot(@PathVariable String token,
+                                 @RequestBody ShotRequest request,
+                                 @AuthenticationPrincipal AuthenticatedUser principal) {
+        return boardService.fireShot(token, principal.getId(), request);
     }
 }

@@ -3,14 +3,19 @@ package com.last_island.api.domain.board.service;
 import com.last_island.api.domain.board.dto.BoardResponse;
 import com.last_island.api.domain.board.dto.PlaceShipsRequest;
 import com.last_island.api.domain.board.dto.ShipPlacementDto;
+import com.last_island.api.domain.board.dto.ShotRequest;
+import com.last_island.api.domain.board.dto.ShotResponse;
 import com.last_island.api.domain.board.entity.Board;
 import com.last_island.api.domain.board.entity.Ship;
+import com.last_island.api.domain.board.entity.Shot;
 import com.last_island.api.domain.board.enums.Orientation;
 import com.last_island.api.domain.board.enums.ShipType;
+import com.last_island.api.domain.board.enums.ShotResult;
 import com.last_island.api.domain.board.mapper.BoardMapper;
 import com.last_island.api.domain.game.entity.Game;
 import com.last_island.api.domain.game.enums.GamePhase;
 import com.last_island.api.domain.game.repository.GameRepository;
+import com.last_island.api.domain.user.entity.User;
 import com.last_island.api.domain.user.enums.Filiation;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -136,5 +141,96 @@ public class BoardService {
 
         // 12. Return response
         return BoardMapper.toResponse(board, game.getPhase().name());
+    }
+
+    @Transactional
+    public ShotResponse fireShot(String token, UUID userId, ShotRequest request) {
+        // 1. Validate coordinates
+        if (request.row() < 0 || request.row() > 9 || request.col() < 0 || request.col() > 9) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Coordinates are off the sea chart");
+        }
+
+        // 2. Fetch game
+        Game game = gameRepository.findByTokenAndIsActiveTrue(token)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Battle not found"));
+
+        // 3. Validate phase
+        if (game.getPhase() != GamePhase.IN_PROGRESS) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "This battle has not started yet");
+        }
+
+        // 4. Identify player's board and opponent's board
+        Board playerBoard;
+        Board opponentBoard;
+        if (game.getBlueBoard().getOwner().getId().equals(userId)) {
+            playerBoard = game.getBlueBoard();
+            opponentBoard = game.getRedBoard();
+        } else if (game.getRedBoard().getOwner().getId().equals(userId)) {
+            playerBoard = game.getRedBoard();
+            opponentBoard = game.getBlueBoard();
+        } else {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You are not a participant in this battle");
+        }
+
+        // 5. Validate turn
+        if (!game.getCurrentTurn().getId().equals(userId)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "It's not your turn to fire, wait for your opponent");
+        }
+
+        // 6. Check duplicate shot on opponent's board
+        boolean alreadyFired = opponentBoard.getShots().stream()
+                .anyMatch(s -> s.getRow() == request.row() && s.getCol() == request.col());
+        if (alreadyFired) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "You already fired on these coordinates");
+        }
+
+        // 7. Resolve shot
+        ShotResult result = ShotResult.MISS;
+        Ship hitShip = null;
+
+        for (Ship ship : opponentBoard.getShips()) {
+            int shipSize = ship.getType().getSize();
+            for (int i = 0; i < shipSize; i++) {
+                int cellRow = ship.getRow() + (ship.getOrientation() == Orientation.VERTICAL ? i : 0);
+                int cellCol = ship.getCol() + (ship.getOrientation() == Orientation.HORIZONTAL ? i : 0);
+
+                if (cellRow == request.row() && cellCol == request.col()) {
+                    ship.setHits(ship.getHits() + 1);
+                    hitShip = ship;
+                    result = ship.isSunk() ? ShotResult.SUNK : ShotResult.HIT;
+                    break;
+                }
+            }
+            if (hitShip != null) {
+                break;
+            }
+        }
+
+        // 8. Create and store shot on opponent's board
+        Shot shot = Shot.builder()
+                .board(opponentBoard)
+                .attacker(playerBoard.getOwner())
+                .row(request.row())
+                .col(request.col())
+                .result(result)
+                .build();
+        opponentBoard.getShots().add(shot);
+
+        // 9. Switch turn to opponent
+        game.setCurrentTurn(opponentBoard.getOwner());
+
+        // 10. Update attacker stats
+        User attacker = playerBoard.getOwner();
+        attacker.setTotalShots(attacker.getTotalShots() + 1);
+        if (result == ShotResult.HIT || result == ShotResult.SUNK) {
+            attacker.setTotalHits(attacker.getTotalHits() + 1);
+        }
+
+        // 11. Save game (cascades)
+        gameRepository.save(game);
+
+        // 12. Return response
+        String sunkShipType = (result == ShotResult.SUNK && hitShip != null) ? hitShip.getType().name() : null;
+        return new ShotResponse(result, sunkShipType, request.row(), request.col());
     }
 }
