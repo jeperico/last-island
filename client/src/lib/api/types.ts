@@ -130,6 +130,7 @@ export interface ShotCellResponse {
   row: number;
   col: number;
   result: ShotResult;
+  sunkShipType: string | null;
 }
 
 export interface MyBoardResponse {
@@ -172,6 +173,8 @@ export interface ShotResponse {
   col: number;
   result: ShotResult;
   sunkShipType: string | null;
+  gameOver: boolean;
+  winnerName: string | null;
 }
 
 // ─── Pagination ──────────────────────────────────────────────────────────────

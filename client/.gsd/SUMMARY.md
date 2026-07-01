@@ -47,3 +47,11 @@ Implementer: modified `src/lib/api/types.ts` (replaced ShipType union with 10 On
 Reviewer: PASS — tsc --noEmit exit 0, npm run build compiled successfully (Turbopack, routes: /, /_not-found, /game/[token], /login, /register), npm run lint clean, 9/10 grep assertions pass (step 8 grep -c returns 30 not 10 due to multi-line occurrences but all 10 ship types confirmed present)
 
 Commit: uncommitted
+
+## 2026-07-01 — REQ-6 + REQ-7 + REQ-8: Battle Screen with Turn Flow and Shot Feedback
+
+Implementer: modified `src/lib/api/types.ts` (added `gameOver: boolean` + `winnerName: string | null` to ShotResponse, added `sunkShipType: string | null` to ShotCellResponse; net +3 lines). Created `src/app/game/[token]/board-grid.tsx` (126 lines — reusable 10×10 grid with CellState type, row/col labels A-J/1-10, Tailwind styling for empty/ship/hit/miss/sunk states, interactive/disabled props, dark mode, accessibility with role/aria-label/keyboard). Created `src/app/game/[token]/battle-screen.tsx` (219 lines — BattleScreen component with turn detection via currentTurnPlayerName, my board built from ships+shotsReceived, opponent board from shotsFired+optimistic shots via useMemo, handleFire with fireShot API call, 3s polling when !isMyTurn, error banner, firing indicator). Modified `src/app/game/[token]/page.tsx` (replaced IN_PROGRESS placeholder with BattleScreen render, replaced FINISHED block with winner/loser messages + BattleScreen in read-only + Back to Lobby Link; added Link import; net +30 lines). Total net: +378 lines across 4 files. All verifications pass: tsc --noEmit exit 0, npm run build compiled (Turbopack), npm run lint clean, 10/10 grep assertions pass.
+
+Reviewer: PASS — tsc --noEmit exit 0, npm run build compiled successfully (Turbopack, routes: /, /_not-found, /game/[token], /login, /register), npm run lint clean, 10/10 grep assertions pass (fireShot count=2, isMyTurn/currentTurnPlayerName present, IN_PROGRESS in page.tsx, gameOver/winnerName in types.ts, sunkShipType in types.ts, disabled/pointer-events-none in board-grid.tsx, My Fleet non-interactive confirmed)
+
+Commit: uncommitted

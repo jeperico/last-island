@@ -1,7 +1,7 @@
 # State
 
 ## Position
-Working on: REQ-5 (Ship placement screen — place 5 ships on 10×10 grid, orientation toggle, validation, submit) — PLANNED
+Working on: REQ-6 + REQ-7 + REQ-8 (Battle screen with turn flow and shot feedback) — DONE
 
 ## Decisions
 - 2026-07-01: React 19 + Next.js 15 (App Router) + TypeScript + Tailwind CSS 4
@@ -14,4 +14,4 @@ Working on: REQ-5 (Ship placement screen — place 5 ships on 10×10 grid, orien
 (none)
 
 ## Last verification
-PASS at 2026-07-01T14:14:22-03:00 — REQ-5: tsc --noEmit exit 0, npm run build compiled successfully (Turbopack, routes: /, /_not-found, /game/[token], /login, /register), npm run lint clean, 9/10 grep assertions pass (step 8 grep -c returns 30 not 10 due to multi-line occurrences but all 10 ship types confirmed present)
+PASS at 2026-07-01T14:25:35-03:00 — REQ-6+7+8: tsc --noEmit exit 0, npm run build compiled successfully (Turbopack, routes: /, /_not-found, /game/[token], /login, /register), npm run lint clean, 10/10 grep assertions pass

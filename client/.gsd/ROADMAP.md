@@ -6,9 +6,10 @@
 - 2026-07-01: REQ-2 Auth pages (commit 49f728b)
 - 2026-07-01: REQ-3 Auth state management (commit 7105a81)
 - 2026-07-01: REQ-4 Game lobby (commit 0e3bde1)
+- 2026-07-01: REQ-5 Ship placement (commit eb35e3a)
 
 ## Now
-- REQ-5: Ship placement screen
+- REQ-6: Battle screen — own board + opponent board (fog of war, click to shoot)
 
 ## Next
 - REQ-11: API client layer
