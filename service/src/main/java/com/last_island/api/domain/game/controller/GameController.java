@@ -15,8 +15,10 @@ import com.last_island.api.infrastructure.security.principal.AuthenticatedUser;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.*;
 
+@Tag(name = "Battles")
 @RestController
 @RequestMapping("/games")
 public class GameController {

@@ -5,8 +5,10 @@ import com.last_island.api.domain.user.service.AuthService;
 import com.last_island.api.infrastructure.security.principal.AuthenticatedUser;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.*;
 
+@Tag(name = "Auth")
 @RestController
 @RequestMapping("/auth")
 public class AuthController {
