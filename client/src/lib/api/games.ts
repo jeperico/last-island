@@ -9,11 +9,11 @@ import type {
 } from "./types";
 
 export function createGame(): Promise<CreateGameResponse> {
-  return apiPost<CreateGameResponse>("/games");
+  return apiPost<CreateGameResponse>("/api/games");
 }
 
 export function joinGame(token: string): Promise<JoinGameResponse> {
-  return apiPost<JoinGameResponse>(`/games/${token}`);
+  return apiPost<JoinGameResponse>(`/api/games/${token}`);
 }
 
 export function listGames(
@@ -27,9 +27,9 @@ export function listGames(
       )
     : undefined;
 
-  return apiGet<PageResponse<GameSummaryResponse>>("/games", query);
+  return apiGet<PageResponse<GameSummaryResponse>>("/api/games", query);
 }
 
 export function getGame(token: string): Promise<GameStateResponse> {
-  return apiGet<GameStateResponse>(`/games/${token}`);
+  return apiGet<GameStateResponse>(`/api/games/${token}`);
 }

@@ -114,8 +114,14 @@ export interface GameSummaryResponse {
 }
 
 export interface JoinGameResponse {
+  id: string;
   token: string;
   phase: GamePhase;
+  bluePlayerName: string;
+  redPlayerName: string | null;
+  currentTurnPlayerName: string | null;
+  startedAt: string | null;
+  createdAt: string;
 }
 
 export interface ShipResponse {

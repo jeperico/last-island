@@ -4,7 +4,7 @@ import { getRefreshToken, setTokens } from "../auth-storage";
 // ─── Base URL ────────────────────────────────────────────────────────────────
 
 const BASE_URL: string =
-  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8080";
+  process.env.NEXT_PUBLIC_API_URL ?? "";
 
 // ─── ApiError class ──────────────────────────────────────────────────────────
 
@@ -93,17 +93,37 @@ function getHeaders(): HeadersInit {
 }
 
 function buildUrl(path: string, params?: Record<string, string>): string {
-  const url = new URL(path, BASE_URL);
+  if (BASE_URL) {
+    const url = new URL(path, BASE_URL);
+
+    if (params) {
+      for (const [key, value] of Object.entries(params)) {
+        if (value !== undefined && value !== null) {
+          url.searchParams.set(key, value);
+        }
+      }
+    }
+
+    return url.toString();
+  }
+
+  // Relative path (local dev with Next.js rewrites)
+  let url = path;
 
   if (params) {
+    const searchParams = new URLSearchParams();
     for (const [key, value] of Object.entries(params)) {
       if (value !== undefined && value !== null) {
-        url.searchParams.set(key, value);
+        searchParams.set(key, value);
       }
+    }
+    const qs = searchParams.toString();
+    if (qs) {
+      url += `?${qs}`;
     }
   }
 
-  return url.toString();
+  return url;
 }
 
 async function handleResponse<T>(response: Response): Promise<T> {

@@ -10,12 +10,12 @@ export function placeShips(
   gameToken: string,
   data: PlaceShipsRequest,
 ): Promise<BoardResponse> {
-  return apiPost<BoardResponse>(`/games/${gameToken}/place-ships`, data);
+  return apiPost<BoardResponse>(`/api/games/${gameToken}/place-ships`, data);
 }
 
 export function fireShot(
   gameToken: string,
   data: ShotRequest,
 ): Promise<ShotResponse> {
-  return apiPost<ShotResponse>(`/games/${gameToken}/shots`, data);
+  return apiPost<ShotResponse>(`/api/games/${gameToken}/shots`, data);
 }
