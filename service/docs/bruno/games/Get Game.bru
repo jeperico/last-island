@@ -1,5 +1,5 @@
 meta {
-  name: Get Game
+  name: Get Game State
   type: http
   seq: 4
 }
@@ -14,49 +14,8 @@ auth:bearer {
   token: {{accessToken}}
 }
 
-example {
-  name: example
-  
-  request: {
-    url: {{baseUrl}}/games/{{gameToken}}
-    method: GET
-    mode: none
-  }
-  
-  response: {
-    headers: {
-      x-content-type-options: nosniff
-      x-xss-protection: 0
-      cache-control: no-cache, no-store, max-age=0, must-revalidate
-      pragma: no-cache
-      expires: 0
-      x-frame-options: DENY
-      content-type: application/json
-      content-length: 232
-      date: Tue, 30 Jun 2026 21:43:55 GMT
-      keep-alive: timeout=60
-      connection: keep-alive
-    }
-  
-    status: {
-      code: 200
-      text: OK
-    }
-  
-    body: {
-      type: json
-      content: '''
-        {
-          "id": "55e2d00b-af9f-4307-bb4c-3a032a108f6f",
-          "token": "967410",
-          "phase": "WAITING_OPPONENT",
-          "bluePlayerName": "Monkey D. Luffy",
-          "redPlayerName": null,
-          "currentTurnPlayerName": null,
-          "startedAt": null,
-          "createdAt": "2026-06-30T18:43:26.518536"
-        }
-      '''
-    }
-  }
+docs {
+  Returns the full game state from the requesting player's perspective.
+  - myBoard: your ships + shots received (opponent's attacks on you)
+  - opponentBoard: only your shots fired (fog of war — no ship positions)
 }

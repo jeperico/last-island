@@ -1,0 +1,27 @@
+meta {
+  name: Fire Shot (Invalid - Not Your Turn)
+  type: http
+  seq: 9
+}
+
+post {
+  url: {{baseUrl}}/games/{{gameToken}}/shots
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "row": 5,
+    "col": 5
+  }
+}
+
+docs {
+  Fires when it's the opponent's turn — expects 409 Conflict.
+  Error: "It's not your turn to fire, wait for your opponent"
+}

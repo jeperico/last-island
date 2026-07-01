@@ -1,0 +1,30 @@
+meta {
+  name: Fire Shot
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/games/{{gameToken}}/shots
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "row": 0,
+    "col": 0
+  }
+}
+
+docs {
+  Fire a cannonball at the opponent's board.
+  - Must be your turn
+  - Coordinates: row 0-9, col 0-9
+  - Cannot fire on same cell twice
+  - Response: result (MISS/HIT/SUNK), sunkShipType (if SUNK), gameOver, winnerName
+}

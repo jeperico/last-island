@@ -1,0 +1,26 @@
+meta {
+  name: Fire Shot (Miss)
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{baseUrl}}/games/{{gameToken}}/shots
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "row": 9,
+    "col": 9
+  }
+}
+
+docs {
+  Example targeting an empty cell — expects MISS result.
+}

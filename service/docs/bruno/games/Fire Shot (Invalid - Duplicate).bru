@@ -1,0 +1,27 @@
+meta {
+  name: Fire Shot (Invalid - Duplicate)
+  type: http
+  seq: 8
+}
+
+post {
+  url: {{baseUrl}}/games/{{gameToken}}/shots
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{accessToken}}
+}
+
+body:json {
+  {
+    "row": 0,
+    "col": 0
+  }
+}
+
+docs {
+  Fires on the same coordinates twice — expects 409 Conflict.
+  Error: "You already fired on these coordinates"
+}
