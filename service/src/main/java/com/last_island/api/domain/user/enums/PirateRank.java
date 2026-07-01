@@ -5,6 +5,6 @@ public enum PirateRank {
     SUPER_ROOKIE,
     SUPERNOVA,
     SHICHIBUKAI,
-    YONKOU,
-    REI_DOS_PIRATAS
+    YONKO,
+    PIRATE_KING
 }

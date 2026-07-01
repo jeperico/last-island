@@ -1,0 +1,25 @@
+# Requirements
+
+## v1 (current)
+- [ ] REQ-1: Project scaffolding (Next.js 15 + TypeScript + Tailwind CSS 4 + Vercel config)
+- [ ] REQ-2: Auth pages — Register and Login forms, JWT token handling
+- [ ] REQ-3: Auth state management — persist tokens, attach to requests, refresh flow
+- [ ] REQ-4: Game lobby — create game, join game by friendly token, list available games
+- [ ] REQ-5: Ship placement screen — place 5 ships on 10×10 grid (sizes 5,4,3,3,2), orientation toggle, validation feedback
+- [ ] REQ-6: Battle screen — own board (showing ships + incoming shots) + opponent board (fog of war, click to shoot)
+- [ ] REQ-7: Turn-based flow — indicate whose turn it is, disable shooting when not your turn
+- [ ] REQ-8: Shot feedback — display MISS/HIT/SUNK results on opponent board
+- [ ] REQ-9: Win/loss detection — show game result when match ends
+- [ ] REQ-10: WebSocket integration — real-time turn notifications via STOMP
+- [ ] REQ-11: API client layer — typed service functions for all backend endpoints
+
+## v2 (next)
+- [ ] REQ-12: One Piece theming (ship skins, rank badges, sound effects)
+- [ ] REQ-13: Reconnection handling (rejoin mid-game after disconnect)
+- [ ] REQ-14: Game history / replay viewer
+- [ ] REQ-15: Responsive mobile layout
+
+## Phase traceability
+| Req   | Phase | Status  |
+|-------|-------|---------|
+| REQ-1 | —     | pending |

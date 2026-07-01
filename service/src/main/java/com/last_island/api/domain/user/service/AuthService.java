@@ -40,7 +40,7 @@ public class AuthService {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Name already in use");
         }
 
-        String defaultRank = request.filiation() == Filiation.PIRATA ? "ROOKIE" : "MARINHEIRO";
+        String defaultRank = request.filiation() == Filiation.PIRATE ? "ROOKIE" : "SEAMAN";
 
         User user = User.builder()
                 .name(request.name())
