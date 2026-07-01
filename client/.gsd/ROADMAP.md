@@ -5,9 +5,10 @@
 - 2026-07-01: REQ-11 API client layer (commit b7cfcae)
 - 2026-07-01: REQ-2 Auth pages (commit 49f728b)
 - 2026-07-01: REQ-3 Auth state management (commit 7105a81)
+- 2026-07-01: REQ-4 Game lobby (commit 0e3bde1)
 
 ## Now
-- REQ-4: Game lobby — create game, join game by friendly token, list available games
+- REQ-5: Ship placement screen
 
 ## Next
 - REQ-11: API client layer

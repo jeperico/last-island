@@ -31,11 +31,16 @@ export type GamePhase =
   | "FINISHED";
 
 export type ShipType =
-  | "CARRIER"
+  | "THOUSAND_SUNNY"
+  | "MOBY_DICK"
+  | "RED_FORCE"
+  | "POLAR_TANG"
+  | "STRIKER"
+  | "BUSTER_CALL"
+  | "WARSHIP"
   | "BATTLESHIP"
   | "CRUISER"
-  | "SUBMARINE"
-  | "DESTROYER";
+  | "CUTTER";
 
 export type Orientation = "HORIZONTAL" | "VERTICAL";
 
@@ -60,7 +65,7 @@ export interface RefreshRequest {
 }
 
 export interface ShipPlacementDto {
-  shipType: ShipType;
+  type: ShipType;
   row: number;
   col: number;
   orientation: Orientation;
@@ -108,29 +113,58 @@ export interface GameSummaryResponse {
   createdAt: string;
 }
 
-export interface GameResponse {
+export interface JoinGameResponse {
+  token: string;
+  phase: GamePhase;
+}
+
+export interface ShipResponse {
+  type: ShipType;
+  orientation: Orientation;
+  row: number;
+  col: number;
+  size: number;
+}
+
+export interface ShotCellResponse {
+  row: number;
+  col: number;
+  result: ShotResult;
+}
+
+export interface MyBoardResponse {
+  boardId: string;
+  ownerName: string;
+  ships: ShipResponse[];
+  shotsReceived: ShotCellResponse[];
+}
+
+export interface OpponentBoardResponse {
+  boardId: string;
+  ownerName: string;
+  shotsFired: ShotCellResponse[];
+}
+
+export interface BoardResponse {
+  boardId: string;
+  ownerName: string;
+  ships: ShipResponse[];
+  gamePhase: GamePhase;
+}
+
+export interface GameStateResponse {
+  id: string;
   token: string;
   phase: GamePhase;
   bluePlayerName: string;
   redPlayerName: string | null;
   currentTurnPlayerName: string | null;
-  createdAt: string;
+  winnerName: string | null;
   startedAt: string | null;
-}
-
-export interface ShipResponse {
-  shipType: ShipType;
-  row: number;
-  col: number;
-  orientation: Orientation;
-  sunk: boolean;
-}
-
-export interface BoardResponse {
-  gamePhase: GamePhase;
-  ships: ShipResponse[];
-  shotsReceived: { row: number; col: number; result: ShotResult }[];
-  shotsFired: { row: number; col: number; result: ShotResult }[];
+  endedAt: string | null;
+  createdAt: string;
+  myBoard: MyBoardResponse | null;
+  opponentBoard: OpponentBoardResponse | null;
 }
 
 export interface ShotResponse {

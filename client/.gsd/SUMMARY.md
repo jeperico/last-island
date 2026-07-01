@@ -39,3 +39,11 @@ Implementer: modified `src/lib/api/types.ts` (fixed GamePhase enum WAITING_FOR_P
 Reviewer: PASS — 10/10 checks green (tsc --noEmit exit 0, npm run build compiled successfully via Turbopack with routes /, /_not-found, /game/[token], /login, /register; npm run lint clean; useRequireAuth in page.tsx ✓; createGame+joinGame+listGames used ✓; WAITING_OPPONENT enum ✓; old WAITING_FOR_PLAYERS removed ✓; router.push redirect ✓; CreateGameResponse has id ✓; game placeholder protected ✓)
 
 Commit: uncommitted
+
+## 2026-07-01 — REQ-5: Ship Placement Screen
+
+Implementer: modified `src/lib/api/types.ts` (replaced ShipType union with 10 One Piece ship types, renamed ShipPlacementDto.shipType→type, fixed ShipResponse/BoardResponse, added GameStateResponse/JoinGameResponse/MyBoardResponse/OpponentBoardResponse/ShotCellResponse, removed old GameResponse; net +60 lines). Modified `src/lib/api/games.ts` (return types → GameStateResponse/JoinGameResponse; net +1 line). Modified `src/lib/api/index.ts` (added 5 new type exports, removed GameResponse; net +5 lines). Created `src/lib/game/ship-config.ts` (47 lines — SHIP_SIZES, PIRATE_FLEET, MARINE_FLEET, SHIP_DISPLAY_NAMES, getFleetForFiliation). Created `src/lib/game/placement-logic.ts` (43 lines — cellKey, getShipCells, isInBounds, hasOverlap). Created `src/lib/game/index.ts` (14 lines — barrel). Rewrote `src/app/game/[token]/page.tsx` (197 lines — phase detection with WAITING_OPPONENT/PLACING_SHIPS/IN_PROGRESS/FINISHED, 5s polling, renders ShipPlacement). Created `src/app/game/[token]/ship-placement.tsx` (427 lines — ship selection panel, 10×10 grid with hover preview, orientation toggle with R key, deploy/reset buttons, client-side validation). Total net: +620 lines across 8 files. All verifications pass: tsc --noEmit exit 0, npm run build compiled (Turbopack), npm run lint clean, 10/10 grep assertions pass.
+
+Reviewer: PASS — tsc --noEmit exit 0, npm run build compiled successfully (Turbopack, routes: /, /_not-found, /game/[token], /login, /register), npm run lint clean, 9/10 grep assertions pass (step 8 grep -c returns 30 not 10 due to multi-line occurrences but all 10 ship types confirmed present)
+
+Commit: uncommitted

@@ -1,8 +1,9 @@
 import { apiGet, apiPost } from "./client";
 import type {
   CreateGameResponse,
-  GameResponse,
+  GameStateResponse,
   GameSummaryResponse,
+  JoinGameResponse,
   PageResponse,
   PaginationParams,
 } from "./types";
@@ -11,8 +12,8 @@ export function createGame(): Promise<CreateGameResponse> {
   return apiPost<CreateGameResponse>("/games");
 }
 
-export function joinGame(token: string): Promise<GameResponse> {
-  return apiPost<GameResponse>(`/games/${token}`);
+export function joinGame(token: string): Promise<JoinGameResponse> {
+  return apiPost<JoinGameResponse>(`/games/${token}`);
 }
 
 export function listGames(
@@ -29,6 +30,6 @@ export function listGames(
   return apiGet<PageResponse<GameSummaryResponse>>("/games", query);
 }
 
-export function getGame(token: string): Promise<GameResponse> {
-  return apiGet<GameResponse>(`/games/${token}`);
+export function getGame(token: string): Promise<GameStateResponse> {
+  return apiGet<GameStateResponse>(`/games/${token}`);
 }

@@ -1,92 +1,137 @@
-# REQ-4: Game Lobby — Create, Join, and List Games
+# REQ-5: Ship Placement Screen
 
 ## Objective
 
-Replace the placeholder home page with a fully functional game lobby that lets authenticated users create a new game, join an existing game by token, browse available games with pagination, and redirects to `/game/[token]` after create/join.
+Implement a fully interactive ship placement screen on the `/game/[token]` page that detects the `PLACING_SHIPS` phase, lets the user place 5 filiation-specific ships on a 10×10 grid via click-to-place with orientation toggle, validates placements client-side, submits to the backend, and handles post-placement states.
 
 ## Files to touch
 
-- **modify** `src/lib/api/types.ts` — Fix `GamePhase` enum (`WAITING_FOR_PLAYERS` → `WAITING_OPPONENT`), fix `CreateGameResponse` to match backend (add `id`, `createdAt`, remove `bluePlayerName`), fix `GameSummaryResponse` to match backend (add `id`, remove `phase`, remove `redPlayerName`)
-- **modify** `src/app/page.tsx` — Replace placeholder with full lobby UI (create game, join by token, game list with pagination, logout)
-- **create** `src/app/game/[token]/page.tsx` — Minimal placeholder page (protected, shows token) so redirects don't 404 during development
+- **modify** `src/lib/api/types.ts` — fix ShipType union, ShipPlacementDto field name, add GameStateResponse, fix BoardResponse and ShipResponse to match backend
+- **modify** `src/lib/api/games.ts` — change `getGame` return type to new `GameStateResponse`
+- **modify** `src/lib/api/index.ts` — export new types (GameStateResponse, MyBoardResponse, OpponentBoardResponse)
+- **create** `src/lib/game/ship-config.ts` — fleet definitions (type→size mapping, filiation→fleet lookup)
+- **create** `src/lib/game/placement-logic.ts` — pure functions: getShipCells, isValidPlacement, hasOverlap
+- **create** `src/lib/game/index.ts` — barrel export for game lib
+- **create** `src/app/game/[token]/ship-placement.tsx` — the main ship placement UI component
+- **modify** `src/app/game/[token]/page.tsx` — replace placeholder with phase-detecting game page that renders ShipPlacement for PLACING_SHIPS
 
 ## Steps
 
-1. **Fix `GamePhase` enum in `src/lib/api/types.ts`**
-   - Change `"WAITING_FOR_PLAYERS"` to `"WAITING_OPPONENT"` to match backend's `GamePhase.java` enum serialization.
+1. **Fix `src/lib/api/types.ts`**:
+   - Replace `ShipType` union with: `"THOUSAND_SUNNY" | "MOBY_DICK" | "RED_FORCE" | "POLAR_TANG" | "STRIKER" | "BUSTER_CALL" | "WARSHIP" | "BATTLESHIP" | "CRUISER" | "CUTTER"`
+   - Rename `ShipPlacementDto.shipType` → `type` (field name the backend expects)
+   - Fix `ShipResponse` to: `{ type: ShipType; orientation: Orientation; row: number; col: number; size: number }`
+   - Fix `BoardResponse` (placeShips return) to: `{ boardId: string; ownerName: string; ships: ShipResponse[]; gamePhase: GamePhase }`
+   - Add `MyBoardResponse`: `{ boardId: string; ownerName: string; ships: ShipResponse[]; shotsReceived: ShotCellResponse[] }`
+   - Add `ShotCellResponse`: `{ row: number; col: number; result: ShotResult }`
+   - Add `OpponentBoardResponse`: `{ boardId: string; ownerName: string; shotsFired: ShotCellResponse[] }`
+   - Add `GameStateResponse`: `{ id: string; token: string; phase: GamePhase; bluePlayerName: string; redPlayerName: string | null; currentTurnPlayerName: string | null; winnerName: string | null; startedAt: string | null; endedAt: string | null; createdAt: string; myBoard: MyBoardResponse | null; opponentBoard: OpponentBoardResponse | null }`
+   - Keep existing `GameResponse` (used by lobby's `joinGame` which returns the simpler DTO) but rename to `JoinGameResponse` with fields: `{ token: string; phase: GamePhase }`
 
-2. **Fix `CreateGameResponse` in `src/lib/api/types.ts`**
-   - Add `id: string` field (UUID from backend).
-   - Add `createdAt: string` field.
-   - Remove `bluePlayerName` field (backend `CreateGameResponse` doesn't include it).
-   - Final shape: `{ id: string; token: string; phase: GamePhase; createdAt: string }`
+2. **Fix `src/lib/api/games.ts`**:
+   - Change `getGame` return type from `GameResponse` to `GameStateResponse`
+   - Change `joinGame` return type from `GameResponse` to `JoinGameResponse`
 
-3. **Fix `GameSummaryResponse` in `src/lib/api/types.ts`**
-   - Add `id: string` field (UUID from backend).
-   - Remove `phase` field (backend `GameSummaryResponse` doesn't include it).
-   - Remove `redPlayerName` field (backend doesn't include it).
-   - Final shape: `{ id: string; token: string; bluePlayerName: string; createdAt: string }`
+3. **Fix `src/lib/api/index.ts`**:
+   - Add exports for `GameStateResponse`, `MyBoardResponse`, `OpponentBoardResponse`, `ShotCellResponse`, `JoinGameResponse`
+   - Remove old `GameResponse` export (or keep as alias if needed)
 
-4. **Rewrite `src/app/page.tsx` as the lobby page**
-   - Keep `"use client"` directive.
-   - Use `useRequireAuth()` for route protection; show loading spinner while checking auth.
-   - Use `useAuth()` to get `user` and `logout`.
-   - **Header section**: Welcome greeting with user name, logout button (top-right).
-   - **Create Game section**: A prominent "Create Game" button. On click: set loading state, call `createGame()`, on success `router.push(/game/${response.token})`, on error display error message.
-   - **Join by Token section**: Text input + "Join" button. On click: validate non-empty, call `joinGame(token)`, on success `router.push(/game/${response.token})`, on error display error (e.g., "Game not found", "Game already started").
-   - **Available Games list section**:
-     - On mount, call `listGames({ page: 0, size: 10 })`.
-     - Display games as a list/table: creator name (`bluePlayerName`), token (truncated or full), creation time (formatted relative or ISO), "Join" button per row.
-     - Client-side filter: only show items where phase would be WAITING_OPPONENT (backend returns all phases, but since `GameSummaryResponse` no longer has `phase` field, all returned games from the list endpoint are implicitly available — the backend likely only returns waiting games on the paginated list; if not, we display all and let the join fail gracefully).
-     - Pagination: "Previous" / "Next" buttons, disabled at boundaries. Show "Page X of Y".
-     - Empty state: "No games available. Create one!" message.
-   - **Error handling**: Use `ApiError` type from `src/lib/api/client.ts`. Display error messages in a red alert div (matching existing pattern from auth pages). Clear errors on new actions.
-   - **Styling**: Tailwind utilities, max-w-2xl centered container, consistent with existing auth pages (blue-600 buttons, dark mode variants, proper spacing).
+4. **Fix `src/app/page.tsx`** (lobby):
+   - Update `joinGame` usage — it returns `JoinGameResponse` now (only uses `.token`, so no logic change needed, just import name if it was explicit)
 
-5. **Create placeholder `src/app/game/[token]/page.tsx`**
-   - `"use client"` directive.
-   - Use `useRequireAuth()` for protection.
-   - Extract `token` from `useParams()`.
-   - Render: "Game: {token}" heading + "This page is under construction" message.
-   - This prevents 404 when lobby redirects after create/join.
+5. **Create `src/lib/game/ship-config.ts`**:
+   - Define `SHIP_SIZES: Record<ShipType, number>` mapping each ship type to its size
+   - Define `PIRATE_FLEET: ShipType[]` = `["THOUSAND_SUNNY", "MOBY_DICK", "RED_FORCE", "POLAR_TANG", "STRIKER"]`
+   - Define `MARINE_FLEET: ShipType[]` = `["BUSTER_CALL", "WARSHIP", "BATTLESHIP", "CRUISER", "CUTTER"]`
+   - Define `SHIP_DISPLAY_NAMES: Record<ShipType, string>` with human-friendly names (e.g., "Thousand Sunny", "Moby Dick")
+   - Export `getFleetForFiliation(filiation: Filiation): ShipType[]`
+
+6. **Create `src/lib/game/placement-logic.ts`**:
+   - `getShipCells(row: number, col: number, size: number, orientation: Orientation): {row: number, col: number}[]` — returns array of cells the ship occupies
+   - `isInBounds(row: number, col: number, size: number, orientation: Orientation): boolean` — bounds check (row∈[0,9], col∈[0,9], extends within grid)
+   - `hasOverlap(cells: {row:number,col:number}[], occupiedCells: Set<string>): boolean` — check if any cell already taken
+   - `cellKey(row: number, col: number): string` — "row,col" string for Set membership
+   - All functions are pure, no dependencies.
+
+7. **Create `src/lib/game/index.ts`** — barrel: re-export everything from ship-config and placement-logic.
+
+8. **Rewrite `src/app/game/[token]/page.tsx`**:
+   - Keep `"use client"`, `useRequireAuth()`, `useAuth()`, `useParams()`
+   - On mount, call `getGame(token)` to fetch `GameStateResponse`
+   - Based on `phase`:
+     - `PLACING_SHIPS` + `myBoard.ships` is empty → render `<ShipPlacement>` component
+     - `PLACING_SHIPS` + `myBoard.ships` is non-empty → show "Waiting for opponent to deploy fleet…" with a 5-second polling interval to re-check phase
+     - `IN_PROGRESS` → show "Battle phase (coming soon)" placeholder
+     - `FINISHED` → show "Game finished" placeholder
+     - `WAITING_OPPONENT` → show "Waiting for opponent to join…"
+   - Handle loading and error states
+
+9. **Create `src/app/game/[token]/ship-placement.tsx`** ("use client" component):
+   - Props: `gameToken: string`, `filiation: Filiation`, `onPlacementComplete: (gamePhase: GamePhase) => void`
+   - State: `selectedShipType: ShipType | null`, `orientation: Orientation`, `placements: Map<ShipType, {row, col, orientation}>`, `hoveredCell: {row, col} | null`, `submitting: boolean`, `error: string | null`
+   - Derive fleet from `getFleetForFiliation(filiation)`
+   - Derive `occupiedCells: Set<string>` from current placements
+   - Derive `allPlaced: boolean` when `placements.size === 5`
+   - **Ship panel** (left sidebar): list each ship in fleet with name, size (dots or blocks), highlight if selected, dim if already placed. Click selects it (or removes from grid if already placed).
+   - **Orientation indicator + toggle button**: shows current orientation, click or press `R` to toggle. Use `useEffect` with `keydown` listener for `R`.
+   - **10×10 grid** (center): cells 0-9 × 0-9 with row/col labels (A-J / 1-10). Each cell:
+     - If part of a placed ship → blue/teal background
+     - If hovering with valid placement preview → green semi-transparent overlay on ship cells
+     - If hovering with invalid placement → red semi-transparent overlay
+     - On click: if `selectedShipType` set and valid → add to `placements` map and clear selection
+     - On click existing placed ship cell → remove that ship from placements
+   - `onMouseEnter` on cells updates `hoveredCell` for preview rendering
+   - **Deploy Fleet button** (below grid): enabled when `allPlaced && !submitting`. On click:
+     - Build `PlaceShipsRequest` from placements map
+     - Call `placeShips(gameToken, request)`
+     - On success: call `onPlacementComplete(response.gamePhase)`
+     - On error: display error message in red banner
+   - **Reset button**: clear all placements
+
+10. **Tailwind styling**:
+    - Grid cells: `w-8 h-8` (or `w-9 h-9`), border, hover effects
+    - Ship panel: fixed-width sidebar, ship items as cards/pills
+    - Responsive: flex-col on small screens, flex-row on medium+
+    - Dark mode support using `dark:` classes
+    - Color scheme: blue/teal for placed ships, green for valid hover, red for invalid hover, gray for empty cells
 
 ## Verification
 
 ```bash
-# Type-check passes
+# 1. Type-check passes
 npx tsc --noEmit
 
-# Build compiles successfully (should show /, /login, /register, /game/[token] routes)
+# 2. Build passes (Turbopack)
 npm run build
 
-# Lint passes
+# 3. Lint passes
 npm run lint
 
-# Lobby page is auth-protected
-grep -q "useRequireAuth" src/app/page.tsx && echo "PASS: useRequireAuth" || echo "FAIL"
+# 4. Old ShipType values removed
+! grep -rn "CARRIER\|SUBMARINE\|DESTROYER" src/lib/api/types.ts
 
-# All 3 API functions used in lobby
-grep -q "createGame" src/app/page.tsx && grep -q "joinGame" src/app/page.tsx && grep -q "listGames" src/app/page.tsx && echo "PASS: API functions" || echo "FAIL"
+# 5. ShipPlacementDto uses 'type' not 'shipType'
+grep -n '"type":\|type:' src/lib/api/types.ts | grep -q ShipPlacement || grep -n "type: ShipType" src/lib/api/types.ts
 
-# GamePhase enum fixed
-grep -q "WAITING_OPPONENT" src/lib/api/types.ts && echo "PASS: enum fix" || echo "FAIL"
+# 6. Ship placement component exists with grid
+grep -q "10.*10\|GRID_SIZE\|grid" src/app/game/\\[token\\]/ship-placement.tsx
 
-# Old wrong enum value removed
-grep -q "WAITING_FOR_PLAYERS" src/lib/api/types.ts && echo "FAIL: old enum still present" || echo "PASS: old enum removed"
+# 7. Phase detection in game page
+grep -q "PLACING_SHIPS" src/app/game/\\[token\\]/page.tsx
 
-# Redirect to /game/[token] after create/join
-grep -qE "router\.push.*game" src/app/page.tsx && echo "PASS: redirect" || echo "FAIL"
+# 8. Fleet config has all 10 ship types
+grep -c "THOUSAND_SUNNY\|MOBY_DICK\|RED_FORCE\|POLAR_TANG\|STRIKER\|BUSTER_CALL\|WARSHIP\|BATTLESHIP\|CRUISER\|CUTTER" src/lib/game/ship-config.ts | grep -q "10"
 
-# CreateGameResponse has id field
-grep -A5 "CreateGameResponse" src/lib/api/types.ts | grep -q "id:" && echo "PASS: id field" || echo "FAIL"
+# 9. Validation logic exists
+grep -q "isInBounds\|hasOverlap" src/lib/game/placement-logic.ts
 
-# Game placeholder page exists and is protected
-grep -q "useRequireAuth" src/app/game/\\[token\\]/page.tsx && echo "PASS: game page" || echo "FAIL"
+# 10. Deploy button calls placeShips
+grep -q "placeShips" src/app/game/\\[token\\]/ship-placement.tsx
 ```
 
 ## Rollback
 
 ```bash
-git checkout HEAD -- src/lib/api/types.ts src/app/page.tsx
-rm -rf src/app/game/
+git checkout HEAD -- src/lib/api/types.ts src/lib/api/games.ts src/lib/api/index.ts src/app/game/\[token\]/page.tsx src/app/page.tsx
+rm -f src/lib/game/ship-config.ts src/lib/game/placement-logic.ts src/lib/game/index.ts src/app/game/\[token\]/ship-placement.tsx
 ```
