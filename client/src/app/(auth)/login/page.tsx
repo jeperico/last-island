@@ -3,9 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { login } from "@/lib/api/auth";
-import { setTokens, getAccessToken } from "@/lib/auth-storage";
-import { setTokenProvider } from "@/lib/api/client";
+import { useAuth, useRedirectIfAuthenticated } from "@/lib/auth";
 import type { ApiError } from "@/lib/api/client";
 
 interface FormData {
@@ -15,6 +13,9 @@ interface FormData {
 
 export default function LoginPage() {
   const router = useRouter();
+  const auth = useAuth();
+  const { isLoading, isAuthenticated } = useRedirectIfAuthenticated();
+
   const [formData, setFormData] = useState<FormData>({
     email: "",
     password: "",
@@ -22,19 +23,17 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  if (isLoading || isAuthenticated) {
+    return null;
+  }
+
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
     setLoading(true);
 
     try {
-      const response = await login({
-        email: formData.email,
-        password: formData.password,
-      });
-
-      setTokens(response.accessToken, response.refreshToken);
-      setTokenProvider(() => getAccessToken());
+      await auth.login(formData.email, formData.password);
       router.push("/");
     } catch (err) {
       const apiError = err as ApiError;

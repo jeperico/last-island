@@ -23,3 +23,11 @@ Implementer: modified `src/lib/api/types.ts` (RegisterRequest, LoginRequest, Aut
 Reviewer: PASS — 7/7 checks green (tsc --noEmit exit 0, npm run build compiled successfully via Turbopack with routes /, /_not-found, /login, /register; npm run lint clean; register has 4 fields + submit; login has 2 fields + submit; centered card layout ✓; token storage + provider wiring ✓; error display ✓; nav links ✓; dark mode classes ✓)
 
 Commit: uncommitted
+
+## 2026-07-01 — REQ-3: Auth State Management — Context, Refresh, Route Protection
+
+Implementer: modified `src/lib/auth-storage.ts` (+4 SSR guards, net +4 lines). Modified `src/lib/api/client.ts` (added refresh+retry with dedup, setOnUnauthorized callback; net +71 lines). Created `src/lib/auth/auth-context.tsx` (126 lines — AuthContext, AuthProvider with user/loading/login/register/logout, useAuth hook). Created `src/lib/auth/use-require-auth.ts` (19 lines). Created `src/lib/auth/use-redirect-if-authenticated.ts` (21 lines). Created `src/lib/auth/index.ts` (3 lines — barrel). Created `src/app/providers.tsx` (7 lines — "use client" wrapper). Modified `src/app/layout.tsx` (wrapped children with Providers; net +2 lines). Refactored `src/app/(auth)/login/page.tsx` (removed manual token wiring, uses useAuth + useRedirectIfAuthenticated; net -3 lines). Refactored `src/app/(auth)/register/page.tsx` (same pattern; net -3 lines). Modified `src/app/page.tsx` (replaced scaffold with useRequireAuth protected page; net -32 lines). Total net: +190 lines across 11 files.
+
+Reviewer: PASS — 9/9 checks green (tsc --noEmit exit 0, npm run build compiled successfully via Turbopack, npm run lint clean; Providers in layout ✓; setTokenProvider in AuthProvider useEffect ✓; useRequireAuth defined + used in page.tsx ✓; useRedirectIfAuthenticated in login + register ✓; attemptRefresh + refreshPromise dedup in client.ts ✓)
+
+Commit: uncommitted

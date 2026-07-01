@@ -3,9 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { register } from "@/lib/api/auth";
-import { setTokens, getAccessToken } from "@/lib/auth-storage";
-import { setTokenProvider } from "@/lib/api/client";
+import { useAuth, useRedirectIfAuthenticated } from "@/lib/auth";
 import type { ApiError } from "@/lib/api/client";
 import type { Filiation } from "@/lib/api/types";
 
@@ -18,6 +16,9 @@ interface FormData {
 
 export default function RegisterPage() {
   const router = useRouter();
+  const auth = useAuth();
+  const { isLoading, isAuthenticated } = useRedirectIfAuthenticated();
+
   const [formData, setFormData] = useState<FormData>({
     name: "",
     email: "",
@@ -27,21 +28,22 @@ export default function RegisterPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  if (isLoading || isAuthenticated) {
+    return null;
+  }
+
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
     setLoading(true);
 
     try {
-      const response = await register({
-        name: formData.name,
-        email: formData.email,
-        password: formData.password,
-        filiation: formData.filiation as Filiation,
-      });
-
-      setTokens(response.accessToken, response.refreshToken);
-      setTokenProvider(() => getAccessToken());
+      await auth.register(
+        formData.name,
+        formData.email,
+        formData.password,
+        formData.filiation as Filiation,
+      );
       router.push("/");
     } catch (err) {
       const apiError = err as ApiError;

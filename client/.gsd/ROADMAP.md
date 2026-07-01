@@ -3,9 +3,10 @@
 ## Done
 - 2026-07-01: REQ-1 Project scaffolding (commit 076e401)
 - 2026-07-01: REQ-11 API client layer (commit b7cfcae)
+- 2026-07-01: REQ-2 Auth pages (commit 49f728b)
 
 ## Now
-- REQ-2: Auth pages — Register and Login forms, JWT token handling
+- REQ-3: Auth state management — persist tokens, attach to requests, refresh flow
 
 ## Next
 - REQ-11: API client layer

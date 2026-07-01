@@ -1,91 +1,117 @@
-# REQ-2: Auth Pages — Register and Login Forms with JWT Token Handling
+# REQ-3: Auth State Management — Context, Refresh, Route Protection
 
 ## Objective
 
-Create Register (`/register`) and Login (`/login`) pages with correct backend-aligned types, form validation, localStorage token storage, and post-auth redirect.
+Implement a React Context-based auth state layer that persists user sessions across navigation, auto-refreshes expired tokens on 401, and protects routes via client-side redirects.
 
 ## Files to touch
 
-- **modify** `src/lib/api/types.ts` — fix RegisterRequest, LoginRequest, AuthResponse, UserResponse to match backend DTOs
-- **create** `src/app/(auth)/layout.tsx` — shared centered card layout for auth pages
-- **create** `src/app/(auth)/register/page.tsx` — register form (name, email, password, filiation)
-- **create** `src/app/(auth)/login/page.tsx` — login form (email, password)
-- **create** `src/lib/auth-storage.ts` — thin localStorage helpers (getToken, setTokens, clearTokens)
+- **create** `src/lib/auth/auth-context.tsx` — AuthContext + AuthProvider with user/loading/login/logout/refresh state
+- **create** `src/lib/auth/use-require-auth.ts` — hook that redirects unauthenticated users to /login
+- **create** `src/lib/auth/use-redirect-if-authenticated.ts` — hook that redirects authenticated users to /
+- **create** `src/lib/auth/index.ts` — barrel re-exports
+- **create** `src/app/providers.tsx` — "use client" wrapper that renders AuthProvider around children
+- **modify** `src/lib/api/client.ts` — add 401 intercept with refresh-and-retry logic + concurrent refresh deduplication
+- **modify** `src/lib/auth-storage.ts` — add `typeof window` guard for SSR safety
+- **modify** `src/app/layout.tsx` — wrap children with `<Providers>`
+- **modify** `src/app/(auth)/login/page.tsx` — use `useRedirectIfAuthenticated` + call context's login instead of manual token wiring
+- **modify** `src/app/(auth)/register/page.tsx` — use `useRedirectIfAuthenticated` + call context's register instead of manual token wiring
 
 ## Steps
 
-1. **Fix `src/lib/api/types.ts` to align with backend DTOs**
-   - `RegisterRequest`: rename `username` → `name`, remove `rank` field. Result: `{ name: string; email: string; password: string; filiation: Filiation }`
-   - `LoginRequest`: rename `username` → `email`, add `password` (already exists). Result: `{ email: string; password: string }`
-   - `AuthResponse`: add `user: UserResponse` field. Result: `{ accessToken: string; refreshToken: string; user: UserResponse }`
-   - `UserResponse`: change `id: number` → `id: string`, rename `username` → `name`, add `bounty: number`, `wins: number`, `losses: number`. Result: `{ id: string; name: string; email: string; filiation: Filiation; rank: string; bounty: number; wins: number; losses: number }`
+1. **SSR-safe auth-storage** — Modify `src/lib/auth-storage.ts`: wrap every `localStorage` call with `typeof window !== "undefined"` guard so imports from client components during SSR don't throw. Return `null` from getters when on server.
 
-2. **Create `src/lib/auth-storage.ts`** — lightweight localStorage wrapper
-   - `setTokens(accessToken: string, refreshToken: string): void` — stores both tokens under keys `access_token` and `refresh_token`
-   - `getAccessToken(): string | null` — reads `access_token` from localStorage
-   - `getRefreshToken(): string | null` — reads `refresh_token` from localStorage
-   - `clearTokens(): void` — removes both keys
-   - No auth context/provider (that's REQ-3)
+2. **Add refresh-and-retry to API client** — In `src/lib/api/client.ts`:
+   - Add a module-level `let refreshPromise: Promise<void> | null = null` for deduplication.
+   - Export a new `onUnauthorized` callback setter: `let onUnauthorizedCallback: (() => void) | null = null; export function setOnUnauthorized(fn: () => void) { onUnauthorizedCallback = fn; }`.
+   - Create an internal `attemptRefresh()` function that: gets refresh token from storage, calls the refresh endpoint (import `refresh` from `./auth`), stores new tokens via `setTokens`, and resets `refreshPromise` to null when done. If refresh fails, calls `onUnauthorizedCallback()` (which will trigger logout in the context) and resets.
+   - Implement deduplication: if `refreshPromise` is already set, return it instead of starting a new refresh.
+   - Modify `apiGet` and `apiPost`: wrap the existing fetch+handleResponse in a try/catch. If caught error is `ApiError` with `isUnauthorized === true`, call `await attemptRefresh()`, then retry the request exactly once. If the retry also fails with 401, throw the error.
 
-3. **Create `src/app/(auth)/layout.tsx`** — shared auth layout
-   - Server component (no `"use client"` needed — just layout markup)
-   - Full-height flex container, centered content
-   - Renders children inside a card-style container (white bg, rounded, shadow, max-w-md)
-   - Dark-mode-aware using existing CSS variables (`var(--background)`, `var(--foreground)`)
+3. **Create AuthContext and AuthProvider** — Create `src/lib/auth/auth-context.tsx`:
+   - `"use client"` directive.
+   - Define `AuthContextValue` interface: `{ user: UserResponse | null; isLoading: boolean; isAuthenticated: boolean; login: (email: string, password: string) => Promise<void>; register: (name: string, email: string, password: string, filiation: string) => Promise<void>; logout: () => void; }`.
+   - Create context with `createContext<AuthContextValue | null>(null)`.
+   - `AuthProvider` component:
+     - State: `user` (UserResponse | null), `isLoading` (boolean, default true).
+     - `useEffect` on mount:
+       a. Call `setTokenProvider(() => getAccessToken())` to wire the API client.
+       b. Call `setOnUnauthorized(() => performLogout())` to wire logout on unrecoverable 401.
+       c. If `getAccessToken()` exists, call `getProfile()` to hydrate user. On success set user. On failure (any error), call `clearTokens()`.
+       d. Set `isLoading = false`.
+     - `login` function: call API `loginApi({ email, password })`, `setTokens(...)`, set user from response.
+     - `register` function: call API `registerApi({ name, email, password, filiation })`, `setTokens(...)`, set user from response.
+     - `logout` function (`performLogout`): `clearTokens()`, `setTokenProvider(null)`, set user to null, `router.push("/login")`.
+     - Derive `isAuthenticated = user !== null`.
+     - Render `<AuthContext.Provider value={...}>{children}</AuthContext.Provider>`.
+   - Export `useAuth()` hook that reads context and throws if used outside provider.
 
-4. **Create `src/app/(auth)/register/page.tsx`** — Register form
-   - `"use client"` directive
-   - Controlled form with fields: `name` (text, required), `email` (email, required), `password` (password, required, minLength 8), `filiation` (radio buttons or select: PIRATE / MARINE, required)
-   - State: `formData`, `error` (string | null), `loading` (boolean)
-   - On submit: call `register()` from `src/lib/api/auth.ts`, on success → `setTokens(...)` → `router.push("/")`
-   - On error: catch `ApiError`, display `error.message` (handles 409 conflict for duplicate name/email)
-   - Link to `/login` at bottom ("Already have an account? Log in")
-   - HTML5 validation attributes: `required`, `type="email"`, `minLength={8}`
-   - Tailwind styling: inputs with border, focus ring, rounded; button with bg-blue-600 hover state; responsive padding
+4. **Create route protection hooks** — 
+   - `src/lib/auth/use-require-auth.ts`: `"use client"`. Calls `useAuth()`. If `!isLoading && !isAuthenticated`, redirect to `/login` via `useRouter().replace("/login")`. Returns `{ user, isLoading }`. While loading, returns `isLoading: true` so pages can show a loading state.
+   - `src/lib/auth/use-redirect-if-authenticated.ts`: `"use client"`. Calls `useAuth()`. If `!isLoading && isAuthenticated`, redirect to `/` via `useRouter().replace("/")`. Returns `{ isLoading, isAuthenticated }`.
 
-5. **Create `src/app/(auth)/login/page.tsx`** — Login form
-   - `"use client"` directive
-   - Controlled form with fields: `email` (email, required), `password` (password, required)
-   - State: `formData`, `error` (string | null), `loading` (boolean)
-   - On submit: call `login()` from `src/lib/api/auth.ts`, on success → `setTokens(...)` → `router.push("/")`
-   - On error: catch `ApiError`, display `error.message` (handles 401 invalid credentials)
-   - Link to `/register` at bottom ("Don't have an account? Sign up")
-   - Same styling pattern as register page
+5. **Create barrel export** — `src/lib/auth/index.ts`: re-export `AuthProvider`, `useAuth` from `./auth-context`, `useRequireAuth` from `./use-require-auth`, `useRedirectIfAuthenticated` from `./use-redirect-if-authenticated`.
 
-6. **Wire token provider** — In each page's submit handler, after storing tokens, also call `setTokenProvider(() => getAccessToken())` from `src/lib/api/client.ts` so subsequent API calls are authenticated for the current session. (REQ-3 will make this global/persistent.)
+6. **Create Providers wrapper** — `src/app/providers.tsx`:
+   - `"use client"` directive.
+   - Import `AuthProvider` from `@/lib/auth`.
+   - Render `<AuthProvider>{children}</AuthProvider>`.
+
+7. **Wire Providers into root layout** — Modify `src/app/layout.tsx`:
+   - Import `Providers` from `./providers`.
+   - Wrap `{children}` inside `<body>` with `<Providers>{children}</Providers>`.
+
+8. **Refactor login page** — Modify `src/app/(auth)/login/page.tsx`:
+   - Import `useAuth` from `@/lib/auth` and `useRedirectIfAuthenticated` from `@/lib/auth`.
+   - Call `useRedirectIfAuthenticated()` at top of component. If `isLoading`, render null or spinner. If `isAuthenticated`, render null (redirect in progress).
+   - Replace manual `setTokens` + `setTokenProvider` + `router.push("/")` with `await auth.login(email, password)` followed by `router.push("/")`.
+   - Remove direct imports of `setTokens`, `setTokenProvider`, `getAccessToken` (now handled by context).
+
+9. **Refactor register page** — Modify `src/app/(auth)/register/page.tsx`:
+   - Same pattern as login: `useRedirectIfAuthenticated()`, replace manual token handling with `await auth.register(name, email, password, filiation)` then `router.push("/")`.
+   - Remove direct imports of `setTokens`, `setTokenProvider`, `getAccessToken`.
+
+10. **Apply useRequireAuth to home page** — Modify `src/app/page.tsx` to be a `"use client"` component that calls `useRequireAuth()`. If `isLoading`, show a loading indicator. This proves the guard works and ensures the home page is protected.
 
 ## Verification
 
 ```bash
-# Type check — must exit 0
+# Type check
 npx tsc --noEmit
 
-# Full build — must succeed with new routes compiled
+# Build
 npm run build
 
-# Lint — must pass
+# Lint
 npm run lint
 ```
 
-Manual checks (implementer confirms before marking done):
-- `/register` renders with 4 fields (name, email, password, filiation) + submit button
-- `/login` renders with 2 fields (email, password) + submit button
-- Both pages are centered in a card layout
-- Form submission sends correct JSON field names to backend endpoints
-- Successful auth stores `access_token` and `refresh_token` in localStorage
-- Successful auth redirects to `/`
-- Server error (409, 401) displays error message on the form
-- Navigation links between `/login` ↔ `/register` work
-- Dark mode renders correctly (check with `prefers-color-scheme: dark`)
+Manual checks (reviewer runs these grep commands):
+
+```bash
+# AuthProvider wraps children in root layout
+grep -n "Providers" src/app/layout.tsx
+
+# setTokenProvider called in AuthProvider useEffect
+grep -n "setTokenProvider" src/lib/auth/auth-context.tsx
+
+# useRequireAuth exists and is used
+grep -rn "useRequireAuth" src/
+
+# Auth pages use redirect-if-authenticated
+grep -n "useRedirectIfAuthenticated" src/app/\(auth\)/login/page.tsx
+grep -n "useRedirectIfAuthenticated" src/app/\(auth\)/register/page.tsx
+
+# 401 refresh+retry logic in client
+grep -n "attemptRefresh\|refreshPromise" src/lib/api/client.ts
+
+# Concurrent refresh deduplication
+grep -n "refreshPromise" src/lib/api/client.ts
+```
 
 ## Rollback
 
 ```bash
-# Undo all changes (if uncommitted)
-git checkout -- src/lib/api/types.ts
-rm -f src/lib/auth-storage.ts
-rm -rf src/app/\(auth\)
-
-# Or if committed
-git revert HEAD
+git checkout HEAD -- src/lib/api/client.ts src/lib/auth-storage.ts src/app/layout.tsx src/app/page.tsx "src/app/(auth)/login/page.tsx" "src/app/(auth)/register/page.tsx"
+rm -rf src/lib/auth/ src/app/providers.tsx
 ```
