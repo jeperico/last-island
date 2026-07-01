@@ -44,15 +44,14 @@ export type ShotResult = "HIT" | "MISS" | "SUNK";
 // ─── Request interfaces ──────────────────────────────────────────────────────
 
 export interface RegisterRequest {
-  username: string;
+  name: string;
   email: string;
   password: string;
   filiation: Filiation;
-  rank: string;
 }
 
 export interface LoginRequest {
-  username: string;
+  email: string;
   password: string;
 }
 
@@ -81,14 +80,18 @@ export interface ShotRequest {
 export interface AuthResponse {
   accessToken: string;
   refreshToken: string;
+  user: UserResponse;
 }
 
 export interface UserResponse {
-  id: number;
-  username: string;
+  id: string;
+  name: string;
   email: string;
   filiation: Filiation;
   rank: string;
+  bounty: number;
+  wins: number;
+  losses: number;
 }
 
 export interface CreateGameResponse {

@@ -15,3 +15,11 @@ Implementer: created 6 files under `src/lib/api/`. `types.ts` (164 lines) — al
 Reviewer: PASS — 4/4 checks green (tsc --noEmit exit 0, npm run build compiled successfully via Turbopack, 5 export lines in index.ts ≥3 ✓, no axios/ky/got/node-fetch in package.json)
 
 Commit: uncommitted
+
+## 2026-07-01 — REQ-2: Auth Pages — Register and Login Forms with JWT Token Handling
+
+Implementer: modified `src/lib/api/types.ts` (RegisterRequest, LoginRequest, AuthResponse, UserResponse aligned to backend DTOs; net ~+5 lines). Created `src/lib/auth-storage.ts` (20 lines — setTokens, getAccessToken, getRefreshToken, clearTokens). Created `src/app/(auth)/layout.tsx` (13 lines — centered card server component). Created `src/app/(auth)/register/page.tsx` (158 lines — 4 fields, validation, error handling, token storage, redirect). Created `src/app/(auth)/login/page.tsx` (105 lines — 2 fields, same pattern). Token provider wired in both submit handlers. Total net: +301 lines.
+
+Reviewer: PASS — 7/7 checks green (tsc --noEmit exit 0, npm run build compiled successfully via Turbopack with routes /, /_not-found, /login, /register; npm run lint clean; register has 4 fields + submit; login has 2 fields + submit; centered card layout ✓; token storage + provider wiring ✓; error display ✓; nav links ✓; dark mode classes ✓)
+
+Commit: uncommitted

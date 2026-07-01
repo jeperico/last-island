@@ -2,9 +2,10 @@
 
 ## Done
 - 2026-07-01: REQ-1 Project scaffolding (commit 076e401)
+- 2026-07-01: REQ-11 API client layer (commit b7cfcae)
 
 ## Now
-- REQ-11: API client layer — typed service functions for all backend endpoints
+- REQ-2: Auth pages — Register and Login forms, JWT token handling
 
 ## Next
 - REQ-11: API client layer

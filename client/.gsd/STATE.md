@@ -1,7 +1,7 @@
 # State
 
 ## Position
-Working on: REQ-11 (API client layer) — implementation reviewed, PASS
+Working on: REQ-2 (Auth pages — Register + Login) — DONE (reviewed PASS)
 
 ## Decisions
 - 2026-07-01: React 19 + Next.js 15 (App Router) + TypeScript + Tailwind CSS 4
@@ -14,4 +14,4 @@ Working on: REQ-11 (API client layer) — implementation reviewed, PASS
 (none)
 
 ## Last verification
-PASS at 2026-07-01T11:42:57-03:00 — REQ-11: tsc --noEmit exit 0, npm run build compiled successfully (Turbopack), 5 export lines in index.ts (≥3 ✓), no axios/ky/got/node-fetch in package.json
+PASS at 2026-07-01T13:45:29-03:00 — REQ-2: tsc --noEmit exit 0, npm run build compiled successfully (Turbopack, routes: /, /_not-found, /login, /register), npm run lint clean, all manual checks pass
