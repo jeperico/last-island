@@ -1,0 +1,164 @@
+// ─── Union-type enums ────────────────────────────────────────────────────────
+
+export type Filiation = "PIRATE" | "MARINE";
+
+export type PirateRank =
+  | "CAPTAIN"
+  | "FIRST_MATE"
+  | "NAVIGATOR"
+  | "SNIPER"
+  | "COOK"
+  | "DOCTOR"
+  | "SHIPWRIGHT"
+  | "MUSICIAN"
+  | "HELMSMAN";
+
+export type MarineRank =
+  | "FLEET_ADMIRAL"
+  | "ADMIRAL"
+  | "VICE_ADMIRAL"
+  | "REAR_ADMIRAL"
+  | "CAPTAIN"
+  | "COMMANDER"
+  | "LIEUTENANT_COMMANDER"
+  | "LIEUTENANT"
+  | "ENSIGN";
+
+export type GamePhase =
+  | "WAITING_FOR_PLAYERS"
+  | "PLACING_SHIPS"
+  | "IN_PROGRESS"
+  | "FINISHED";
+
+export type ShipType =
+  | "CARRIER"
+  | "BATTLESHIP"
+  | "CRUISER"
+  | "SUBMARINE"
+  | "DESTROYER";
+
+export type Orientation = "HORIZONTAL" | "VERTICAL";
+
+export type ShotResult = "HIT" | "MISS" | "SUNK";
+
+// ─── Request interfaces ──────────────────────────────────────────────────────
+
+export interface RegisterRequest {
+  username: string;
+  email: string;
+  password: string;
+  filiation: Filiation;
+  rank: string;
+}
+
+export interface LoginRequest {
+  username: string;
+  password: string;
+}
+
+export interface RefreshRequest {
+  refreshToken: string;
+}
+
+export interface ShipPlacementDto {
+  shipType: ShipType;
+  row: number;
+  col: number;
+  orientation: Orientation;
+}
+
+export interface PlaceShipsRequest {
+  ships: ShipPlacementDto[];
+}
+
+export interface ShotRequest {
+  row: number;
+  col: number;
+}
+
+// ─── Response interfaces ─────────────────────────────────────────────────────
+
+export interface AuthResponse {
+  accessToken: string;
+  refreshToken: string;
+}
+
+export interface UserResponse {
+  id: number;
+  username: string;
+  email: string;
+  filiation: Filiation;
+  rank: string;
+}
+
+export interface CreateGameResponse {
+  token: string;
+  phase: GamePhase;
+  bluePlayerName: string;
+}
+
+export interface GameSummaryResponse {
+  token: string;
+  phase: GamePhase;
+  bluePlayerName: string;
+  redPlayerName: string | null;
+  createdAt: string;
+}
+
+export interface GameResponse {
+  token: string;
+  phase: GamePhase;
+  bluePlayerName: string;
+  redPlayerName: string | null;
+  currentTurnPlayerName: string | null;
+  createdAt: string;
+  startedAt: string | null;
+}
+
+export interface ShipResponse {
+  shipType: ShipType;
+  row: number;
+  col: number;
+  orientation: Orientation;
+  sunk: boolean;
+}
+
+export interface BoardResponse {
+  gamePhase: GamePhase;
+  ships: ShipResponse[];
+  shotsReceived: { row: number; col: number; result: ShotResult }[];
+  shotsFired: { row: number; col: number; result: ShotResult }[];
+}
+
+export interface ShotResponse {
+  row: number;
+  col: number;
+  result: ShotResult;
+  sunkShipType: string | null;
+}
+
+// ─── Pagination ──────────────────────────────────────────────────────────────
+
+export interface PageResponse<T> {
+  content: T[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+  last: boolean;
+}
+
+export interface PaginationParams {
+  page?: number;
+  size?: number;
+  sort?: string;
+}
+
+// ─── Error shape ─────────────────────────────────────────────────────────────
+
+export interface ApiErrorResponse {
+  status: number;
+  error: string;
+  message: string;
+  timestamp: string;
+}

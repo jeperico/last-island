@@ -1,7 +1,7 @@
 # State
 
 ## Position
-Working on: REQ-1 (Project scaffolding) — implementation complete, review PASS
+Working on: REQ-11 (API client layer) — implementation reviewed, PASS
 
 ## Decisions
 - 2026-07-01: React 19 + Next.js 15 (App Router) + TypeScript + Tailwind CSS 4
@@ -14,4 +14,4 @@ Working on: REQ-1 (Project scaffolding) — implementation complete, review PASS
 (none)
 
 ## Last verification
-PASS at 2026-07-01T11:36:00-03:00 — all 7 checks green; build 0 errors (Turbopack), tailwindcss 4.3.2, Node v24.16.0
+PASS at 2026-07-01T11:42:57-03:00 — REQ-11: tsc --noEmit exit 0, npm run build compiled successfully (Turbopack), 5 export lines in index.ts (≥3 ✓), no axios/ky/got/node-fetch in package.json

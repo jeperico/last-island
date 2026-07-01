@@ -1,10 +1,10 @@
 # Roadmap
 
 ## Done
-(none yet)
+- 2026-07-01: REQ-1 Project scaffolding (commit 076e401)
 
 ## Now
-- REQ-1: Project scaffolding (Next.js 15 + TypeScript + Tailwind CSS 4 + Vercel config)
+- REQ-11: API client layer — typed service functions for all backend endpoints
 
 ## Next
 - REQ-11: API client layer

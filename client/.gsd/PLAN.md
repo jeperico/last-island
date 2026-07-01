@@ -1,132 +1,82 @@
-# REQ-1: Scaffold Next.js 15 + TypeScript + Tailwind CSS 4 + Vercel config
+# REQ-11: Typed API Client Layer
 
 ## Objective
 
-Bootstrap the client directory with a working Next.js 15 App Router project using TypeScript, Tailwind CSS 4, and Vercel-ready configuration so that subsequent features have a buildable, deployable foundation.
+Create a fetch-based, fully-typed API client layer (`src/lib/api/`) that covers all backend REST endpoints (auth, games, board) with JWT token injection, typed DTOs/enums, and structured error handling.
 
 ## Files to touch
 
-- `package.json` — create (via create-next-app)
-- `tsconfig.json` — create (via create-next-app)
-- `next.config.ts` — create (via create-next-app)
-- `postcss.config.mjs` — create (via create-next-app, if generated)
-- `eslint.config.mjs` — create (via create-next-app)
-- `.gitignore` — create (via create-next-app), then modify to add `.gsd/`
-- `src/app/layout.tsx` — create (via create-next-app)
-- `src/app/page.tsx` — create (via create-next-app)
-- `src/app/globals.css` — create (via create-next-app; uses `@import "tailwindcss"`)
-- `public/` — create (via create-next-app)
-- `.env.local.example` — create (manual; env var template)
-- `README.md` — create (via create-next-app), then replace with project-specific content
+- `src/lib/api/types.ts` — **create** — All TypeScript interfaces, types, and union-type enums mirroring backend DTOs
+- `src/lib/api/client.ts` — **create** — Base fetch wrapper with baseUrl resolution, JSON serialization, Authorization header injection, and ApiError throwing
+- `src/lib/api/auth.ts` — **create** — Service functions: register(), login(), refresh(), getProfile()
+- `src/lib/api/games.ts` — **create** — Service functions: createGame(), joinGame(), listGames(), getGame()
+- `src/lib/api/board.ts` — **create** — Service functions: placeShips(), fireShot()
+- `src/lib/api/index.ts` — **create** — Barrel re-exports of all service functions and types
 
 ## Steps
 
-1. **Verify Node.js version** — Run `node --version` and confirm >= 18.18. Abort if not met.
+1. **Create `src/lib/api/types.ts`** with:
+   - Union-type enums: `Filiation`, `PirateRank`, `MarineRank`, `GamePhase`, `ShipType`, `Orientation`, `ShotResult`
+   - Request interfaces: `RegisterRequest`, `LoginRequest`, `RefreshRequest`, `PlaceShipsRequest`, `ShipPlacementDto`, `ShotRequest`
+   - Response interfaces: `AuthResponse`, `UserResponse`, `CreateGameResponse`, `GameSummaryResponse`, `GameResponse` (with nullable fields: `redPlayerName`, `currentTurnPlayerName`, `startedAt` as `string | null`), `BoardResponse`, `ShipResponse`, `ShotResponse` (with `sunkShipType: string | null`)
+   - Generic pagination: `PageResponse<T>` with fields `content`, `page`, `size`, `totalElements`, `totalPages`, `last`
+   - Error shape: `ApiErrorResponse` interface with `status`, `error`, `message`, `timestamp`
+   - Pagination params: `PaginationParams` with optional `page`, `size`, `sort`
+   - Use `GamePhase` union type for `phase`/`gamePhase` fields in `CreateGameResponse`, `GameResponse`, `BoardResponse`
 
-2. **Run create-next-app** from the monorepo root:
-   ```bash
-   cd /home/perico/work/last-island
-   npx create-next-app@latest client \
-     --typescript \
-     --tailwind \
-     --eslint \
-     --app \
-     --src-dir \
-     --import-alias "@/*" \
-     --turbopack \
-     --skip-install
-   ```
-   If the command fails because the `client/` directory already contains `.gsd/`, temporarily move `.gsd/` out, run the command, then move it back.
+2. **Create `src/lib/api/client.ts`** with:
+   - Read `NEXT_PUBLIC_API_URL` from `process.env` as base URL (fallback to `http://localhost:8080`)
+   - Export an `ApiError` class extending `Error` that holds `status`, `error`, `message`, `timestamp` fields
+   - Export a `setTokenProvider(fn: () => string | null)` function that stores a token-getter (allows REQ-3 to plug in later)
+   - Internal `getHeaders()` helper: sets `Content-Type: application/json`, injects `Authorization: Bearer <token>` if token provider returns non-null
+   - Export generic `apiGet<T>(path, params?)`, `apiPost<T>(path, body?)` functions that:
+     - Build full URL from base + path + optional query params
+     - Call `fetch()` with appropriate method, headers, body
+     - On non-ok response: parse JSON as `ApiErrorResponse`, throw `ApiError`
+     - On ok response: parse and return typed `T`
+   - Mark 401 responses distinctly on the `ApiError` (set a boolean `isUnauthorized` flag) so REQ-3 can intercept later
 
-3. **Install dependencies**:
-   ```bash
-   cd /home/perico/work/last-island/client
-   npm install
-   ```
+3. **Create `src/lib/api/auth.ts`** with:
+   - `register(data: RegisterRequest): Promise<AuthResponse>` → POST `/auth/register`
+   - `login(data: LoginRequest): Promise<AuthResponse>` → POST `/auth/login`
+   - `refresh(data: RefreshRequest): Promise<AuthResponse>` → POST `/auth/refresh`
+   - `getProfile(): Promise<UserResponse>` → GET `/auth/me`
 
-4. **Verify Tailwind v4 pattern** — Confirm `src/app/globals.css` contains `@import "tailwindcss"` (not `@tailwind base`). Confirm `package.json` has `tailwindcss` version 4.x.
+4. **Create `src/lib/api/games.ts`** with:
+   - `createGame(): Promise<CreateGameResponse>` → POST `/games`
+   - `joinGame(token: string): Promise<GameResponse>` → POST `/games/{token}`
+   - `listGames(params?: PaginationParams): Promise<PageResponse<GameSummaryResponse>>` → GET `/games`
+   - `getGame(token: string): Promise<GameResponse>` → GET `/games/{token}`
 
-5. **Append `.gsd/` to `.gitignore`**:
-   ```
-   # GSD workflow
-   .gsd/
-   ```
+5. **Create `src/lib/api/board.ts`** with:
+   - `placeShips(gameToken: string, data: PlaceShipsRequest): Promise<BoardResponse>` → POST `/games/{token}/place-ships`
+   - `fireShot(gameToken: string, data: ShotRequest): Promise<ShotResponse>` → POST `/games/{token}/shots`
 
-6. **Create `.env.local.example`**:
-   ```
-   # Backend API base URL
-   NEXT_PUBLIC_API_URL=http://localhost:8080
-   ```
-
-7. **Replace `README.md`** with minimal project-specific content:
-   ```markdown
-   # Last Island — Client
-
-   Web frontend for the Last Island multiplayer naval battle game.
-
-   ## Stack
-
-   - Next.js 15 (App Router)
-   - React 19
-   - TypeScript
-   - Tailwind CSS 4
-
-   ## Getting Started
-
-   ```bash
-   npm install
-   npm run dev
-   ```
-
-   Open [http://localhost:3000](http://localhost:3000).
-
-   ## Environment Variables
-
-   Copy `.env.local.example` to `.env.local` and fill in values.
-
-   ## Deploy
-
-   Deployed to Vercel. Set Root Directory to `client` in project settings.
-   ```
-
-8. **Verify build passes**:
-   ```bash
-   npm run build
-   ```
+6. **Create `src/lib/api/index.ts`** with:
+   - Re-export all functions from `auth.ts`, `games.ts`, `board.ts`
+   - Re-export all types from `types.ts`
+   - Re-export `ApiError`, `setTokenProvider` from `client.ts`
 
 ## Verification
 
 ```bash
-# 1. Node version check
-node --version  # expect v18.18+ or v20+
+# 1. TypeScript compiles with no errors
+npx tsc --noEmit
 
-# 2. Dependencies installed
-test -d node_modules && echo "OK" || echo "FAIL: node_modules missing"
-
-# 3. Build succeeds with zero errors
+# 2. Next.js production build passes
 npm run build
 
-# 4. Tailwind v4 CSS pattern
-grep -q '@import "tailwindcss"' src/app/globals.css && echo "OK: Tailwind v4" || echo "FAIL: wrong Tailwind pattern"
+# 3. Confirm all expected exports exist (quick grep check)
+grep -c "export" src/lib/api/index.ts
+# Should be ≥ 3 re-export lines
 
-# 5. Tailwind version in package.json is 4.x
-grep '"tailwindcss"' package.json | grep -q '"4\.' && echo "OK: tailwindcss 4.x" || grep '"tailwindcss"' package.json
-
-# 6. .gitignore contains .gsd/
-grep -q '\.gsd/' .gitignore && echo "OK: .gsd excluded" || echo "FAIL: .gsd not in .gitignore"
-
-# 7. .env.local.example exists
-test -f .env.local.example && echo "OK" || echo "FAIL: .env.local.example missing"
-
-# 8. Dev server starts (manual check — start and confirm http://localhost:3000 renders)
-npm run dev
-# Visit http://localhost:3000, confirm page renders with Tailwind styles. Ctrl+C to stop.
+# 4. Confirm no external dependencies added (no axios, no ky)
+grep -E "axios|ky|got|node-fetch" package.json
+# Should return nothing (exit code 1)
 ```
 
 ## Rollback
 
 ```bash
-# Remove all scaffolded files (keep .gsd/ intact)
-cd /home/perico/work/last-island/client
-find . -maxdepth 1 -not -name '.' -not -name '.gsd' -exec rm -rf {} +
+rm -rf src/lib/api/
 ```
