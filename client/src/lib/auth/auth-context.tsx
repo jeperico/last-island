@@ -53,7 +53,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     clearTokens();
     setTokenProvider(null);
     setUser(null);
-    router.push("/login");
+
+    // Skip redirect if already on an auth page to prevent flash/loop
+    const pathname = window.location.pathname;
+    if (pathname !== "/login" && pathname !== "/register") {
+      router.push("/login");
+    }
   }, [router]);
 
   useEffect(() => {
@@ -62,13 +67,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const hydrate = async () => {
       const token = getAccessToken();
-      if (token) {
-        try {
-          const profile = await getProfile();
-          setUser(profile);
-        } catch {
-          clearTokens();
-        }
+      if (!token) {
+        // No token at all — skip hydration entirely
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        const profile = await getProfile();
+        setUser(profile);
+      } catch {
+        // Swallow any error (including "Refresh failed") — clear stale tokens silently
+        clearTokens();
+        setUser(null);
       }
       setIsLoading(false);
     };

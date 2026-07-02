@@ -1,7 +1,7 @@
 # State
 
 ## Position
-Idle — design system and theming complete. All MVP features implemented and committed.
+Plan written — "Add Zod + react-hook-form validation to all forms & fix Refresh failed leak". Awaiting implementer.
 
 ## Decisions
 - 2026-07-01: React 19 + Next.js 15 (App Router) + TypeScript + Tailwind CSS 4
@@ -15,4 +15,4 @@ Idle — design system and theming complete. All MVP features implemented and co
 (none)
 
 ## Last verification
-PASS at 2026-07-01T17:42-03:00 — tsc --noEmit exit 0, npm run build compiled successfully, npm run lint clean
+PASS at 2026-07-02T10:18-03:00 — tsc --noEmit exit 0, npm run build compiled (Next.js 16.2.9 Turbopack), npm run lint 0 errors (4 pre-existing warnings), all 3 schemas export correctly, all 3 forms use useForm+zodResolver, auth-context hydration fix verified

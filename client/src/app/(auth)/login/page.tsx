@@ -3,24 +3,26 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useAuth, useRedirectIfAuthenticated } from "@/lib/auth";
-import type { ApiError } from "@/lib/api/client";
+import { ApiError } from "@/lib/api/client";
+import { loginSchema, type LoginFormData } from "@/lib/validations/login";
 import { Alert, Input, Button } from "@/components/ui";
-
-interface FormData {
-  email: string;
-  password: string;
-}
 
 export default function LoginPage() {
   const router = useRouter();
   const auth = useAuth();
   const { isLoading, isAuthenticated } = useRedirectIfAuthenticated();
 
-  const [formData, setFormData] = useState<FormData>({
-    email: "",
-    password: "",
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<LoginFormData>({
+    resolver: zodResolver(loginSchema),
   });
+
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -28,17 +30,17 @@ export default function LoginPage() {
     return null;
   }
 
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
+  async function onValid(data: LoginFormData) {
     setError(null);
     setLoading(true);
 
     try {
-      await auth.login(formData.email, formData.password);
+      await auth.login(data.email, data.password);
       router.push("/");
     } catch (err) {
-      const apiError = err as ApiError;
-      setError(apiError.message ?? "An unexpected error occurred");
+      if (err instanceof ApiError) {
+        setError(err.message ?? "An unexpected error occurred");
+      }
     } finally {
       setLoading(false);
     }
@@ -56,23 +58,21 @@ export default function LoginPage() {
         </Alert>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit(onValid)} className="space-y-4">
         <Input
           label="Email"
           id="email"
           type="email"
-          required
-          value={formData.email}
-          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+          error={errors.email?.message}
+          {...register("email")}
         />
 
         <Input
           label="Password"
           id="password"
           type="password"
-          required
-          value={formData.password}
-          onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+          error={errors.password?.message}
+          {...register("password")}
         />
 
         <Button variant="primary" fullWidth loading={loading} type="submit">

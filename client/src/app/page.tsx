@@ -2,10 +2,13 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useRequireAuth, useAuth } from "@/lib/auth";
 import { createGame, joinGame, listGames } from "@/lib/api";
 import type { ApiError } from "@/lib/api/client";
 import type { GameSummaryResponse, PageResponse } from "@/lib/api/types";
+import { joinGameSchema, type JoinGameFormData } from "@/lib/validations/join-game";
 import {
   PageHeader,
   Alert,
@@ -22,9 +25,16 @@ export default function Home() {
   const { logout } = useAuth();
   const router = useRouter();
 
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<JoinGameFormData>({
+    resolver: zodResolver(joinGameSchema),
+  });
+
   const [error, setError] = useState<string | null>(null);
   const [creatingGame, setCreatingGame] = useState(false);
-  const [joinToken, setJoinToken] = useState("");
   const [joiningGame, setJoiningGame] = useState(false);
   const [gamesPage, setGamesPage] = useState<PageResponse<GameSummaryResponse> | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
@@ -83,16 +93,11 @@ export default function Home() {
     }
   }
 
-  async function handleJoinGame() {
-    const trimmed = joinToken.trim();
-    if (!trimmed) {
-      setError("Please enter a game token");
-      return;
-    }
+  async function onJoin(data: JoinGameFormData) {
     setError(null);
     setJoiningGame(true);
     try {
-      const response = await joinGame(trimmed);
+      const response = await joinGame(data.token.trim());
       router.push(`/game/${response.token}`);
     } catch (err) {
       const apiError = err as ApiError;
@@ -178,24 +183,24 @@ export default function Home() {
           <h2 className="mb-2 text-lg font-semibold text-text-primary">
             Join by Token
           </h2>
-          <div className="flex gap-2">
+          <form onSubmit={handleSubmit(onJoin)} className="flex gap-2">
             <div className="flex-1">
               <Input
                 id="join-token"
                 placeholder="Enter game token"
-                value={joinToken}
-                onChange={(e) => setJoinToken(e.target.value)}
+                error={errors.token?.message}
+                {...register("token")}
               />
             </div>
             <Button
               variant="primary"
               size="md"
-              onClick={handleJoinGame}
+              type="submit"
               loading={joiningGame}
             >
               Join
             </Button>
-          </div>
+          </form>
         </section>
 
         {/* Available Games */}
