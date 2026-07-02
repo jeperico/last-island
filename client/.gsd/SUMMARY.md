@@ -15,3 +15,11 @@ Implementer: Created 3 files — `src/lib/validations/login.ts` (+8), `src/lib/v
 Reviewer: PASS — tsc clean, build OK (Next.js 16.2.9 Turbopack), lint 0 errors, schemas export correctly, all 3 forms wired with useForm+zodResolver, auth hydration fix confirmed (skip when no token, swallow errors, no redirect on auth pages), Input forwardRef intact, filiation aria-pressed preserved.
 
 Commit: uncommitted
+
+## 2026-07-02 — Redesign game-over results into a single cohesive printable page
+
+Implementer: Modified 4 files — `src/app/game/[token]/game-over-panel.tsx` (rewritten, 267 lines: added board rendering with BoardGrid, cell-building helpers, max-w-4xl layout with banner→boards→stats→nav sections, print:hidden on nav link), `src/app/game/[token]/page.tsx` (simplified FINISHED phase: passes myBoard/opponentBoard props, removed BattleScreen readOnly block, removed unused EmptyState import), `src/app/globals.css` (+43 lines: @media print rules for white background, hidden UI, board scaling, card backgrounds, break-inside), `src/app/game/[token]/board-grid.tsx` (+1 class: added `board-cell` to cell divs for print targeting).
+
+Reviewer: PASS — tsc clean, build OK (Next.js 16.2.9 Turbopack), lint 0 errors (1 pre-existing warning in register page), both boards rendered in GameOverPanel with BoardGrid, page.tsx FINISHED phase has no BattleScreen, @media print styles present in globals.css, layout order confirmed: banner→boards→stats→button.
+
+Commit: uncommitted

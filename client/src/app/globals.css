@@ -85,3 +85,46 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* ─── Print styles ─────────────────────────────────────────────────────────── */
+@media print {
+  body {
+    background: white !important;
+    color: black !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Hide non-essential UI */
+  .print\:hidden,
+  nav,
+  footer,
+  button,
+  [data-print-hide] {
+    display: none !important;
+  }
+
+  /* Boards: ensure they fit side-by-side on paper */
+  .game-results-boards {
+    gap: 1rem !important;
+  }
+
+  /* Scale down board cells for print (A4 friendly) */
+  .game-results-boards .board-cell {
+    width: 1.25rem !important;
+    height: 1.25rem !important;
+  }
+
+  /* Remove dark backgrounds from cards */
+  .game-results-boards,
+  [class*="bg-surface"],
+  [class*="bg-\[var"] {
+    background: white !important;
+    border-color: #ccc !important;
+  }
+
+  /* Ensure content stays on one page */
+  * {
+    break-inside: avoid;
+  }
+}

@@ -132,7 +132,6 @@ class GameServiceTest {
 
     @Test
     void createGame_success() {
-        when(gameRepository.hasActiveGame(bluePlayer.getId())).thenReturn(false);
         when(userRepository.findById(bluePlayer.getId())).thenReturn(Optional.of(bluePlayer));
         when(gameRepository.existsByToken(any())).thenReturn(false);
 
@@ -144,24 +143,12 @@ class GameServiceTest {
         verify(gameRepository).save(any(Game.class));
     }
 
-    @Test
-    void createGame_alreadyActive_rejects() {
-        when(gameRepository.hasActiveGame(bluePlayer.getId())).thenReturn(true);
-
-        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> gameService.createGame(bluePlayer.getId()));
-
-        assertThat(ex.getStatusCode().value()).isEqualTo(409);
-        assertThat(ex.getReason()).contains("already have an active battle");
-    }
-
     // --- Join Game Tests ---
 
     @Test
     void joinGame_success() {
         Game game = buildWaitingGame();
         when(gameRepository.findByTokenAndIsActiveTrue("123456")).thenReturn(Optional.of(game));
-        when(gameRepository.hasActiveGame(redPlayer.getId())).thenReturn(false);
         when(userRepository.findById(redPlayer.getId())).thenReturn(Optional.of(redPlayer));
 
         GameResponse response = gameService.joinGame("123456", redPlayer.getId());
@@ -196,19 +183,6 @@ class GameServiceTest {
 
         assertThat(ex.getStatusCode().value()).isEqualTo(409);
         assertThat(ex.getReason()).contains("Cannot join your own battle");
-    }
-
-    @Test
-    void joinGame_alreadyActive_rejects() {
-        Game game = buildWaitingGame();
-        when(gameRepository.findByTokenAndIsActiveTrue("123456")).thenReturn(Optional.of(game));
-        when(gameRepository.hasActiveGame(redPlayer.getId())).thenReturn(true);
-
-        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> gameService.joinGame("123456", redPlayer.getId()));
-
-        assertThat(ex.getStatusCode().value()).isEqualTo(409);
-        assertThat(ex.getReason()).contains("already have an active battle");
     }
 
     // --- Fog of War Tests (getGame) ---

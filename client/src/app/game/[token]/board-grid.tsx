@@ -20,7 +20,7 @@ function cellKey(row: number, col: number): string {
 }
 
 function getCellClasses(state: CellState, interactive: boolean): string {
-  const base = "h-8 w-8 flex items-center justify-center text-xs font-bold border border-border transition-colors";
+  const base = "board-cell h-8 w-8 flex items-center justify-center text-xs font-bold border border-border transition-colors";
 
   switch (state.type) {
     case "empty":

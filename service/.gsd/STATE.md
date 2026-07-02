@@ -1,7 +1,7 @@
 # State
 
 ## Position
-Idle — all v1 backend features complete and committed. 36 tests passing. Swagger docs available.
+Planning — Refactor: remove one-active-game-per-player constraint to allow concurrent games.
 
 ## Decisions
 - 2026-06-30: Spring Boot 4.1 + Java 21 + PostgreSQL
@@ -17,4 +17,4 @@ Idle — all v1 backend features complete and committed. 36 tests passing. Swagg
 (none)
 
 ## Last verification
-PASS at 2026-07-01T14:46-03:00 — compile exit 0, 36 tests pass, OpenAPI configured, all endpoints documented
+PASS at 2026-07-02T16:13-03:00 — compile exit 0, 34 tests pass (7+11+16), no hasActiveGame references, no old message references

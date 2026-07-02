@@ -1,71 +1,96 @@
-# Add Zod + react-hook-form validation to all forms & fix "Refresh failed" leak
+# Redesign game-over results into a single cohesive printable page
 
 ## Objective
 
-Wire up Zod validation schemas with react-hook-form across all 3 client forms (login, register, join-game) for inline field-level errors, and harden the auth hydration path so "Refresh failed" never surfaces to the user.
+Refactor the FINISHED phase into one unified GameOverPanel component that renders the victory/defeat banner, both boards side-by-side, stats comparison card, and a print-friendly layout — replacing the current split of GameOverPanel + BattleScreen(readOnly).
 
 ## Files to touch
 
-- `src/lib/validations/login.ts` — **create** — Zod schema + inferred type for login form
-- `src/lib/validations/register.ts` — **create** — Zod schema + inferred type for register form
-- `src/lib/validations/join-game.ts` — **create** — Zod schema + inferred type for join-game token
-- `src/app/(auth)/login/page.tsx` — **modify** — replace useState form with useForm + zodResolver, inline errors
-- `src/app/(auth)/register/page.tsx` — **modify** — replace useState form with useForm + zodResolver, setValue/watch for filiation, remove hidden radio
-- `src/app/page.tsx` — **modify** — replace useState joinToken with useForm + zodResolver for the token input
-- `src/lib/auth/auth-context.tsx` — **modify** — skip hydration (getProfile) when on /login or /register path; clear stale tokens upfront instead of attempting refresh
+- `src/app/game/[token]/game-over-panel.tsx` — **modify** (major rewrite: add board rendering, restructure layout)
+- `src/app/game/[token]/page.tsx` — **modify** (simplify FINISHED phase: pass board data to GameOverPanel, remove BattleScreen readOnly usage)
+- `src/app/globals.css` — **modify** (add @media print rules at end of file)
 
 ## Steps
 
-1. **Verify deps are installed** — confirm `node_modules/zod`, `node_modules/react-hook-form`, and `node_modules/@hookform/resolvers` exist (they are already in package.json). If missing, run `npm install` (no new deps to add).
+1. **Extend GameOverPanel props to accept board data**
+   - Add new props: `myBoard: MyBoardResponse | null`, `opponentBoard: OpponentBoardResponse | null`
+   - Import `BoardGrid` and `CellState` from `./board-grid`
+   - Import `getShipCells`, `cellKey` from `@/lib/game`
+   - Import `GameStateResponse`, `MyBoardResponse`, `OpponentBoardResponse`, `ShotCellResponse` types from `@/lib/api/types`
 
-2. **Create `src/lib/validations/login.ts`**
-   - Export `loginSchema` — Zod object: `email` (string, email format, "Valid email required"), `password` (string, min 1, "Password is required").
-   - Export inferred type `LoginFormData`.
+2. **Add board cell-building logic inside GameOverPanel**
+   - Add local helper `buildMyBoardCells(myBoard: MyBoardResponse): Map<string, CellState>` — same logic as battle-screen.tsx lines 175–200 (mark ship cells from `myBoard.ships` using `getShipCells`, overlay `shotsReceived` as hit/miss/sunk)
+   - Add local helper `buildOpponentBoardCells(shotsFired: ShotCellResponse[]): Map<string, CellState>` — same logic as battle-screen.tsx lines 207–222 (map each shot to hit/miss/sunk)
 
-3. **Create `src/lib/validations/register.ts`**
-   - Export `registerSchema` — Zod object: `name` (string, min 1, "Name is required"), `email` (string, email format), `password` (string, min 8, "Password must be at least 8 characters"), `filiation` (enum ["PIRATE", "MARINE"], "Choose your filiation").
-   - Export inferred type `RegisterFormData`.
+3. **Restructure GameOverPanel layout (top to bottom)**
+   - Increase max-width from `max-w-lg` (32rem) to `max-w-4xl` (~56rem) to accommodate boards side-by-side
+   - **Section 1 — Banner:** Keep existing Victory/Defeat heading (emoji + colored text) + opponent subtitle. Add class `print:text-black` for print readability.
+   - **Section 2 — Boards:** New flex row: `<div className="flex flex-wrap items-start justify-center gap-6 w-full">` containing two `<BoardGrid>` components:
+     - "My Fleet" board: `<BoardGrid title="My Fleet" cells={myBoardCells} />` (only if `myBoard` is non-null)
+     - "Enemy Waters" board: `<BoardGrid title="Enemy Waters" cells={opponentBoardCells} />` (only if `opponentBoard` is non-null)
+   - Add wrapper class `game-results-boards` for print CSS targeting
+   - **Section 3 — Stats card:** Keep existing stats card structure (duration banner, VS layout, stat rows with emoji icons, winner banner). No changes needed to the StatRow sub-component.
+   - **Section 4 — Navigation:** Keep "Back to Grand Line" link but wrap it with class `print:hidden` so it disappears when printing.
 
-4. **Create `src/lib/validations/join-game.ts`**
-   - Export `joinGameSchema` — Zod object: `token` (string, min 1, "Please enter a game token").
-   - Export inferred type `JoinGameFormData`.
+4. **Simplify FINISHED phase in page.tsx**
+   - Remove the conditional `<BattleScreen ... readOnly />` block (lines 228–236)
+   - Pass `myBoard={gameState.myBoard}` and `opponentBoard={gameState.opponentBoard}` as new props to `<GameOverPanel>`
+   - Keep all existing stat-computation logic (myShots, myHits, etc.) in page.tsx — pass as before
+   - Remove `BattleScreen` import if it's no longer used by any other phase (check: it IS still used for IN_PROGRESS phase, so keep the import)
+   - The outer wrapper div stays: `<div className="flex flex-1 flex-col items-center justify-center gap-6 px-4 py-6">`
 
-5. **Refactor login form (`src/app/(auth)/login/page.tsx`)**
-   - Remove `FormData` interface and `useState` for formData.
-   - Import `useForm` from react-hook-form, `zodResolver` from `@hookform/resolvers/zod`, and `loginSchema`.
-   - Call `useForm<LoginFormData>({ resolver: zodResolver(loginSchema) })`.
-   - Destructure `register, handleSubmit, formState: { errors }`.
-   - Replace `onChange` handlers with `{...register('email')}` and `{...register('password')}` spread on Input (keep `id` prop separate for label association).
-   - Pass `error={errors.email?.message}` / `error={errors.password?.message}` to Input components.
-   - Wrap form onSubmit with RHF's `handleSubmit(onValid)`.
-   - In `onValid`: keep existing `auth.login()` call, keep `loading` state, keep server-error Alert for API errors.
-   - In catch block: only set server error if `err` is an `ApiError` (i.e., has `status` property). If the error is a plain Error (like "Refresh failed"), ignore it — the auth context already handles logout/redirect.
+5. **Add @media print styles to globals.css**
+   - Append at end of file:
+   ```css
+   /* ─── Print styles ─────────────────────────────────────────────────────────── */
+   @media print {
+     body {
+       background: white !important;
+       color: black !important;
+       -webkit-print-color-adjust: exact;
+       print-color-adjust: exact;
+     }
 
-6. **Refactor register form (`src/app/(auth)/register/page.tsx`)**
-   - Remove `FormData` interface and `useState` for formData.
-   - Import `useForm`, `zodResolver`, `registerSchema`.
-   - Call `useForm<RegisterFormData>({ resolver: zodResolver(registerSchema) })`.
-   - Destructure `register, handleSubmit, setValue, watch, formState: { errors }`.
-   - Use `const filiation = watch('filiation')` for the emoji button highlight state.
-   - Emoji buttons call `setValue('filiation', 'PIRATE', { shouldValidate: true })` / `setValue('filiation', 'MARINE', { shouldValidate: true })`.
-   - Remove the hidden `<input type="radio">` entirely — Zod enum validation replaces browser required.
-   - Show filiation error below fieldset: `{errors.filiation && <p className="text-xs text-danger mt-1">{errors.filiation.message}</p>}`.
-   - Spread `{...register('name')}`, `{...register('email')}`, `{...register('password')}` on respective Inputs, pass field errors.
-   - Same API-error handling pattern as login (only show if `err` has `status`).
+     /* Hide non-essential UI */
+     .print\\:hidden,
+     nav,
+     footer,
+     button,
+     [data-print-hide] {
+       display: none !important;
+     }
 
-7. **Refactor join-game in lobby (`src/app/page.tsx`)**
-   - Remove `useState` for joinToken.
-   - Import `useForm`, `zodResolver`, `joinGameSchema`.
-   - Call `useForm<JoinGameFormData>({ resolver: zodResolver(joinGameSchema) })`.
-   - Wrap the join-game section in a `<form onSubmit={handleSubmit(onJoin)}>` element.
-   - Spread `{...register('token')}` on the token Input, pass `error={errors.token?.message}`.
-   - In `onJoin`: call `joinGame(data.token.trim())`, existing error handling for API errors remains.
+     /* Boards: ensure they fit side-by-side on paper */
+     .game-results-boards {
+       gap: 1rem !important;
+     }
 
-8. **Fix "Refresh failed" leak in `src/lib/auth/auth-context.tsx`**
-   - In the `hydrate` function: before calling `getProfile()`, check if there is no access token in localStorage → if so, skip hydration entirely (just set `isLoading = false`).
-   - In the `hydrate` catch block: call `clearTokens()` and set `user = null` and `isLoading = false` — do NOT re-throw or let error propagate. This already exists but ensure it's robust.
-   - Key fix: in `performLogout` (the `onUnauthorizedCallback`), do NOT call `router.push("/login")` if `window.location.pathname` is already `/login` or `/register`. This prevents the redirect flash when hydration triggers a stale-token logout while already on an auth page.
-   - This ensures that even if `attemptRefresh` throws "Refresh failed", the hydrate catch swallows it, stale tokens are cleared, and no visible side-effect reaches the user.
+     /* Scale down board cells for print (A4 friendly) */
+     .game-results-boards .board-cell {
+       width: 1.25rem !important;
+       height: 1.25rem !important;
+     }
+
+     /* Remove dark backgrounds from cards */
+     .game-results-boards,
+     [class*="bg-surface"],
+     [class*="bg-\\[var"] {
+       background: white !important;
+       border-color: #ccc !important;
+     }
+
+     /* Ensure content stays on one page */
+     * {
+       break-inside: avoid;
+     }
+   }
+   ```
+
+6. **Add `board-cell` class to BoardGrid cells for print targeting**
+   - In `board-grid.tsx`: add `board-cell` to the cell div's className (the `h-8 w-8` element). This is a minimal non-breaking addition — just concatenate the class.
+
+7. **Add print:hidden utility to the "Back to Grand Line" link**
+   - In game-over-panel.tsx: add `print:hidden` class to the Link wrapper/container.
 
 ## Verification
 
@@ -83,18 +108,15 @@ npm run lint
 ```
 
 ### Manual checks (reviewer)
-- Open `/login`, submit empty form → inline "Valid email required" and "Password is required" errors appear on fields
-- Open `/register`, submit without filling anything → all 4 field errors appear inline (name, email, password, filiation)
-- On `/register`, type password < 8 chars → "Password must be at least 8 characters" on blur/submit
-- On `/register`, select a filiation emoji → error clears, aria-pressed updates correctly
-- On lobby (`/`), click Join with empty token → inline "Please enter a game token" error
-- Open `/login` with stale tokens in localStorage (set manually via DevTools) → no "Refresh failed" message appears, tokens are silently cleared
-- Server-side errors (wrong password, duplicate email) still display in the top-level Alert, not inline
+- Load a FINISHED game → single cohesive page shows: banner, both boards side-by-side, stats card, "Back to Grand Line" button
+- Boards display correct cell states (ships on my board, hits/misses/sunks on opponent board)
+- Print preview (Ctrl+P): white background, boards fit on one page, "Back to Grand Line" button hidden, stats card readable
+- Responsive check at 375px width: boards wrap vertically (flex-wrap), no horizontal overflow
+- No visual regressions on IN_PROGRESS phase (BattleScreen still renders normally)
 
 ## Rollback
 
 ```bash
 cd /home/perico/work/last-island/client
-git checkout HEAD -- src/app/(auth)/login/page.tsx src/app/(auth)/register/page.tsx src/app/page.tsx src/lib/auth/auth-context.tsx
-rm -rf src/lib/validations/
+git checkout HEAD -- src/app/game/[token]/game-over-panel.tsx src/app/game/[token]/page.tsx src/app/game/[token]/board-grid.tsx src/app/globals.css
 ```

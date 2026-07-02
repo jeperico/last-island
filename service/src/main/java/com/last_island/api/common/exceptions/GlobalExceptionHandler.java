@@ -24,10 +24,13 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleGenericException(Exception ex) {
+        // Log the real error server-side
+        ex.printStackTrace();
+
         Map<String, Object> body = Map.of(
                 "status", 500,
                 "error", "Internal Server Error",
-                "message", ex.getMessage() != null ? ex.getMessage() : "Unexpected error",
+                "message", "Something went wrong. Please try again later.",
                 "timestamp", LocalDateTime.now().toString()
         );
         return ResponseEntity.internalServerError().body(body);

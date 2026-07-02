@@ -36,10 +36,6 @@ public class GameService {
 
     @Transactional
     public CreateGameResponse createGame(UUID userId) {
-        if (gameRepository.hasActiveGame(userId)) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "You already have an active battle");
-        }
-
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Pirate not found"));
 
@@ -71,10 +67,6 @@ public class GameService {
 
         if (game.getBlueBoard().getOwner().getId().equals(userId)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Cannot join your own battle");
-        }
-
-        if (gameRepository.hasActiveGame(userId)) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "You already have an active battle");
         }
 
         User joiner = userRepository.findById(userId)

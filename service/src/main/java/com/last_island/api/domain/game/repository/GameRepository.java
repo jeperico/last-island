@@ -19,7 +19,4 @@ public interface GameRepository extends JpaRepository<Game, UUID> {
     Page<Game> findByPhaseAndIsActiveTrue(GamePhase phase, Pageable pageable);
 
     boolean existsByToken(String token);
-
-    @Query("SELECT COUNT(g) > 0 FROM Game g WHERE g.isActive = true AND g.phase <> com.last_island.api.domain.game.enums.GamePhase.FINISHED AND (g.blueBoard.owner.id = :userId OR g.redBoard.owner.id = :userId)")
-    boolean hasActiveGame(@Param("userId") UUID userId);
 }

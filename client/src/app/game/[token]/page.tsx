@@ -8,7 +8,7 @@ import type { GamePhase, GameStateResponse } from "@/lib/api/types";
 import { ShipPlacement } from "./ship-placement";
 import { BattleScreen } from "./battle-screen";
 import { GameOverPanel } from "./game-over-panel";
-import { Spinner, Alert, EmptyState, Badge } from "@/components/ui";
+import { Spinner, Alert, Badge } from "@/components/ui";
 
 export default function GamePage() {
   const { user, isLoading: authLoading } = useRequireAuth();
@@ -225,17 +225,9 @@ export default function GamePage() {
           opponentShots={opponentShots}
           opponentHits={opponentHits}
           durationSeconds={durationSeconds}
+          myBoard={gameState.myBoard}
+          opponentBoard={gameState.opponentBoard}
         />
-
-        {gameState.myBoard && gameState.opponentBoard && (
-          <BattleScreen
-            gameState={gameState}
-            user={user}
-            gameToken={token}
-            onGameStateUpdate={setGameState}
-            readOnly
-          />
-        )}
       </div>
     );
   }

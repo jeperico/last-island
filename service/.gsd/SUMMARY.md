@@ -47,3 +47,11 @@ Implementer: modified `pom.xml` (+4 lines — springdoc dependency), created `Op
 Reviewer: PASS — compile exit 0, 36 tests pass, all 5 grep checks confirm: OpenApiConfig has "Last Island API", SecurityConfig permits swagger-ui, @Tag("Auth") on AuthController, @Tag("Battles") on GameController, springdoc.api-docs.path in application.properties
 
 Commit: uncommitted
+
+## 2026-07-02T16:11 — Refactor: Remove one-active-game-per-player constraint
+
+Implementer: modified `GameService.java` (-6 lines — removed 2 hasActiveGame guard clauses), `GameRepository.java` (-3 lines — removed @Query + hasActiveGame method), `GameServiceTest.java` (-24 lines — removed 2 dedicated tests + 2 mocking lines). Net: 3 files modified, -33 lines.
+
+Reviewer: PASS — compile exit 0, 34 tests pass (7+11+16), no hasActiveGame references in src/, no "already have an active battle" message in src/
+
+Commit: uncommitted
