@@ -126,13 +126,20 @@ export default function GamePage() {
   // Phase: WAITING_OPPONENT
   if (gameState.phase === "WAITING_OPPONENT") {
     return (
-      <div className="flex flex-1 flex-col items-center justify-center px-4">
-        <EmptyState
-          title="Waiting for opponent to join…"
-          description="Share the game token:"
-        >
+      <div className="flex flex-1 flex-col items-center justify-center px-4 gap-6">
+        <div className="flex flex-col items-center gap-3 text-center">
+          <span className="text-6xl animate-[bounce_3s_ease-in-out_infinite]">⛵</span>
+          <h1 className="text-xl font-bold text-text-primary">
+            Scanning the horizon…
+          </h1>
+          <p className="text-sm text-text-muted max-w-sm">
+            Your ship is anchored and ready. Share the token below so a challenger can find you on the Grand Line.
+          </p>
+        </div>
+        <div className="flex flex-col items-center gap-2">
+          <span className="text-xs uppercase tracking-wider text-text-muted font-medium">Battle Token</span>
           <Badge variant="neutral">{token}</Badge>
-        </EmptyState>
+        </div>
       </div>
     );
   }
@@ -153,11 +160,20 @@ export default function GamePage() {
     }
 
     return (
-      <div className="flex flex-1 flex-col items-center justify-center px-4">
-        <EmptyState
-          title="Waiting for opponent to deploy fleet…"
-          description="Your ships are placed. The battle will begin once your opponent is ready."
-        />
+      <div className="flex flex-1 flex-col items-center justify-center px-4 gap-6">
+        <div className="flex flex-col items-center gap-3 text-center">
+          <span className="text-6xl animate-pulse">🧭</span>
+          <h1 className="text-xl font-bold text-text-primary">
+            Fleet deployed, Captain!
+          </h1>
+          <p className="text-sm text-text-muted max-w-sm">
+            Your vessels are in position. The enemy is still plotting their formation. The clash begins once both fleets set sail.
+          </p>
+        </div>
+        <div className="flex items-center gap-2 rounded-full border border-[var(--color-border)] bg-[var(--color-surface-secondary)] px-4 py-2">
+          <span className="h-2 w-2 rounded-full bg-[var(--color-warning)] animate-pulse" />
+          <span className="text-xs text-text-muted font-medium">Opponent preparing fleet…</span>
+        </div>
       </div>
     );
   }
