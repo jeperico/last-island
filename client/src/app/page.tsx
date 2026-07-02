@@ -14,6 +14,7 @@ import {
   Card,
   EmptyState,
   Skeleton,
+  Spinner,
 } from "@/components/ui";
 
 export default function Home() {
@@ -63,7 +64,7 @@ export default function Home() {
   if (isLoading) {
     return (
       <div className="flex flex-1 items-center justify-center">
-        <p className="text-sm text-text-muted">Loading...</p>
+        <Spinner size="lg" />
       </div>
     );
   }

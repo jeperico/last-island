@@ -133,6 +133,12 @@ client-install: ## Install client dependencies
 client-run: ## Run the frontend (dev mode, :3000)
 	cd client && npm run dev
 
+client-prod: ## Build + run client in production mode (:3000)
+	cd client && npm run build && npm start
+
+client-ngrok: ## Expose client via ngrok tunnel (run client-prod first)
+	/snap/bin/ngrok http 3000
+
 client-build: ## Build client for production
 	cd client && npm run build
 
