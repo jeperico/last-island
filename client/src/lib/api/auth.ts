@@ -8,15 +8,15 @@ import type {
 } from "./types";
 
 export function register(data: RegisterRequest): Promise<AuthResponse> {
-  return apiPost<AuthResponse>("/api/auth/register", data);
+  return apiPost<AuthResponse>("/api/auth/register", data, { skipAuth: true });
 }
 
 export function login(data: LoginRequest): Promise<AuthResponse> {
-  return apiPost<AuthResponse>("/api/auth/login", data);
+  return apiPost<AuthResponse>("/api/auth/login", data, { skipAuth: true });
 }
 
 export function refresh(data: RefreshRequest): Promise<AuthResponse> {
-  return apiPost<AuthResponse>("/api/auth/refresh", data);
+  return apiPost<AuthResponse>("/api/auth/refresh", data, { skipAuth: true });
 }
 
 export function getProfile(): Promise<UserResponse> {

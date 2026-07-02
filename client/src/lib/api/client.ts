@@ -167,6 +167,7 @@ export async function apiGet<T>(
 export async function apiPost<T>(
   path: string,
   body?: unknown,
+  options?: { skipAuth?: boolean },
 ): Promise<T> {
   const url = buildUrl(path);
 
@@ -178,7 +179,7 @@ export async function apiPost<T>(
     });
     return await handleResponse<T>(response);
   } catch (error) {
-    if (error instanceof ApiError && error.isUnauthorized) {
+    if (!options?.skipAuth && error instanceof ApiError && error.isUnauthorized) {
       await attemptRefresh();
       // Retry once with new token
       const retryResponse = await fetch(url, {
