@@ -62,4 +62,4 @@ Implementer: created `GameEvent.java` (+23 lines — event payload record with t
 
 Reviewer: PASS — compile exit 0, 44 tests pass (10+7+11+16), all 11 SSE verification checks green, no opponent board data leaks in event payloads, cleanup callbacks registered, events emitted after commit via TransactionSynchronizationManager
 
-Commit: uncommitted
+Commit: 7552f20

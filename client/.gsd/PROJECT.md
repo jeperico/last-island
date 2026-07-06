@@ -1,19 +1,19 @@
 # Project Vision
 
 ## What
-Last Island Client — the web frontend for a multiplayer naval battle game (Battleship) with One Piece theming. Connects to the Spring Boot backend via REST + WebSocket (STOMP). Players register, create/join matches, place ships, and battle in real-time on 10×10 boards with fog of war.
+Last Island Client — the web frontend for a multiplayer naval battle game (Battleship) with One Piece theming. Connects to the Spring Boot backend via REST + SSE (Server-Sent Events). Players register, create/join matches, place ships, and battle in real-time on 10×10 boards with fog of war.
 
 ## Stack
 - React 19 + Next.js 15 (App Router)
 - TypeScript
 - Tailwind CSS 4
-- State management: TBD (decide when WebSocket integration begins)
-- WebSocket client: TBD (likely @stomp/stompjs, decide later)
+- State management: TBD (decide when SSE integration begins)
+- SSE client: native EventSource API (no extra dependency)
 - Deployment: Vercel
 
 ## Constraints
 - Must consume the existing Spring Boot REST API (JWT auth, game CRUD, board/ship placement, shooting)
-- Must handle STOMP WebSocket events for real-time turn notifications
+- Must handle SSE events (EventSource) for real-time turn notifications (endpoint: GET /games/{token}/events?token=jwt)
 - Server-authoritative: client never has opponent board state, only shot results
 - Minimal/clean design first; One Piece theming comes later (v2)
 - Responsive but desktop-first (naval battle grid needs space)

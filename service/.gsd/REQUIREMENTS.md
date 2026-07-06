@@ -8,7 +8,7 @@
 - [x] REQ-5: Turn-based shooting mechanics (alternating turns, shot resolution: MISS/HIT/SUNK)
 - [x] REQ-6: Fog of war enforcement — server never exposes opponent board
 - [x] REQ-7: Win condition detection (all opponent ships sunk)
-- [ ] REQ-8: WebSocket real-time communication (game events, turn notifications)
+- [x] REQ-8: SSE real-time communication (game events push via Server-Sent Events)
 - [x] REQ-9: Flyway migrations for all domain tables
 - [x] REQ-10: Automated tests covering domain rules (placement, shooting, win condition)
 - [ ] REQ-11: Deploy publicly accessible
@@ -28,7 +28,7 @@
 | REQ-5  | done     | complete | f2734fa |
 | REQ-6  | done     | complete | 193eca4 |
 | REQ-7  | done     | complete | 193eca4 |
-| REQ-8  | next     | pending  | —       |
+| REQ-8  | done     | complete | 7552f20 |
 | REQ-9  | done     | complete | 335ad6e |
 | REQ-10 | done     | complete | 737f1b9 |
 | REQ-11 | next     | pending  | —       |

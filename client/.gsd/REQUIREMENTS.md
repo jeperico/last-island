@@ -13,7 +13,7 @@
 - [x] REQ-11: API client layer — typed service functions for all backend endpoints
 
 ## v2 (next)
-- [ ] REQ-10: WebSocket integration — real-time turn notifications via STOMP
+- [ ] REQ-10: SSE integration — real-time turn notifications via EventSource (events: OPPONENT_JOINED, SHIPS_PLACED, SHOT_RECEIVED, GAME_OVER)
 - [ ] REQ-12: One Piece theming (ship skins, rank badges, sound effects)
 - [ ] REQ-13: Reconnection handling (rejoin mid-game after disconnect)
 - [ ] REQ-14: Game history / replay viewer

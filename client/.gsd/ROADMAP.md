@@ -18,6 +18,6 @@
 (idle — awaiting next task)
 
 ## Next
-- REQ-10: WebSocket integration (real-time turn notifications via STOMP)
+- REQ-10: SSE integration (real-time turn notifications via EventSource — backend endpoint ready at GET /games/{token}/events?token=jwt)
 - Responsive improvements (mobile layout)
 - Additional One Piece polish (sound effects, animations, rank badges)

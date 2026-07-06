@@ -1,11 +1,11 @@
 # Project Vision
 
 ## What
-Last Island — a multiplayer naval battle game (Battleship) with One Piece theming. Two players compete in turn-based combat on 10×10 boards with fog of war. Server is authoritative: clients never receive opponent board state. Web interface with real-time WebSocket communication.
+Last Island — a multiplayer naval battle game (Battleship) with One Piece theming. Two players compete in turn-based combat on 10×10 boards with fog of war. Server is authoritative: clients never receive opponent board state. Web interface with real-time SSE communication.
 
 ## Stack
 - Java 21, Spring Boot 4.1, Maven
-- Spring WebMVC + WebSocket (STOMP)
+- Spring WebMVC + SSE (Server-Sent Events)
 - Spring Security (user auth)
 - PostgreSQL + Flyway (persistence & migrations)
 - Lombok (boilerplate reduction)

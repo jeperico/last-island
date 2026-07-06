@@ -13,12 +13,12 @@
 - 2026-07-01: Makefile DX improvements (commit 95926d1)
 - 2026-07-01: OpenAPI/Swagger documentation (commit ebeed37)
 - 2026-07-02: Refactor: remove one-active-game-per-player constraint (commit 269dcff)
+- 2026-07-06: REQ-8 SSE real-time communication (commit 7552f20)
 
 ## Now
-(idle — all v1 backend features complete except REQ-8 and REQ-11)
+(idle — all v1 backend features complete)
 
 ## Next
-- REQ-8: WebSocket integration (STOMP for real-time turn notifications)
 - REQ-11: Deploy publicly accessible
 - Performance: connection pooling tuning, query optimization
 - Deployment: Docker image, CI/CD pipeline
