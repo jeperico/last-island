@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { type ReactNode } from 'react';
+import { type ReactNode } from "react";
 
-type AlertVariant = 'error' | 'success' | 'warning' | 'info';
+type AlertVariant = "error" | "success" | "warning" | "info";
 
 interface AlertProps {
   variant?: AlertVariant;
@@ -13,29 +13,29 @@ interface AlertProps {
 }
 
 const variantClasses: Record<AlertVariant, string> = {
-  error: 'bg-danger-bg border-danger-border text-danger',
-  success: 'bg-success-bg border-success-border text-success',
-  warning: 'bg-warning-bg border-amber-300 text-warning',
-  info: 'bg-blue-900/30 border-[var(--color-ocean)] text-[var(--color-ocean)]',
+  error: "bg-danger-bg border-danger-border text-danger",
+  success: "bg-success-bg border-success-border text-success",
+  warning: "bg-warning-bg border-amber-300 text-warning",
+  info: "bg-blue-900/30 border-[var(--color-ocean)] text-[var(--color-ocean)]",
 };
 
 export function Alert({
-  variant = 'error',
+  variant = "error",
   children,
   dismissible = false,
   onDismiss,
-  className = '',
+  className = "",
 }: AlertProps) {
   return (
     <div
       role="alert"
       className={[
-        'flex items-start gap-2 rounded-md border px-4 py-2 text-sm',
+        "flex items-start gap-2 rounded-md border px-4 py-2 text-sm",
         variantClasses[variant],
         className,
       ]
         .filter(Boolean)
-        .join(' ')}
+        .join(" ")}
     >
       <div className="flex-1">{children}</div>
       {dismissible && onDismiss && (

@@ -29,7 +29,12 @@ function buildMyBoardCells(myBoard: MyBoardResponse): Map<string, CellState> {
 
   // Mark ship cells
   for (const ship of myBoard.ships) {
-    const shipCells = getShipCells(ship.row, ship.col, ship.size, ship.orientation);
+    const shipCells = getShipCells(
+      ship.row,
+      ship.col,
+      ship.size,
+      ship.orientation,
+    );
     for (const cell of shipCells) {
       cells.set(cellKey(cell.row, cell.col), { type: "ship" });
     }
@@ -88,7 +93,9 @@ export function GameOverPanel({
   const opponentAccuracy =
     opponentShots > 0 ? Math.round((opponentHits / opponentShots) * 100) : 0;
 
-  const myBoardCells = myBoard ? buildMyBoardCells(myBoard) : new Map<string, CellState>();
+  const myBoardCells = myBoard
+    ? buildMyBoardCells(myBoard)
+    : new Map<string, CellState>();
   const opponentBoardCells = opponentBoard
     ? buildOpponentBoardCells(opponentBoard.shotsFired)
     : new Map<string, CellState>();
@@ -107,38 +114,33 @@ export function GameOverPanel({
       {isWinner ? (
         <div className="flex flex-col items-center gap-2 print:text-black">
           <span className="text-5xl">🏴‍☠️</span>
-          <h1 className="text-3xl font-bold text-[var(--color-success)]">
-            Victory!
-          </h1>
+          <h1 className="text-3xl font-bold text-success">Victory!</h1>
         </div>
       ) : (
         <div className="flex flex-col items-center gap-2 print:text-black">
           <span className="text-5xl">💀</span>
-          <h1 className="text-3xl font-bold text-[var(--color-danger)]">
-            Defeat
-          </h1>
+          <h1 className="text-3xl font-bold text-danger">Defeat</h1>
         </div>
       )}
 
       {/* Opponent subtitle */}
       <p className="text-text-muted text-sm print:text-black">
-        vs <span className="font-semibold text-text-primary">{opponentName}</span>
+        vs{" "}
+        <span className="font-semibold text-text-primary">{opponentName}</span>
       </p>
 
       {/* Section 2 — Boards */}
       <div className="game-results-boards flex flex-wrap items-start justify-center gap-6 w-full">
-        {myBoard && (
-          <BoardGrid title="My Fleet" cells={myBoardCells} />
-        )}
+        {myBoard && <BoardGrid title="My Fleet" cells={myBoardCells} />}
         {opponentBoard && (
           <BoardGrid title="Enemy Waters" cells={opponentBoardCells} />
         )}
       </div>
 
       {/* Section 3 — Stats card */}
-      <div className="w-full max-w-lg rounded-xl border border-[var(--color-border)] bg-[var(--color-surface-elevated)] overflow-hidden">
+      <div className="w-full max-w-lg rounded-xl border border-border bg-surface-elevated overflow-hidden">
         {/* Duration banner */}
-        <div className="flex items-center justify-center gap-2 border-b border-[var(--color-border)] bg-[var(--color-surface-secondary)] px-4 py-2.5">
+        <div className="flex items-center justify-center gap-2 border-b border-border bg-surface-secondary px-4 py-2.5">
           <span className="text-base">⏱️</span>
           <span className="text-sm font-medium text-text-secondary">
             {formatDuration(durationSeconds)}
@@ -146,24 +148,34 @@ export function GameOverPanel({
         </div>
 
         {/* Player comparison */}
-        <div className="grid grid-cols-3 px-4 py-3 border-b border-[var(--color-border-light)]">
+        <div className="grid grid-cols-3 px-4 py-3 border-b border-border-light">
           <div className="text-left">
-            <p className="text-xs text-text-muted uppercase tracking-wide">You</p>
+            <p className="text-xs text-text-muted uppercase tracking-wide">
+              You
+            </p>
             <p className="text-sm font-semibold text-text-primary truncate">
-              {winnerName === opponentName ? "—" : isWinner ? winnerName : "You"}
+              {winnerName === opponentName
+                ? "—"
+                : isWinner
+                  ? winnerName
+                  : "You"}
             </p>
           </div>
           <div className="flex items-center justify-center">
             <span className="text-xs font-bold text-text-muted">VS</span>
           </div>
           <div className="text-right">
-            <p className="text-xs text-text-muted uppercase tracking-wide">Enemy</p>
-            <p className="text-sm font-semibold text-text-primary truncate">{opponentName}</p>
+            <p className="text-xs text-text-muted uppercase tracking-wide">
+              Enemy
+            </p>
+            <p className="text-sm font-semibold text-text-primary truncate">
+              {opponentName}
+            </p>
           </div>
         </div>
 
         {/* Stat rows */}
-        <div className="divide-y divide-[var(--color-border-light)]">
+        <div className="divide-y divide-border-light">
           <StatRow
             icon="💣"
             label="Cannonballs"
@@ -192,14 +204,14 @@ export function GameOverPanel({
         <div
           className={`flex items-center justify-center gap-2 px-4 py-3 ${
             isWinner
-              ? "bg-[var(--color-success-bg)] border-t border-[var(--color-success-border)]"
-              : "bg-[var(--color-danger-bg)] border-t border-[var(--color-danger-border)]"
+              ? "bg-success-bg border-t border-success-border"
+              : "bg-danger-bg border-t border-danger-border"
           }`}
         >
           <span className="text-base">{isWinner ? "👑" : "⚔️"}</span>
           <span
             className={`text-sm font-bold ${
-              isWinner ? "text-[var(--color-success)]" : "text-[var(--color-danger)]"
+              isWinner ? "text-success" : "text-danger"
             }`}
           >
             {winnerName} wins!
@@ -240,14 +252,15 @@ function StatRow({
   highlightBetter?: boolean;
 }) {
   const myNum = myRaw ?? (typeof myValue === "number" ? myValue : 0);
-  const oppNum = opponentRaw ?? (typeof opponentValue === "number" ? opponentValue : 0);
+  const oppNum =
+    opponentRaw ?? (typeof opponentValue === "number" ? opponentValue : 0);
   const myBetter = highlightBetter && myNum > oppNum;
   const oppBetter = highlightBetter && oppNum > myNum;
 
   return (
     <div className="grid grid-cols-3 items-center px-4 py-3">
       <div
-        className={`text-left text-lg font-bold ${myBetter ? "text-[var(--color-success)]" : "text-text-primary"}`}
+        className={`text-left text-lg font-bold ${myBetter ? "text-success" : "text-text-primary"}`}
       >
         {myValue}
       </div>
@@ -258,7 +271,7 @@ function StatRow({
         </span>
       </div>
       <div
-        className={`text-right text-lg font-bold ${oppBetter ? "text-[var(--color-danger)]" : "text-text-primary"}`}
+        className={`text-right text-lg font-bold ${oppBetter ? "text-danger" : "text-text-primary"}`}
       >
         {opponentValue}
       </div>

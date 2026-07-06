@@ -28,7 +28,9 @@ export function BattleScreen({
 }: BattleScreenProps) {
   const [firing, setFiring] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [optimisticShots, setOptimisticShots] = useState<ShotCellResponse[]>([]);
+  const [optimisticShots, setOptimisticShots] = useState<ShotCellResponse[]>(
+    [],
+  );
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const isMyTurn = gameState.currentTurnPlayerName === user.name;
@@ -84,7 +86,14 @@ export function BattleScreen({
         pollingRef.current = null;
       }
     };
-  }, [readOnly, isMyTurn, gameState.phase, gameToken, onGameStateUpdate, user.name]);
+  }, [
+    readOnly,
+    isMyTurn,
+    gameState.phase,
+    gameToken,
+    onGameStateUpdate,
+    user.name,
+  ]);
 
   const handleFire = useCallback(
     async (row: number, col: number) => {
@@ -122,9 +131,7 @@ export function BattleScreen({
           onGameStateUpdate(updatedState);
         }
       } catch (err) {
-        setError(
-          err instanceof Error ? err.message : "Failed to fire shot",
-        );
+        setError(err instanceof Error ? err.message : "Failed to fire shot");
       } finally {
         setFiring(false);
       }
@@ -140,7 +147,9 @@ export function BattleScreen({
           {isMyTurn ? (
             <Badge variant="success">Your Turn — Fire!</Badge>
           ) : (
-            <Badge variant="warning" pulse>Opponent&apos;s Turn — Waiting…</Badge>
+            <Badge variant="warning" pulse>
+              Opponent&apos;s Turn — Waiting…
+            </Badge>
           )}
         </div>
       )}
@@ -174,14 +183,21 @@ export function BattleScreen({
   );
 }
 
-function buildMyBoardCells(gameState: GameStateResponse): Map<string, CellState> {
+function buildMyBoardCells(
+  gameState: GameStateResponse,
+): Map<string, CellState> {
   const cells = new Map<string, CellState>();
 
   if (!gameState.myBoard) return cells;
 
   // Mark ship cells
   for (const ship of gameState.myBoard.ships) {
-    const shipCells = getShipCells(ship.row, ship.col, ship.size, ship.orientation);
+    const shipCells = getShipCells(
+      ship.row,
+      ship.col,
+      ship.size,
+      ship.orientation,
+    );
     for (const cell of shipCells) {
       cells.set(cellKey(cell.row, cell.col), { type: "ship" });
     }

@@ -23,3 +23,11 @@ Implementer: Modified 4 files — `src/app/game/[token]/game-over-panel.tsx` (re
 Reviewer: PASS — tsc clean, build OK (Next.js 16.2.9 Turbopack), lint 0 errors (1 pre-existing warning in register page), both boards rendered in GameOverPanel with BoardGrid, page.tsx FINISHED phase has no BattleScreen, @media print styles present in globals.css, layout order confirmed: banner→boards→stats→button.
 
 Commit: uncommitted
+
+## 2026-07-06 — Modularize src/ with styles, interfaces, types folders; move favicon to public
+
+Implementer: Created 8 files — `src/styles/globals.css` (+130, moved from src/app/), `src/types/game.ts` (+47), `src/types/pagination.ts` (+16), `src/types/index.ts` (+2), `src/interfaces/api.ts` (+153), `src/interfaces/auth.ts` (+15), `src/interfaces/index.ts` (+2), `public/favicon.ico` (moved from src/app/). Modified 3 files — `src/lib/api/types.ts` (rewritten as 2-line re-export barrel), `src/lib/auth/auth-context.tsx` (replaced inline AuthContextValue with import from @/interfaces/auth), `src/app/layout.tsx` (import path changed to @/styles/globals.css). Deleted 2 files — `src/app/globals.css`, `src/app/favicon.ico`.
+
+Reviewer: PASS — tsc clean, build OK (Next.js 16.2.9 Turbopack), lint 0 errors (1 pre-existing warning), src/app/ has no globals.css or favicon.ico, public/favicon.ico exists, @/lib/api/types barrel re-exports resolve for all 9 consumers.
+
+Commit: uncommitted

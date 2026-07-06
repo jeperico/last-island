@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { forwardRef, type InputHTMLAttributes } from 'react';
+import { forwardRef, type InputHTMLAttributes } from "react";
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string;
@@ -10,7 +10,16 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
 }
 
 export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
-  { label, id, error, helperText, required, className = '', type = 'text', ...props },
+  {
+    label,
+    id,
+    error,
+    helperText,
+    required,
+    className = "",
+    type = "text",
+    ...props
+  },
   ref,
 ) {
   const hasError = Boolean(error);
@@ -18,10 +27,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
   return (
     <div className="flex flex-col gap-1.5">
       {label && (
-        <label
-          htmlFor={id}
-          className="text-sm font-medium text-text-primary"
-        >
+        <label htmlFor={id} className="text-sm font-medium text-text-primary">
           {label}
           {required && <span className="text-danger ml-0.5">*</span>}
         </label>
@@ -37,13 +43,13 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
           hasError ? `${id}-error` : helperText ? `${id}-helper` : undefined
         }
         className={[
-          'rounded-md border px-3 py-2 text-sm bg-surface text-text-primary placeholder:text-text-muted transition-colors',
-          'focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary-ring',
-          hasError ? 'border-danger' : 'border-border',
+          "rounded-md border px-3 py-2 text-sm bg-surface text-text-primary placeholder:text-text-muted transition-colors",
+          "focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary-ring",
+          hasError ? "border-danger" : "border-border",
           className,
         ]
           .filter(Boolean)
-          .join(' ')}
+          .join(" ")}
         {...props}
       />
       {hasError && (

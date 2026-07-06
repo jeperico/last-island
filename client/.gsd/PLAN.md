@@ -1,96 +1,138 @@
-# Redesign game-over results into a single cohesive printable page
+# Modularize src/ with styles, interfaces, types folders; move favicon to public
 
 ## Objective
 
-Refactor the FINISHED phase into one unified GameOverPanel component that renders the victory/defeat banner, both boards side-by-side, stats comparison card, and a print-friendly layout — replacing the current split of GameOverPanel + BattleScreen(readOnly).
+Reorganize `src/` into a cleaner folder structure by:
+1. Moving global styles into `src/styles/`
+2. Extracting TypeScript interfaces into `src/interfaces/`
+3. Extracting TypeScript type aliases/unions into `src/types/`
+4. Moving the favicon from `src/app/favicon.ico` to `public/favicon.ico`
 
-## Files to touch
+## Current structure (relevant parts)
 
-- `src/app/game/[token]/game-over-panel.tsx` — **modify** (major rewrite: add board rendering, restructure layout)
-- `src/app/game/[token]/page.tsx` — **modify** (simplify FINISHED phase: pass board data to GameOverPanel, remove BattleScreen readOnly usage)
-- `src/app/globals.css` — **modify** (add @media print rules at end of file)
+```
+src/
+├── app/
+│   ├── globals.css          → move to src/styles/globals.css
+│   ├── favicon.ico          → move to public/favicon.ico
+│   ├── layout.tsx           (import globals.css path changes)
+│   └── ...
+├── lib/
+│   └── api/
+│       └── types.ts         → split into src/interfaces/ and src/types/
+└── components/
+```
+
+## Target structure
+
+```
+src/
+├── app/            (routes only — no globals.css, no favicon.ico)
+├── components/     (unchanged)
+├── interfaces/     (NEW — request/response/context interfaces)
+│   ├── api.ts      (all Request/Response interfaces)
+│   ├── auth.ts     (AuthContextValue interface)
+│   └── index.ts    (barrel export)
+├── types/          (NEW — union types, type aliases, enums-as-types)
+│   ├── game.ts     (GamePhase, ShipType, Orientation, ShotResult, Filiation, PirateRank, MarineRank)
+│   ├── pagination.ts (PageResponse<T>, PaginationParams)
+│   └── index.ts    (barrel export)
+├── styles/         (NEW)
+│   └── globals.css
+├── lib/            (logic only — api/types.ts becomes re-export barrel)
+│   ├── api/
+│   │   ├── types.ts  (re-exports from @/interfaces and @/types for backwards compat)
+│   │   └── ...
+│   ├── auth/
+│   ├── auth-storage.ts
+│   ├── game/
+│   └── validations/
+public/
+└── favicon.ico     (moved here)
+```
+
+## Files to create
+
+- `src/styles/globals.css` — moved from `src/app/globals.css`
+- `src/types/game.ts` — GamePhase, ShipType, Orientation, ShotResult, Filiation, PirateRank, MarineRank
+- `src/types/pagination.ts` — PageResponse<T>, PaginationParams
+- `src/types/index.ts` — barrel re-exports
+- `src/interfaces/api.ts` — all Request/Response interfaces (RegisterRequest, LoginRequest, RefreshRequest, ShipPlacementDto, PlaceShipsRequest, ShotRequest, AuthResponse, UserResponse, CreateGameResponse, GameSummaryResponse, JoinGameResponse, ShipResponse, ShotCellResponse, MyBoardResponse, OpponentBoardResponse, BoardResponse, GameStateResponse, ShotResponse, ApiErrorResponse)
+- `src/interfaces/auth.ts` — AuthContextValue interface
+- `src/interfaces/index.ts` — barrel re-exports
+- `public/favicon.ico` — moved from `src/app/favicon.ico`
+
+## Files to modify
+
+- `src/app/layout.tsx` — change `import "./globals.css"` to `import "@/styles/globals.css"`
+- `src/lib/api/types.ts` — replace contents with re-exports from `@/interfaces` and `@/types` (backwards-compatible barrel)
+- `src/lib/auth/auth-context.tsx` — import `AuthContextValue` from `@/interfaces/auth`
+- `src/app/globals.css` — **delete** (moved)
+- `src/app/favicon.ico` — **delete** (moved)
+
+## Files to delete
+
+- `src/app/globals.css`
+- `src/app/favicon.ico`
 
 ## Steps
 
-1. **Extend GameOverPanel props to accept board data**
-   - Add new props: `myBoard: MyBoardResponse | null`, `opponentBoard: OpponentBoardResponse | null`
-   - Import `BoardGrid` and `CellState` from `./board-grid`
-   - Import `getShipCells`, `cellKey` from `@/lib/game`
-   - Import `GameStateResponse`, `MyBoardResponse`, `OpponentBoardResponse`, `ShotCellResponse` types from `@/lib/api/types`
+1. **Create `src/styles/globals.css`** — exact copy of current `src/app/globals.css`
 
-2. **Add board cell-building logic inside GameOverPanel**
-   - Add local helper `buildMyBoardCells(myBoard: MyBoardResponse): Map<string, CellState>` — same logic as battle-screen.tsx lines 175–200 (mark ship cells from `myBoard.ships` using `getShipCells`, overlay `shotsReceived` as hit/miss/sunk)
-   - Add local helper `buildOpponentBoardCells(shotsFired: ShotCellResponse[]): Map<string, CellState>` — same logic as battle-screen.tsx lines 207–222 (map each shot to hit/miss/sunk)
-
-3. **Restructure GameOverPanel layout (top to bottom)**
-   - Increase max-width from `max-w-lg` (32rem) to `max-w-4xl` (~56rem) to accommodate boards side-by-side
-   - **Section 1 — Banner:** Keep existing Victory/Defeat heading (emoji + colored text) + opponent subtitle. Add class `print:text-black` for print readability.
-   - **Section 2 — Boards:** New flex row: `<div className="flex flex-wrap items-start justify-center gap-6 w-full">` containing two `<BoardGrid>` components:
-     - "My Fleet" board: `<BoardGrid title="My Fleet" cells={myBoardCells} />` (only if `myBoard` is non-null)
-     - "Enemy Waters" board: `<BoardGrid title="Enemy Waters" cells={opponentBoardCells} />` (only if `opponentBoard` is non-null)
-   - Add wrapper class `game-results-boards` for print CSS targeting
-   - **Section 3 — Stats card:** Keep existing stats card structure (duration banner, VS layout, stat rows with emoji icons, winner banner). No changes needed to the StatRow sub-component.
-   - **Section 4 — Navigation:** Keep "Back to Grand Line" link but wrap it with class `print:hidden` so it disappears when printing.
-
-4. **Simplify FINISHED phase in page.tsx**
-   - Remove the conditional `<BattleScreen ... readOnly />` block (lines 228–236)
-   - Pass `myBoard={gameState.myBoard}` and `opponentBoard={gameState.opponentBoard}` as new props to `<GameOverPanel>`
-   - Keep all existing stat-computation logic (myShots, myHits, etc.) in page.tsx — pass as before
-   - Remove `BattleScreen` import if it's no longer used by any other phase (check: it IS still used for IN_PROGRESS phase, so keep the import)
-   - The outer wrapper div stays: `<div className="flex flex-1 flex-col items-center justify-center gap-6 px-4 py-6">`
-
-5. **Add @media print styles to globals.css**
-   - Append at end of file:
-   ```css
-   /* ─── Print styles ─────────────────────────────────────────────────────────── */
-   @media print {
-     body {
-       background: white !important;
-       color: black !important;
-       -webkit-print-color-adjust: exact;
-       print-color-adjust: exact;
-     }
-
-     /* Hide non-essential UI */
-     .print\\:hidden,
-     nav,
-     footer,
-     button,
-     [data-print-hide] {
-       display: none !important;
-     }
-
-     /* Boards: ensure they fit side-by-side on paper */
-     .game-results-boards {
-       gap: 1rem !important;
-     }
-
-     /* Scale down board cells for print (A4 friendly) */
-     .game-results-boards .board-cell {
-       width: 1.25rem !important;
-       height: 1.25rem !important;
-     }
-
-     /* Remove dark backgrounds from cards */
-     .game-results-boards,
-     [class*="bg-surface"],
-     [class*="bg-\\[var"] {
-       background: white !important;
-       border-color: #ccc !important;
-     }
-
-     /* Ensure content stays on one page */
-     * {
-       break-inside: avoid;
-     }
-   }
+2. **Create `src/types/game.ts`** — extract union types:
+   ```ts
+   export type Filiation = "PIRATE" | "MARINE";
+   export type PirateRank = ...;
+   export type MarineRank = ...;
+   export type GamePhase = ...;
+   export type ShipType = ...;
+   export type Orientation = "HORIZONTAL" | "VERTICAL";
+   export type ShotResult = "HIT" | "MISS" | "SUNK";
    ```
 
-6. **Add `board-cell` class to BoardGrid cells for print targeting**
-   - In `board-grid.tsx`: add `board-cell` to the cell div's className (the `h-8 w-8` element). This is a minimal non-breaking addition — just concatenate the class.
+3. **Create `src/types/pagination.ts`** — extract generic types:
+   ```ts
+   export interface PageResponse<T> { ... }
+   export interface PaginationParams { ... }
+   ```
 
-7. **Add print:hidden utility to the "Back to Grand Line" link**
-   - In game-over-panel.tsx: add `print:hidden` class to the Link wrapper/container.
+4. **Create `src/types/index.ts`** — barrel:
+   ```ts
+   export * from "./game";
+   export * from "./pagination";
+   ```
+
+5. **Create `src/interfaces/api.ts`** — all request/response interfaces (importing types from `@/types`):
+   ```ts
+   import type { Filiation, ShipType, Orientation, ShotResult, GamePhase } from "@/types";
+   // All interfaces...
+   ```
+
+6. **Create `src/interfaces/auth.ts`** — AuthContextValue:
+   ```ts
+   import type { UserResponse } from "./api";
+   export interface AuthContextValue { ... }
+   ```
+
+7. **Create `src/interfaces/index.ts`** — barrel:
+   ```ts
+   export * from "./api";
+   export * from "./auth";
+   ```
+
+8. **Rewrite `src/lib/api/types.ts`** as a backwards-compatible re-export barrel:
+   ```ts
+   export type * from "@/types";
+   export type * from "@/interfaces/api";
+   ```
+
+9. **Update `src/lib/auth/auth-context.tsx`** — import `AuthContextValue` from `@/interfaces/auth` instead of declaring it inline
+
+10. **Update `src/app/layout.tsx`** — change import path to `@/styles/globals.css`
+
+11. **Move favicon** — copy `src/app/favicon.ico` to `public/favicon.ico`, delete original
+
+12. **Delete `src/app/globals.css`** — already moved to `src/styles/`
 
 ## Verification
 
@@ -108,15 +150,15 @@ npm run lint
 ```
 
 ### Manual checks (reviewer)
-- Load a FINISHED game → single cohesive page shows: banner, both boards side-by-side, stats card, "Back to Grand Line" button
-- Boards display correct cell states (ships on my board, hits/misses/sunks on opponent board)
-- Print preview (Ctrl+P): white background, boards fit on one page, "Back to Grand Line" button hidden, stats card readable
-- Responsive check at 375px width: boards wrap vertically (flex-wrap), no horizontal overflow
-- No visual regressions on IN_PROGRESS phase (BattleScreen still renders normally)
+- All existing imports from `@/lib/api/types` still resolve (backwards-compatible re-export)
+- `src/app/` no longer contains `globals.css` or `favicon.ico`
+- `public/favicon.ico` exists and is served at `/favicon.ico`
+- No runtime regressions — pages still load styles correctly
 
 ## Rollback
 
 ```bash
 cd /home/perico/work/last-island/client
-git checkout HEAD -- src/app/game/[token]/game-over-panel.tsx src/app/game/[token]/page.tsx src/app/game/[token]/board-grid.tsx src/app/globals.css
+git checkout HEAD -- src/app/globals.css src/app/favicon.ico src/app/layout.tsx src/lib/api/types.ts src/lib/auth/auth-context.tsx
+rm -rf src/styles src/types src/interfaces public/favicon.ico
 ```

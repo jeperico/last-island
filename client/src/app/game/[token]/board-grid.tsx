@@ -20,7 +20,8 @@ function cellKey(row: number, col: number): string {
 }
 
 function getCellClasses(state: CellState, interactive: boolean): string {
-  const base = "board-cell h-8 w-8 flex items-center justify-center text-xs font-bold border border-border transition-colors";
+  const base =
+    "board-cell h-8 w-8 flex items-center justify-center text-xs font-bold border border-border transition-colors";
 
   switch (state.type) {
     case "empty":
@@ -59,9 +60,7 @@ export function BoardGrid({
 }: BoardGridProps) {
   return (
     <div className="flex flex-col items-center gap-2">
-      <h2 className="text-sm font-semibold text-[var(--foreground)]">
-        {title}
-      </h2>
+      <h2 className="text-sm font-semibold text-foreground">{title}</h2>
       <div className={disabled ? "pointer-events-none opacity-60" : ""}>
         {/* Column labels */}
         <div className="flex">

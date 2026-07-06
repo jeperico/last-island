@@ -1,7 +1,7 @@
 # State
 
 ## Position
-Plan written — "Redesign game-over results into a single cohesive printable page". Awaiting implementer.
+Plan written — "Modularize src/ with styles, interfaces, types folders; move favicon to public". Spawning implement+review.
 
 ## Decisions
 - 2026-07-01: React 19 + Next.js 15 (App Router) + TypeScript + Tailwind CSS 4
@@ -15,4 +15,4 @@ Plan written — "Redesign game-over results into a single cohesive printable pa
 (none)
 
 ## Last verification
-PASS at 2026-07-02T11:01-03:00 — tsc clean, build OK (Next.js 16.2.9 Turbopack), lint 0 errors, game-over-panel renders boards+stats in one component, page.tsx FINISHED has no BattleScreen, globals.css has @media print, layout is banner→boards→stats→button
+PASS at 2026-07-06T11:25-03:00 — tsc clean, build OK (Next.js 16.2.9 Turbopack), lint 0 errors (1 pre-existing warning), src/app/ has no globals.css or favicon.ico, public/favicon.ico exists, @/lib/api/types barrel re-exports resolve for all 9 consumers

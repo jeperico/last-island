@@ -240,9 +240,7 @@ export function ShipPlacement({
       const response = await placeShips(gameToken, request);
       onPlacementComplete(response.gamePhase);
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to deploy fleet",
-      );
+      setError(err instanceof Error ? err.message : "Failed to deploy fleet");
     } finally {
       setSubmitting(false);
     }
@@ -257,7 +255,13 @@ export function ShipPlacement({
     // Check hover preview
     if (hoverPreview) {
       const isInPreview = hoverPreview.cells.some(
-        (c) => c.row === row && c.col === col && c.row >= 0 && c.row <= 9 && c.col >= 0 && c.col <= 9,
+        (c) =>
+          c.row === row &&
+          c.col === col &&
+          c.row >= 0 &&
+          c.row <= 9 &&
+          c.col >= 0 &&
+          c.col <= 9,
       );
       if (isInPreview) {
         return hoverPreview.valid ? "preview-valid" : "preview-invalid";
@@ -274,7 +278,7 @@ export function ShipPlacement({
 
   return (
     <div className="flex flex-1 flex-col items-center px-4 py-6">
-      <h1 className="mb-4 text-xl font-bold text-[var(--foreground)]">
+      <h1 className="mb-4 text-xl font-bold text-foreground">
         Deploy Your Fleet
       </h1>
 
@@ -287,9 +291,7 @@ export function ShipPlacement({
       <div className="flex w-full max-w-4xl flex-col gap-6 md:flex-row">
         {/* Ship panel (left sidebar) */}
         <div className="w-full shrink-0 md:w-56">
-          <h2 className="mb-2 text-sm font-semibold text-[var(--foreground)]">
-            Ships
-          </h2>
+          <h2 className="mb-2 text-sm font-semibold text-foreground">Ships</h2>
           <div className="space-y-2">
             {fleet.map((shipType) => {
               const isPlaced = placements.has(shipType);
@@ -302,14 +304,14 @@ export function ShipPlacement({
                   onClick={() => handleShipSelect(shipType)}
                   className={`flex w-full items-center gap-2 rounded border px-3 py-2 text-left text-sm transition-colors ${
                     isSelected
-                      ? "border-[var(--color-ocean)] bg-blue-900/30"
+                      ? "border-ocean bg-blue-900/30"
                       : isPlaced
                         ? "border-green-700 bg-green-900/30 opacity-70"
-                        : "border-[var(--color-border)] hover:border-[var(--color-border-light)] hover:bg-[var(--color-surface-secondary)]"
+                        : "border-border hover:border-border-light hover:bg-surface-secondary"
                   }`}
                 >
                   <div className="flex-1">
-                    <span className="font-medium text-[var(--foreground)]">
+                    <span className="font-medium text-foreground">
                       {SHIP_DISPLAY_NAMES[shipType]}
                     </span>
                     <div className="mt-1 flex gap-0.5">
@@ -317,18 +319,14 @@ export function ShipPlacement({
                         <div
                           key={i}
                           className={`h-2.5 w-2.5 rounded-sm ${
-                            isPlaced
-                              ? "bg-green-500"
-                              : "bg-text-muted"
+                            isPlaced ? "bg-green-500" : "bg-text-muted"
                           }`}
                         />
                       ))}
                     </div>
                   </div>
                   {isPlaced && (
-                    <span className="text-xs text-green-400">
-                      ✓
-                    </span>
+                    <span className="text-xs text-green-400">✓</span>
                   )}
                 </button>
               );
@@ -339,7 +337,7 @@ export function ShipPlacement({
           <div className="mt-4">
             <button
               onClick={toggleOrientation}
-              className="w-full rounded border border-[var(--color-border)] px-3 py-2 text-sm text-[var(--foreground)] hover:bg-[var(--color-surface-secondary)]"
+              className="w-full rounded border border-border px-3 py-2 text-sm text-foreground hover:bg-surface-secondary"
             >
               Orientation:{" "}
               <span className="font-medium">
@@ -380,7 +378,7 @@ export function ShipPlacement({
                   return (
                     <div
                       key={col}
-                      className={`h-8 w-8 cursor-pointer border border-[var(--color-border)] transition-colors ${
+                      className={`h-8 w-8 cursor-pointer border border-border transition-colors ${
                         state === "placed"
                           ? "bg-teal-600"
                           : state === "preview-valid"
@@ -394,9 +392,7 @@ export function ShipPlacement({
                       onMouseLeave={() => setHoveredCell(null)}
                       role="button"
                       aria-label={`Cell ${ROW_LABELS[row]}${col + 1}${
-                        state === "placed"
-                          ? " (ship placed)"
-                          : ""
+                        state === "placed" ? " (ship placed)" : ""
                       }`}
                     />
                   );

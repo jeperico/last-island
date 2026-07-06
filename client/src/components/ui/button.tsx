@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { type ButtonHTMLAttributes, type ReactNode } from 'react';
+import { type ButtonHTMLAttributes, type ReactNode } from "react";
 
-type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
-type ButtonSize = 'sm' | 'md' | 'lg';
+type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
+type ButtonSize = "sm" | "md" | "lg";
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant;
@@ -15,19 +15,19 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary:
-    'bg-primary text-white font-semibold hover:bg-primary-hover focus:ring-2 focus:ring-primary-ring',
+    "bg-primary text-white font-semibold hover:bg-primary-hover focus:ring-2 focus:ring-primary-ring",
   secondary:
-    'border border-border text-text-secondary hover:bg-surface-secondary focus:ring-2 focus:ring-primary-ring',
+    "border border-border text-text-secondary hover:bg-surface-secondary focus:ring-2 focus:ring-primary-ring",
   ghost:
-    'text-text-secondary hover:bg-surface-secondary focus:ring-2 focus:ring-primary-ring',
+    "text-text-secondary hover:bg-surface-secondary focus:ring-2 focus:ring-primary-ring",
   danger:
-    'bg-danger text-white hover:opacity-90 focus:ring-2 focus:ring-danger/20',
+    "bg-danger text-white hover:opacity-90 focus:ring-2 focus:ring-danger/20",
 };
 
 const sizeClasses: Record<ButtonSize, string> = {
-  sm: 'px-3 py-1.5 text-xs',
-  md: 'px-4 py-2 text-sm',
-  lg: 'px-6 py-3 text-sm',
+  sm: "px-3 py-1.5 text-xs",
+  md: "px-4 py-2 text-sm",
+  lg: "px-6 py-3 text-sm",
 };
 
 function Spinner() {
@@ -57,14 +57,14 @@ function Spinner() {
 }
 
 export function Button({
-  variant = 'primary',
-  size = 'md',
+  variant = "primary",
+  size = "md",
   loading = false,
   fullWidth = false,
   disabled,
   children,
-  className = '',
-  type = 'button',
+  className = "",
+  type = "button",
   ...props
 }: ButtonProps) {
   const isDisabled = disabled || loading;
@@ -74,15 +74,15 @@ export function Button({
       type={type}
       disabled={isDisabled}
       className={[
-        'inline-flex items-center justify-center gap-2 font-medium rounded-md transition-colors focus:outline-none cursor-pointer',
+        "inline-flex items-center justify-center gap-2 font-medium rounded-md transition-colors focus:outline-none cursor-pointer",
         variantClasses[variant],
         sizeClasses[size],
-        fullWidth ? 'w-full' : '',
-        isDisabled ? 'opacity-50 pointer-events-none' : '',
+        fullWidth ? "w-full" : "",
+        isDisabled ? "opacity-50 pointer-events-none" : "",
         className,
       ]
         .filter(Boolean)
-        .join(' ')}
+        .join(" ")}
       {...props}
     >
       {loading && <Spinner />}

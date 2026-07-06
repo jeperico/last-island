@@ -1,0 +1,15 @@
+import type { UserResponse } from "./api";
+
+export interface AuthContextValue {
+  user: UserResponse | null;
+  isLoading: boolean;
+  isAuthenticated: boolean;
+  login: (email: string, password: string) => Promise<void>;
+  register: (
+    name: string,
+    email: string,
+    password: string,
+    filiation: string,
+  ) => Promise<void>;
+  logout: () => void;
+}

@@ -6,7 +6,10 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAuth, useRedirectIfAuthenticated } from "@/lib/auth";
 import { ApiError } from "@/lib/api/client";
-import { registerSchema, type RegisterFormData } from "@/lib/validations/register";
+import {
+  registerSchema,
+  type RegisterFormData,
+} from "@/lib/validations/register";
 import { Alert, Input, Button } from "@/components/ui";
 
 export default function RegisterPage() {
@@ -90,41 +93,51 @@ export default function RegisterPage() {
           <div className="grid grid-cols-2 gap-3">
             <button
               type="button"
-              onClick={() => setValue("filiation", "PIRATE", { shouldValidate: true })}
+              onClick={() =>
+                setValue("filiation", "PIRATE", { shouldValidate: true })
+              }
               className={`flex flex-col items-center gap-2 rounded-lg border-2 px-4 py-5 transition-all cursor-pointer ${
                 filiation === "PIRATE"
                   ? "border-primary bg-primary/10 shadow-[0_0_12px_rgba(212,160,23,0.3)]"
-                  : "border-[var(--color-border)] hover:border-primary/50 hover:bg-[var(--color-surface-secondary)]"
+                  : "border-border hover:border-primary/50 hover:bg-surface-secondary"
               }`}
               aria-pressed={filiation === "PIRATE"}
             >
               <span className="text-4xl">🏴‍☠️</span>
-              <span className={`text-sm font-semibold ${
-                filiation === "PIRATE" ? "text-primary" : "text-text-primary"
-              }`}>
+              <span
+                className={`text-sm font-semibold ${
+                  filiation === "PIRATE" ? "text-primary" : "text-text-primary"
+                }`}
+              >
                 Pirate
               </span>
             </button>
             <button
               type="button"
-              onClick={() => setValue("filiation", "MARINE", { shouldValidate: true })}
+              onClick={() =>
+                setValue("filiation", "MARINE", { shouldValidate: true })
+              }
               className={`flex flex-col items-center gap-2 rounded-lg border-2 px-4 py-5 transition-all cursor-pointer ${
                 filiation === "MARINE"
                   ? "border-ocean bg-ocean/10 shadow-[0_0_12px_rgba(56,189,248,0.3)]"
-                  : "border-[var(--color-border)] hover:border-ocean/50 hover:bg-[var(--color-surface-secondary)]"
+                  : "border-border hover:border-ocean/50 hover:bg-surface-secondary"
               }`}
               aria-pressed={filiation === "MARINE"}
             >
               <span className="text-4xl">⚓</span>
-              <span className={`text-sm font-semibold ${
-                filiation === "MARINE" ? "text-ocean" : "text-text-primary"
-              }`}>
+              <span
+                className={`text-sm font-semibold ${
+                  filiation === "MARINE" ? "text-ocean" : "text-text-primary"
+                }`}
+              >
                 Marine
               </span>
             </button>
           </div>
           {errors.filiation && (
-            <p className="text-xs text-danger mt-1">{errors.filiation.message}</p>
+            <p className="text-xs text-danger mt-1">
+              {errors.filiation.message}
+            </p>
           )}
         </fieldset>
 
