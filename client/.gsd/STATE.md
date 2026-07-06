@@ -1,7 +1,7 @@
 # State
 
 ## Position
-Plan written — "Modularize src/ with styles, interfaces, types folders; move favicon to public". Spawning implement+review.
+Idle — last task completed and committed (modularize src/). Awaiting next task.
 
 ## Decisions
 - 2026-07-01: React 19 + Next.js 15 (App Router) + TypeScript + Tailwind CSS 4
@@ -10,6 +10,7 @@ Plan written — "Modularize src/ with styles, interfaces, types folders; move f
 - 2026-07-01: Design system — zero new dependencies, pure Tailwind CSS 4 custom components, 9 UI primitives in src/components/ui/
 - 2026-07-01: Dark-only theme — deep ocean navy palette, gold primary, no light mode
 - 2026-07-01: One Piece personality in waiting screens, game-over panel, copy
+- 2026-07-06: Modularized src/ — types in src/types/, interfaces in src/interfaces/, styles in src/styles/, favicon in public/
 
 ## Blockers
 (none)

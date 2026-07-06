@@ -12,6 +12,7 @@
 - 2026-07-01: MVP fixes — API URL, CORS proxy, JoinGameResponse type
 - 2026-07-01: DS-01→DS-08 Design system + dark nautical theme + UI refactoring (commit d624378)
 - 2026-07-01: One Piece themed waiting screens + improved game-over stats card (commit ff1b701)
+- 2026-07-06: Modularize src/ with styles, interfaces & types folders & move favicon to public (commit 791264a)
 
 ## Now
 (idle — awaiting next task)
