@@ -1,0 +1,23 @@
+package com.last_island.api.infrastructure.sse;
+
+import java.util.Map;
+
+public record GameEvent(
+    long id,
+    String type,
+    Map<String, Object> data
+) {
+    public static final String CONNECTED = "CONNECTED";
+    public static final String OPPONENT_JOINED = "OPPONENT_JOINED";
+    public static final String SHIPS_PLACED = "SHIPS_PLACED";
+    public static final String SHOT_RECEIVED = "SHOT_RECEIVED";
+    public static final String GAME_OVER = "GAME_OVER";
+
+    public static GameEvent of(long id, String type, Map<String, Object> data) {
+        return new GameEvent(id, type, data);
+    }
+
+    public static GameEvent of(long id, String type) {
+        return new GameEvent(id, type, Map.of());
+    }
+}

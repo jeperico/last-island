@@ -28,13 +28,19 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
 
         String authHeader = request.getHeader("Authorization");
+        String token;
 
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            filterChain.doFilter(request, response);
-            return;
+            String queryToken = request.getParameter("token");
+            if (queryToken != null && request.getRequestURI().contains("/events")) {
+                token = queryToken;
+            } else {
+                filterChain.doFilter(request, response);
+                return;
+            }
+        } else {
+            token = authHeader.substring(7);
         }
-
-        String token = authHeader.substring(7);
 
         try {
             if (jwtProvider.isRefreshToken(token)) {

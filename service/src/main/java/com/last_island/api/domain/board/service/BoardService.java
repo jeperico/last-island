@@ -19,9 +19,12 @@ import com.last_island.api.domain.game.repository.GameRepository;
 import com.last_island.api.domain.game.repository.GameResultRepository;
 import com.last_island.api.domain.user.entity.User;
 import com.last_island.api.domain.user.enums.Filiation;
+import com.last_island.api.infrastructure.sse.GameEventEmitter;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
@@ -33,10 +36,12 @@ public class BoardService {
 
     private final GameRepository gameRepository;
     private final GameResultRepository gameResultRepository;
+    private final GameEventEmitter gameEventEmitter;
 
-    public BoardService(GameRepository gameRepository, GameResultRepository gameResultRepository) {
+    public BoardService(GameRepository gameRepository, GameResultRepository gameResultRepository, GameEventEmitter gameEventEmitter) {
         this.gameRepository = gameRepository;
         this.gameResultRepository = gameResultRepository;
+        this.gameEventEmitter = gameEventEmitter;
     }
 
     @Transactional
@@ -143,7 +148,23 @@ public class BoardService {
         // 11. Save game (cascades board + ships)
         gameRepository.save(game);
 
-        // 12. Return response
+        // 12. Emit SSE events after commit
+        boolean gameStarted = game.getPhase() == GamePhase.IN_PROGRESS;
+        UUID opponentUserId = opponentBoard.getOwner().getId();
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    if (gameStarted) {
+                        gameEventEmitter.emitGameStarted(token);
+                    } else {
+                        gameEventEmitter.emitShipsPlaced(token, opponentUserId);
+                    }
+                }
+            });
+        }
+
+        // 13. Return response
         return BoardMapper.toResponse(board, game.getPhase().name());
     }
 
@@ -252,6 +273,16 @@ public class BoardService {
             // Do NOT switch turn — game is over
             gameRepository.save(game);
 
+            String winnerName = attacker.getName();
+            if (TransactionSynchronizationManager.isSynchronizationActive()) {
+                TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                    @Override
+                    public void afterCommit() {
+                        gameEventEmitter.emitGameOver(token, winnerName);
+                    }
+                });
+            }
+
             return new ShotResponse(result, sunkShipType, request.row(), request.col(), true, attacker.getName());
         }
 
@@ -261,7 +292,22 @@ public class BoardService {
         // 12. Save game (cascades)
         gameRepository.save(game);
 
-        // 13. Return response
+        // 13. Emit SHOT_RECEIVED to opponent after commit
+        UUID targetPlayerId = opponentBoard.getOwner().getId();
+        int shotRow = request.row();
+        int shotCol = request.col();
+        String shotResult = result.name();
+        String sunkType = sunkShipType;
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    gameEventEmitter.emitShotReceived(token, targetPlayerId, shotRow, shotCol, shotResult, sunkType, true);
+                }
+            });
+        }
+
+        // 14. Return response
         return new ShotResponse(result, sunkShipType, request.row(), request.col(), false, null);
     }
 }

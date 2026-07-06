@@ -13,11 +13,14 @@ import com.last_island.api.domain.game.mapper.GameMapper;
 import com.last_island.api.domain.game.repository.GameRepository;
 import com.last_island.api.domain.user.entity.User;
 import com.last_island.api.domain.user.repository.UserRepository;
+import com.last_island.api.infrastructure.sse.GameEventEmitter;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.UUID;
@@ -28,10 +31,12 @@ public class GameService {
 
     private final GameRepository gameRepository;
     private final UserRepository userRepository;
+    private final GameEventEmitter gameEventEmitter;
 
-    public GameService(GameRepository gameRepository, UserRepository userRepository) {
+    public GameService(GameRepository gameRepository, UserRepository userRepository, GameEventEmitter gameEventEmitter) {
         this.gameRepository = gameRepository;
         this.userRepository = userRepository;
+        this.gameEventEmitter = gameEventEmitter;
     }
 
     @Transactional
@@ -86,6 +91,17 @@ public class GameService {
 
         gameRepository.save(game);
 
+        UUID bluePlayerId = game.getBlueBoard().getOwner().getId();
+        String joinerName = joiner.getName();
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    gameEventEmitter.emitOpponentJoined(token, bluePlayerId, joinerName);
+                }
+            });
+        }
+
         return GameMapper.toResponse(game);
     }
 
@@ -111,6 +127,19 @@ public class GameService {
         }
 
         return GameMapper.toStateResponse(game, userId);
+    }
+
+    @Transactional(readOnly = true)
+    public void validateParticipant(String token, UUID userId) {
+        Game game = gameRepository.findByTokenAndIsActiveTrue(token)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Battle not found"));
+
+        boolean isBlue = game.getBlueBoard().getOwner().getId().equals(userId);
+        boolean isRed = game.getRedBoard() != null && game.getRedBoard().getOwner().getId().equals(userId);
+
+        if (!isBlue && !isRed) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You are not a participant in this battle");
+        }
     }
 
     private String generateUniqueToken() {

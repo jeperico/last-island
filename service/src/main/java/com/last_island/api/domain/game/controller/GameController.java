@@ -12,9 +12,12 @@ import com.last_island.api.domain.game.dto.GameStateResponse;
 import com.last_island.api.domain.game.dto.GameSummaryResponse;
 import com.last_island.api.domain.game.service.GameService;
 import com.last_island.api.infrastructure.security.principal.AuthenticatedUser;
+import com.last_island.api.infrastructure.sse.SseConnectionRegistry;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.*;
 
@@ -25,10 +28,12 @@ public class GameController {
 
     private final GameService gameService;
     private final BoardService boardService;
+    private final SseConnectionRegistry sseConnectionRegistry;
 
-    public GameController(GameService gameService, BoardService boardService) {
+    public GameController(GameService gameService, BoardService boardService, SseConnectionRegistry sseConnectionRegistry) {
         this.gameService = gameService;
         this.boardService = boardService;
+        this.sseConnectionRegistry = sseConnectionRegistry;
     }
 
     @PostMapping
@@ -66,5 +71,25 @@ public class GameController {
                                  @RequestBody ShotRequest request,
                                  @AuthenticationPrincipal AuthenticatedUser principal) {
         return boardService.fireShot(token, principal.getId(), request);
+    }
+
+    @GetMapping(value = "/{token}/events", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter subscribe(@PathVariable String token,
+                                @RequestHeader(value = "Last-Event-ID", required = false) String lastEventId,
+                                @AuthenticationPrincipal AuthenticatedUser principal) {
+        gameService.validateParticipant(token, principal.getId());
+
+        SseEmitter emitter = sseConnectionRegistry.register(token, principal.getId());
+
+        if (lastEventId != null) {
+            try {
+                long lastId = Long.parseLong(lastEventId);
+                sseConnectionRegistry.replayEvents(token, principal.getId(), lastId);
+            } catch (NumberFormatException e) {
+                // Invalid Last-Event-ID, ignore replay
+            }
+        }
+
+        return emitter;
     }
 }
