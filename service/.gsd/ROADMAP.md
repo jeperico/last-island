@@ -12,11 +12,13 @@
 - 2026-07-01: REQ-10 Domain unit tests — 36 tests (commit 737f1b9)
 - 2026-07-01: Makefile DX improvements (commit 95926d1)
 - 2026-07-01: OpenAPI/Swagger documentation (commit ebeed37)
+- 2026-07-02: Refactor: remove one-active-game-per-player constraint (commit 269dcff)
 
 ## Now
-(idle — all v1 backend features complete + concurrent games enabled)
+(idle — all v1 backend features complete except REQ-8 and REQ-11)
 
 ## Next
 - REQ-8: WebSocket integration (STOMP for real-time turn notifications)
+- REQ-11: Deploy publicly accessible
 - Performance: connection pooling tuning, query optimization
 - Deployment: Docker image, CI/CD pipeline

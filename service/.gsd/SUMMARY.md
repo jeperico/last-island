@@ -6,7 +6,7 @@ Implementer: modified `Filiation.java` (-2/+2 values), `PirateRank.java` (-2/+2 
 
 Reviewer: PASS — compile exit 0, grep for old values returns 0 matches, V4 migration exists, all enum counts correct (2/6/6/10)
 
-Commit: uncommitted
+Commit: 238066a
 
 ## 2026-07-01T11:32 — REQ-5: Turn-based shooting mechanics
 
@@ -14,7 +14,7 @@ Implementer: created `ShotRequest.java` (+3 lines), `ShotResponse.java` (+5 line
 
 Reviewer: PASS — compile exit 0, symbols present in all expected files, code review confirms: shot stored on opponentBoard, turn switches to opponent, duplicate check on opponent shots, coordinates validated 0-9, sunkShipType only when SUNK, HORIZONTAL/VERTICAL cell iteration correct, attacker totalShots/totalHits updated
 
-Commit: uncommitted
+Commit: f2734fa
 
 ## 2026-07-01T11:41 — REQ-6: Fog of War + REQ-7: Win Condition Detection
 
@@ -22,7 +22,7 @@ Implementer: created `GameResultRepository.java` (+9), `ShotCellResponse.java` (
 
 Reviewer: PASS — compile exit 0, tests exit 0, all 9 grep checks pass: no ShipResponse/ships in OpponentBoardResponse, FINISHED set in BoardService, participant 403 validation present, gameOver in ShotResponse, setWins/setLosses in BoardService, GameResultRepository injected, GameStateResponse returned from GameService with myBoard/opponentBoard
 
-Commit: uncommitted
+Commit: 193eca4
 
 ## 2026-07-01T13:50 — REQ-10: Automated unit tests for domain rules
 
@@ -30,7 +30,7 @@ Implementer: created `BoardServicePlaceShipsTest.java` (+321 lines, 11 tests), `
 
 Reviewer: PASS — 36 tests pass (11+16+9), no @SpringBootTest, 3 MockitoExtension classes, all individual test classes green, BUILD SUCCESS
 
-Commit: uncommitted
+Commit: 737f1b9
 
 ## 2026-07-01T14:18 — Upgrade Makefile with pretty test runner, install, and status targets
 
@@ -38,7 +38,7 @@ Implementer: modified `Makefile` (52→151 lines, net +99). Added SHELL := /bin/
 
 Reviewer: PASS — all 7 verification commands exit 0; make help lists 14 targets (10 original + 4 new), make test shows colored spinner/summary with 36 tests passing (21s), make status/install/build/ps all functional
 
-Commit: uncommitted
+Commit: 95926d1
 
 ## 2026-07-01T14:45 — Add OpenAPI/Swagger Documentation
 
@@ -46,12 +46,20 @@ Implementer: modified `pom.xml` (+4 lines — springdoc dependency), created `Op
 
 Reviewer: PASS — compile exit 0, 36 tests pass, all 5 grep checks confirm: OpenApiConfig has "Last Island API", SecurityConfig permits swagger-ui, @Tag("Auth") on AuthController, @Tag("Battles") on GameController, springdoc.api-docs.path in application.properties
 
-Commit: uncommitted
+Commit: ebeed37
 
 ## 2026-07-02T16:11 — Refactor: Remove one-active-game-per-player constraint
 
 Implementer: modified `GameService.java` (-6 lines — removed 2 hasActiveGame guard clauses), `GameRepository.java` (-3 lines — removed @Query + hasActiveGame method), `GameServiceTest.java` (-24 lines — removed 2 dedicated tests + 2 mocking lines). Net: 3 files modified, -33 lines.
 
 Reviewer: PASS — compile exit 0, 34 tests pass (7+11+16), no hasActiveGame references in src/, no "already have an active battle" message in src/
+
+Commit: 269dcff
+
+## 2026-07-06T15:46 — REQ-8: SSE Real-Time Communication
+
+Implementer: created `GameEvent.java` (+23 lines — event payload record with type constants), `SseConnectionRegistry.java` (+153 lines — emitter storage, event buffering, replay, thread-safe send), `GameEventEmitter.java` (+54 lines — high-level emission service); created `SseConnectionRegistryTest.java` (+188 lines, 10 tests); modified `JwtAuthenticationFilter.java` (+8/-4 lines — query param fallback for /events), `GameController.java` (+18 lines — SSE subscribe endpoint + SseConnectionRegistry injection), `BoardService.java` (+30 lines — post-commit SSE emission for ships placed, shot received, game over), `GameService.java` (+16 lines — post-commit OPPONENT_JOINED emission + validateParticipant method), `application.properties` (+2 lines — async timeout). Net: 4 files created, 5 files modified. Tests: 44 pass (34 existing + 10 new).
+
+Reviewer: PASS — compile exit 0, 44 tests pass (10+7+11+16), all 11 SSE verification checks green, no opponent board data leaks in event payloads, cleanup callbacks registered, events emitted after commit via TransactionSynchronizationManager
 
 Commit: uncommitted
