@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -11,7 +10,6 @@ import { registerSchema, type RegisterFormData } from "@/lib/validations/registe
 import { Alert, Input, Button } from "@/components/ui";
 
 export default function RegisterPage() {
-  const router = useRouter();
   const auth = useAuth();
   const { isLoading, isAuthenticated } = useRedirectIfAuthenticated();
 
@@ -40,7 +38,7 @@ export default function RegisterPage() {
 
     try {
       await auth.register(data.name, data.email, data.password, data.filiation);
-      router.push("/");
+      // Navigation handled by useRedirectIfAuthenticated once isAuthenticated flips
     } catch (err) {
       if (err instanceof ApiError) {
         setError(err.message ?? "An unexpected error occurred");

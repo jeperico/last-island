@@ -14,7 +14,7 @@
 - 2026-07-01: OpenAPI/Swagger documentation (commit ebeed37)
 
 ## Now
-(idle — all v1 backend features complete)
+(idle — all v1 backend features complete + concurrent games enabled)
 
 ## Next
 - REQ-8: WebSocket integration (STOMP for real-time turn notifications)
