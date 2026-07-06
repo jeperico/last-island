@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { useRequireAuth, useAuth } from "@/lib/auth";
 import { getGame } from "@/lib/api";
 import type { GamePhase, GameStateResponse } from "@/lib/api/types";
+import { useGameEvents } from "@/lib/game";
 import { ShipPlacement } from "./ship-placement";
 import { BattleScreen } from "./battle-screen";
 import { GameOverPanel } from "./game-over-panel";
@@ -56,28 +57,27 @@ export default function GamePage() {
     };
   }, [authLoading, user, token]);
 
-  // Polling: re-check phase every 5 seconds when waiting for opponent actions
-  useEffect(() => {
-    if (!gameState) return;
+  // SSE: subscribe to real-time game events
+  const sseEnabled = gameState !== null && gameState.phase !== "FINISHED";
 
-    const shouldPoll =
-      gameState.phase === "WAITING_OPPONENT" ||
-      (gameState.phase === "PLACING_SHIPS" &&
-        gameState.myBoard !== null &&
-        gameState.myBoard.ships.length > 0);
-
-    if (!shouldPoll) return;
-
-    const interval = setInterval(async () => {
-      try {
-        const response = await getGame(token);
-        setGameState(response);
-      } catch {
-        // Silently ignore polling errors
-      }
-    }, 5000);
-    return () => clearInterval(interval);
-  }, [gameState, token]);
+  useGameEvents(
+    token,
+    {
+      onOpponentJoined: () => {
+        refetchGame();
+      },
+      onShipsPlaced: () => {
+        refetchGame();
+      },
+      onShotReceived: () => {
+        refetchGame();
+      },
+      onGameOver: () => {
+        refetchGame();
+      },
+    },
+    sseEnabled,
+  );
 
   const refetchGame = useCallback(async () => {
     try {

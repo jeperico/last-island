@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { fireShot, getGame } from "@/lib/api";
 import type {
   GameStateResponse,
@@ -31,7 +31,6 @@ export function BattleScreen({
   const [optimisticShots, setOptimisticShots] = useState<ShotCellResponse[]>(
     [],
   );
-  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const isMyTurn = gameState.currentTurnPlayerName === user.name;
 
@@ -51,49 +50,6 @@ export function BattleScreen({
 
   // Build Opponent Board cell map
   const opponentBoardCells = buildOpponentBoardCells(allShotsFired);
-
-  // Polling: active when it's not my turn (disabled when readOnly)
-  useEffect(() => {
-    if (readOnly || isMyTurn || gameState.phase === "FINISHED") {
-      if (pollingRef.current) {
-        clearInterval(pollingRef.current);
-        pollingRef.current = null;
-      }
-      return;
-    }
-
-    pollingRef.current = setInterval(async () => {
-      try {
-        const response = await getGame(gameToken);
-        onGameStateUpdate(response);
-        if (
-          response.currentTurnPlayerName === user.name ||
-          response.phase === "FINISHED"
-        ) {
-          if (pollingRef.current) {
-            clearInterval(pollingRef.current);
-            pollingRef.current = null;
-          }
-        }
-      } catch {
-        // Silently ignore polling errors
-      }
-    }, 3000);
-
-    return () => {
-      if (pollingRef.current) {
-        clearInterval(pollingRef.current);
-        pollingRef.current = null;
-      }
-    };
-  }, [
-    readOnly,
-    isMyTurn,
-    gameState.phase,
-    gameToken,
-    onGameStateUpdate,
-    user.name,
-  ]);
 
   const handleFire = useCallback(
     async (row: number, col: number) => {

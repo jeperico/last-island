@@ -12,3 +12,5 @@ export {
   isInBounds,
   hasOverlap,
 } from "./placement-logic";
+
+export { useGameEvents } from "./use-game-events";

@@ -1,7 +1,7 @@
 # State
 
 ## Position
-REQ-8 SSE Real-Time Communication — implemented and committed (7552f20). All v1 backend features complete.
+REQ-10 (client): SSE integration in Last Island client — planning complete, ready for implementation.
 
 ## Decisions
 - 2026-06-30: Spring Boot 4.1 + Java 21 + PostgreSQL
@@ -19,4 +19,4 @@ REQ-8 SSE Real-Time Communication — implemented and committed (7552f20). All v
 (none)
 
 ## Last verification
-PASS at 2026-07-06T15:48-03:00 — compile exit 0, 44 tests pass (10+7+11+16), all 11 SSE verification checks green
+PASS at 2026-07-06T16:09-03:00 — tsc --noEmit exit 0, next build exit 0, no setInterval in game pages, all 7 PLAN.md checks green
