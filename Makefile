@@ -145,6 +145,16 @@ client-build: ## Build client for production
 client-lint: ## Lint client code
 	cd client && npm run lint
 
+# --- Open IDEs ---
+
+.PHONY: opc ops
+
+opc: ## Open client in VS Code
+	cd client && code .
+
+ops: ## Open service in IntelliJ IDEA
+	cd service && idea .
+
 # --- Shortcuts ---
 
 .PHONY: run build test install
