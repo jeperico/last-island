@@ -38,7 +38,8 @@ export function useGameEvents(
       return;
     }
 
-    const url = `${API_BASE_URL}/games/${gameToken}/events?token=${encodeURIComponent(jwt)}`;
+    const basePath = API_BASE_URL || "/api";
+    const url = `${basePath}/games/${gameToken}/events?token=${encodeURIComponent(jwt)}`;
     const es = new EventSource(url);
     esRef.current = es;
 

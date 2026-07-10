@@ -11,9 +11,9 @@
 - [x] REQ-8: Shot feedback — display MISS/HIT/SUNK results on opponent board
 - [x] REQ-9: Win/loss detection — show game result when match ends
 - [x] REQ-11: API client layer — typed service functions for all backend endpoints
+- [x] REQ-10: SSE integration — real-time turn notifications via EventSource (events: OPPONENT_JOINED, SHIPS_PLACED, SHOT_RECEIVED, GAME_OVER)
 
 ## v2 (next)
-- [ ] REQ-10: SSE integration — real-time turn notifications via EventSource (events: OPPONENT_JOINED, SHIPS_PLACED, SHOT_RECEIVED, GAME_OVER)
 - [ ] REQ-12: One Piece theming (ship skins, rank badges, sound effects)
 - [ ] REQ-13: Reconnection handling (rejoin mid-game after disconnect)
 - [ ] REQ-14: Game history / replay viewer
@@ -31,7 +31,7 @@
 | REQ-7  | v1      | done      |
 | REQ-8  | v1      | done      |
 | REQ-9  | v1      | done      |
-| REQ-10 | v2      | pending   |
+| REQ-10 | v1      | done      |
 | REQ-11 | v1      | done      |
 | REQ-12 | v2      | pending   |
 | REQ-13 | v2      | pending   |

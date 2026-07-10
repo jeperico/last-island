@@ -13,11 +13,11 @@
 - 2026-07-01: DS-01→DS-08 Design system + dark nautical theme + UI refactoring (commit d624378)
 - 2026-07-01: One Piece themed waiting screens + improved game-over stats card (commit ff1b701)
 - 2026-07-06: Modularize src/ with styles, interfaces & types folders & move favicon to public (commit 791264a)
+- 2026-07-06: REQ-10 SSE real-time event integration (commit 29f2f02)
 
 ## Now
 (idle — awaiting next task)
 
 ## Next
-- REQ-10: SSE integration (real-time turn notifications via EventSource — backend endpoint ready at GET /games/{token}/events?token=jwt)
 - Responsive improvements (mobile layout)
 - Additional One Piece polish (sound effects, animations, rank badges)

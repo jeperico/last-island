@@ -1,7 +1,7 @@
 # State
 
 ## Position
-Idle — last task completed and committed (modularize src/). Awaiting next task.
+REQ-10 SSE integration — implemented and committed (29f2f02). All polling removed, real-time events active.
 
 ## Decisions
 - 2026-07-01: React 19 + Next.js 15 (App Router) + TypeScript + Tailwind CSS 4
@@ -17,4 +17,4 @@ Idle — last task completed and committed (modularize src/). Awaiting next task
 (none)
 
 ## Last verification
-PASS at 2026-07-06T11:25-03:00 — tsc clean, build OK (Next.js 16.2.9 Turbopack), lint 0 errors (1 pre-existing warning), src/app/ has no globals.css or favicon.ico, public/favicon.ico exists, @/lib/api/types barrel re-exports resolve for all 9 consumers
+PASS at 2026-07-06T16:09-03:00 — tsc --noEmit exit 0, next build exit 0, no setInterval in game pages, all 7 PLAN.md checks green
