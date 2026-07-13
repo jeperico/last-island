@@ -46,7 +46,7 @@ export function setOnUnauthorized(fn: () => void): void {
 
 let refreshPromise: Promise<void> | null = null;
 
-async function attemptRefresh(): Promise<void> {
+export async function attemptRefresh(): Promise<void> {
   if (refreshPromise) {
     return refreshPromise;
   }
