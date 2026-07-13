@@ -38,3 +38,12 @@ Files changed: `client/src/app/api/[...path]/route.ts` (created, +79), `client/n
 
 Reviewer: PASS — client-build ✓, client-lint 2 pre-existing errors (not introduced), no new errors
 Commit: uncommitted
+
+## 2026-07-13T12:57 — Add Battle Log (Game History) Feature
+
+Implementer: Created `BattleLogEntryResponse.java` (+14) — Java record DTO. Modified `GameResultRepository.java` (+20) — added JPQL fetch-join query with Pageable. Created `BattleLogService.java` (+28) — service calling repository and mapping via GameMapper. Added `toBattleLogEntry` and `formatDuration` methods to `GameMapper.java` (+40). Modified `GameController.java` (+10) — injected BattleLogService, added GET `/history` endpoint. Created `BattleLogServiceTest.java` (+190) — 3 unit tests (victory, defeat, empty). Added `BattleLogEntryResponse` interface to `client/src/interfaces/api.ts` (+10). Added `getBattleLog()` function to `client/src/lib/api/games.ts` (+5). Re-exported in `client/src/lib/api/index.ts` (+2). Added Battle Log section to `client/src/app/page.tsx` (+50) — state, fetch, loading/empty/populated renders with Badge.
+
+Files changed: `BattleLogEntryResponse.java` (created), `GameResultRepository.java` (modified), `BattleLogService.java` (created), `GameMapper.java` (modified), `GameController.java` (modified), `BattleLogServiceTest.java` (created), `client/src/interfaces/api.ts` (modified), `client/src/lib/api/games.ts` (modified), `client/src/lib/api/index.ts` (modified), `client/src/app/page.tsx` (modified)
+
+Reviewer: PASS — service-build ✓, service-test 47/47 ✓ (incl. BattleLogServiceTest 3/3), client-build ✓, client-lint 3 pre-existing issues (none introduced)
+Commit: uncommitted

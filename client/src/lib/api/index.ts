@@ -1,5 +1,5 @@
 export { register, login, refresh, logout, getProfile } from "./auth";
-export { createGame, joinGame, listGames, getGame } from "./games";
+export { createGame, joinGame, listGames, getGame, getBattleLog } from "./games";
 export { placeShips, fireShot } from "./board";
 export { ApiError, attemptRefresh } from "./client";
 export type {
@@ -27,6 +27,7 @@ export type {
   ShipResponse,
   BoardResponse,
   ShotResponse,
+  BattleLogEntryResponse,
   PageResponse,
   PaginationParams,
   ApiErrorResponse,

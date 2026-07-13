@@ -6,10 +6,12 @@ import com.last_island.api.domain.board.dto.PlaceShipsRequest;
 import com.last_island.api.domain.board.dto.ShotRequest;
 import com.last_island.api.domain.board.dto.ShotResponse;
 import com.last_island.api.domain.board.service.BoardService;
+import com.last_island.api.domain.game.dto.BattleLogEntryResponse;
 import com.last_island.api.domain.game.dto.CreateGameResponse;
 import com.last_island.api.domain.game.dto.GameResponse;
 import com.last_island.api.domain.game.dto.GameStateResponse;
 import com.last_island.api.domain.game.dto.GameSummaryResponse;
+import com.last_island.api.domain.game.service.BattleLogService;
 import com.last_island.api.domain.game.service.GameService;
 import com.last_island.api.infrastructure.security.principal.AuthenticatedUser;
 import com.last_island.api.infrastructure.sse.SseConnectionRegistry;
@@ -21,6 +23,8 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @Tag(name = "Battles")
 @RestController
 @RequestMapping("/games")
@@ -29,11 +33,14 @@ public class GameController {
     private final GameService gameService;
     private final BoardService boardService;
     private final SseConnectionRegistry sseConnectionRegistry;
+    private final BattleLogService battleLogService;
 
-    public GameController(GameService gameService, BoardService boardService, SseConnectionRegistry sseConnectionRegistry) {
+    public GameController(GameService gameService, BoardService boardService,
+                          SseConnectionRegistry sseConnectionRegistry, BattleLogService battleLogService) {
         this.gameService = gameService;
         this.boardService = boardService;
         this.sseConnectionRegistry = sseConnectionRegistry;
+        this.battleLogService = battleLogService;
     }
 
     @PostMapping
@@ -51,6 +58,11 @@ public class GameController {
     @GetMapping
     public PageResponse<GameSummaryResponse> listGames(Pageable pageable) {
         return gameService.listGames(pageable);
+    }
+
+    @GetMapping("/history")
+    public List<BattleLogEntryResponse> getBattleLog(@AuthenticationPrincipal AuthenticatedUser principal) {
+        return battleLogService.getBattleLog(principal.getId());
     }
 
     @GetMapping("/{token}")

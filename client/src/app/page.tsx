@@ -5,9 +5,9 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRequireAuth, useAuth } from "@/lib/auth";
-import { createGame, joinGame, listGames } from "@/lib/api";
+import { createGame, joinGame, listGames, getBattleLog } from "@/lib/api";
 import type { ApiError } from "@/lib/api/client";
-import type { GameSummaryResponse, PageResponse } from "@/lib/api/types";
+import type { BattleLogEntryResponse, GameSummaryResponse, PageResponse } from "@/lib/api/types";
 import { joinGameSchema, type JoinGameFormData } from "@/lib/validations/join-game";
 import {
   PageHeader,
@@ -15,6 +15,7 @@ import {
   Button,
   Input,
   Card,
+  Badge,
   EmptyState,
   Skeleton,
   Spinner,
@@ -39,6 +40,8 @@ export default function Home() {
   const [gamesPage, setGamesPage] = useState<PageResponse<GameSummaryResponse> | null>(null);
   const [currentPage, setCurrentPage] = useState(0);
   const [loadingGames, setLoadingGames] = useState(false);
+  const [battleLog, setBattleLog] = useState<BattleLogEntryResponse[]>([]);
+  const [loadingBattleLog, setLoadingBattleLog] = useState(false);
 
   useEffect(() => {
     if (isLoading || !user) return;
@@ -47,6 +50,7 @@ export default function Home() {
 
     async function fetchGames() {
       setLoadingGames(true);
+      setLoadingBattleLog(true);
       try {
         const response = await listGames({ page: currentPage, size: 10 });
         if (!cancelled) {
@@ -60,6 +64,18 @@ export default function Home() {
       } finally {
         if (!cancelled) {
           setLoadingGames(false);
+        }
+      }
+      try {
+        const log = await getBattleLog();
+        if (!cancelled) {
+          setBattleLog(log);
+        }
+      } catch {
+        // Battle log is non-critical, silently ignore
+      } finally {
+        if (!cancelled) {
+          setLoadingBattleLog(false);
         }
       }
     }
@@ -271,6 +287,58 @@ export default function Home() {
                   Next
                 </Button>
               </div>
+            </div>
+          )}
+        </section>
+
+        {/* Battle Log */}
+        <section className="mt-8">
+          <h2 className="mb-3 text-lg font-semibold text-text-primary">
+            ⚔️ Battle Log
+          </h2>
+
+          {loadingBattleLog && (
+            <div className="space-y-2">
+              <Skeleton height="3.5rem" className="w-full" />
+              <Skeleton height="3.5rem" className="w-full" />
+              <Skeleton height="3.5rem" className="w-full" />
+            </div>
+          )}
+
+          {!loadingBattleLog && battleLog.length === 0 && (
+            <EmptyState
+              title="No battles yet"
+              description="Your war record is empty, Captain!"
+            />
+          )}
+
+          {!loadingBattleLog && battleLog.length > 0 && (
+            <div className="space-y-2">
+              {battleLog.map((entry) => (
+                <Card key={entry.gameId} padding="md">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-medium text-text-primary">
+                          vs {entry.opponentName}
+                        </p>
+                        <Badge
+                          variant={
+                            entry.result === "VICTORY" ? "success" : "danger"
+                          }
+                        >
+                          {entry.result}
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-text-muted mt-1">
+                        {formatDate(entry.date)} · {entry.shotsFired} shots
+                        fired · {entry.shipsSunk} ships sunk
+                        {entry.duration ? ` · ${entry.duration}` : ""}
+                      </p>
+                    </div>
+                  </div>
+                </Card>
+              ))}
             </div>
           )}
         </section>

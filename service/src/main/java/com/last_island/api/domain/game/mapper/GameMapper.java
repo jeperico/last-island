@@ -3,14 +3,19 @@ package com.last_island.api.domain.game.mapper;
 import com.last_island.api.domain.board.dto.MyBoardResponse;
 import com.last_island.api.domain.board.dto.OpponentBoardResponse;
 import com.last_island.api.domain.board.entity.Board;
+import com.last_island.api.domain.board.entity.Ship;
 import com.last_island.api.domain.board.mapper.BoardMapper;
+import com.last_island.api.domain.game.dto.BattleLogEntryResponse;
 import com.last_island.api.domain.game.dto.CreateGameResponse;
 import com.last_island.api.domain.game.dto.GameResponse;
 import com.last_island.api.domain.game.dto.GameStateResponse;
 import com.last_island.api.domain.game.dto.GameSummaryResponse;
 import com.last_island.api.domain.game.entity.Game;
+import com.last_island.api.domain.game.entity.GameResult;
 import com.last_island.api.domain.game.enums.GamePhase;
+import com.last_island.api.domain.user.entity.User;
 
+import java.time.Duration;
 import java.util.UUID;
 
 public final class GameMapper {
@@ -113,5 +118,49 @@ public final class GameMapper {
             return redBoard != null ? redBoard.getOwner().getName() : null;
         }
         return null;
+    }
+
+    public static BattleLogEntryResponse toBattleLogEntry(GameResult gr, UUID userId) {
+        boolean isWinner = gr.getWinner().getId().equals(userId);
+        String result = isWinner ? "VICTORY" : "DEFEAT";
+
+        User opponent = isWinner ? gr.getLoser() : gr.getWinner();
+
+        Game game = gr.getGame();
+
+        Board opponentBoard;
+        if (game.getBlueBoard().getOwner().getId().equals(userId)) {
+            opponentBoard = game.getRedBoard();
+        } else {
+            opponentBoard = game.getBlueBoard();
+        }
+
+        int shotsFired = opponentBoard != null ? opponentBoard.getShots().size() : 0;
+        long shipsSunk = opponentBoard != null
+                ? opponentBoard.getShips().stream().filter(Ship::isSunk).count()
+                : 0;
+
+        String duration = formatDuration(game.getDuration());
+        String date = game.getEndedAt() != null ? game.getEndedAt().toString() : null;
+
+        return new BattleLogEntryResponse(
+                game.getId(),
+                opponent.getName(),
+                result,
+                date,
+                shotsFired,
+                shipsSunk,
+                duration
+        );
+    }
+
+    private static String formatDuration(Duration duration) {
+        if (duration == null) {
+            return null;
+        }
+        long totalSeconds = duration.getSeconds();
+        long minutes = totalSeconds / 60;
+        long seconds = totalSeconds % 60;
+        return minutes + "m " + seconds + "s";
     }
 }

@@ -17,7 +17,7 @@
 
 ## Next
 
-1. Deploy publicly accessible (service + client)
-2. Reconnection handling (rejoin mid-game after disconnect)
-3. Game history / replay
+1. Dashboard home page — game history, ranking leaderboard, massively improved UI/One Piece theming, SSE/connection perf fixes, optional profile config (choose nakama/yonko avatar)
+2. Deploy publicly accessible (service + client)
+3. Reconnection handling (rejoin mid-game after disconnect)
 4. Responsive mobile layout

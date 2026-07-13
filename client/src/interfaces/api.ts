@@ -145,3 +145,15 @@ export interface ApiErrorResponse {
   message: string;
   timestamp: string;
 }
+
+// ─── Battle Log ──────────────────────────────────────────────────────────────
+
+export interface BattleLogEntryResponse {
+  gameId: string;
+  opponentName: string;
+  result: "VICTORY" | "DEFEAT";
+  date: string;
+  shotsFired: number;
+  shipsSunk: number;
+  duration: string | null;
+}

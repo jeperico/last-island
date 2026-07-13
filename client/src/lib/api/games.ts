@@ -1,5 +1,6 @@
 import { apiGet, apiPost } from "./client";
 import type {
+  BattleLogEntryResponse,
   CreateGameResponse,
   GameStateResponse,
   GameSummaryResponse,
@@ -32,4 +33,8 @@ export function listGames(
 
 export function getGame(token: string): Promise<GameStateResponse> {
   return apiGet<GameStateResponse>(`/api/games/${token}`);
+}
+
+export function getBattleLog(): Promise<BattleLogEntryResponse[]> {
+  return apiGet<BattleLogEntryResponse[]>("/api/games/history");
 }
