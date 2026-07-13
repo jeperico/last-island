@@ -125,7 +125,7 @@ export default function RegisterPage() {
             <button
               type="button"
               onClick={() =>
-                setValue("filiation", "PIRATE", { shouldValidate: true })
+                setValue("filiation", filiation === "PIRATE" ? (undefined as unknown as "PIRATE") : "PIRATE", { shouldValidate: true })
               }
               className={`relative flex flex-col items-center gap-2 rounded-lg border-2 px-4 py-5 transition-all duration-200 cursor-pointer ${
                 filiation === "PIRATE"
@@ -154,7 +154,7 @@ export default function RegisterPage() {
             <button
               type="button"
               onClick={() =>
-                setValue("filiation", "MARINE", { shouldValidate: true })
+                setValue("filiation", filiation === "MARINE" ? (undefined as unknown as "MARINE") : "MARINE", { shouldValidate: true })
               }
               className={`relative flex flex-col items-center gap-2 rounded-lg border-2 px-4 py-5 transition-all duration-200 cursor-pointer ${
                 filiation === "MARINE"
