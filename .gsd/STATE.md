@@ -2,7 +2,7 @@
 
 ## Position
 
-Planning complete — Battle Log (Game History) feature
+Planning complete — Restructure Dashboard 60/40 Grid Layout
 
 ## Decisions
 
@@ -14,4 +14,4 @@ Planning complete — Battle Log (Game History) feature
 
 ## Last verification
 
-PASS at 2026-07-13T14:15 — service-build ✓, service-test 47/47 ✓ (incl. BattleLogServiceTest 3/3), client-build ✓, client-lint 3 pre-existing issues (none introduced)
+PASS at 2026-07-13T15:24 — client-build ✓, client-lint 3 pre-existing issues (none introduced), skull-icon.png referenced correctly

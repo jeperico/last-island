@@ -5,10 +5,11 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRequireAuth, useAuth } from "@/lib/auth";
-import { createGame, joinGame, listGames, getBattleLog } from "@/lib/api";
+import { createGame, joinGame, listGames, getBattleLog, getLeaderboard } from "@/lib/api";
 import type { ApiError } from "@/lib/api/client";
-import type { BattleLogEntryResponse, GameSummaryResponse, PageResponse } from "@/lib/api/types";
+import type { BattleLogEntryResponse, GameSummaryResponse, LeaderboardResponse, PageResponse } from "@/lib/api/types";
 import { joinGameSchema, type JoinGameFormData } from "@/lib/validations/join-game";
+import Image from "next/image";
 import {
   PageHeader,
   Alert,
@@ -38,10 +39,12 @@ export default function Home() {
   const [creatingGame, setCreatingGame] = useState(false);
   const [joiningGame, setJoiningGame] = useState(false);
   const [gamesPage, setGamesPage] = useState<PageResponse<GameSummaryResponse> | null>(null);
-  const [currentPage, setCurrentPage] = useState(0);
   const [loadingGames, setLoadingGames] = useState(false);
   const [battleLog, setBattleLog] = useState<BattleLogEntryResponse[]>([]);
   const [loadingBattleLog, setLoadingBattleLog] = useState(false);
+  const [leaderboardTab, setLeaderboardTab] = useState<"ALL" | "PIRATE" | "MARINE">("ALL");
+  const [leaderboard, setLeaderboard] = useState<LeaderboardResponse | null>(null);
+  const [loadingLeaderboard, setLoadingLeaderboard] = useState(false);
 
   useEffect(() => {
     if (isLoading || !user) return;
@@ -52,7 +55,7 @@ export default function Home() {
       setLoadingGames(true);
       setLoadingBattleLog(true);
       try {
-        const response = await listGames({ page: currentPage, size: 10 });
+        const response = await listGames({ page: 0, size: 5 });
         if (!cancelled) {
           setGamesPage(response);
         }
@@ -85,7 +88,35 @@ export default function Home() {
     return () => {
       cancelled = true;
     };
-  }, [isLoading, user, currentPage]);
+  }, [isLoading, user]);
+
+  useEffect(() => {
+    if (isLoading || !user) return;
+
+    let cancelled = false;
+
+    async function fetchLeaderboard() {
+      setLoadingLeaderboard(true);
+      try {
+        const data = await getLeaderboard(leaderboardTab);
+        if (!cancelled) {
+          setLeaderboard(data);
+        }
+      } catch {
+        // Leaderboard is non-critical, silently ignore
+      } finally {
+        if (!cancelled) {
+          setLoadingLeaderboard(false);
+        }
+      }
+    }
+
+    fetchLeaderboard();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isLoading, user, leaderboardTab]);
 
   if (isLoading) {
     return (
@@ -137,18 +168,6 @@ export default function Home() {
     }
   }
 
-  function handlePrevPage() {
-    if (currentPage > 0) {
-      setCurrentPage(currentPage - 1);
-    }
-  }
-
-  function handleNextPage() {
-    if (gamesPage && !gamesPage.last) {
-      setCurrentPage(currentPage + 1);
-    }
-  }
-
   function formatDate(dateStr: string): string {
     try {
       return new Date(dateStr).toLocaleString();
@@ -157,9 +176,13 @@ export default function Home() {
     }
   }
 
+  const podiumMedals = ["🥇", "🥈", "🥉"] as const;
+  const podiumRingColors = ["ring-gold", "ring-silver", "ring-bronze"] as const;
+  const podiumBorderColors = ["border-t-gold", "border-t-silver", "border-t-bronze"] as const;
+
   return (
     <div className="flex flex-col flex-1 items-center px-4 py-8">
-      <div className="w-full max-w-2xl">
+      <div className="w-full max-w-7xl">
         {/* Header */}
         <PageHeader
           title={`Welcome${user ? `, ${user.name}` : ""}`}
@@ -182,166 +205,317 @@ export default function Home() {
           </Alert>
         )}
 
-        {/* Create Game */}
-        <section className="mb-6">
-          <Button
-            variant="primary"
-            fullWidth
-            loading={creatingGame}
-            onClick={handleCreateGame}
-          >
-            Create Battle
-          </Button>
-        </section>
+        {/* Two-column grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-[3fr_2fr] gap-6">
+          {/* Left column — Leaderboard + Battle Log */}
+          <div>
+            {/* Leaderboard section */}
+            <section>
+              <h2 className="mb-3 text-lg font-semibold text-text-primary">
+                🏆 Leaderboard
+              </h2>
 
-        {/* Join by Token */}
-        <section className="mb-8">
-          <h2 className="mb-2 text-lg font-semibold text-text-primary">
-            Join by Token
-          </h2>
-          <form onSubmit={handleSubmit(onJoin)} className="flex gap-2">
-            <div className="flex-1">
-              <Input
-                id="join-token"
-                placeholder="Enter game token"
-                error={errors.token?.message}
-                {...register("token")}
-              />
-            </div>
-            <Button
-              variant="primary"
-              size="md"
-              type="submit"
-              loading={joiningGame}
-            >
-              Join
-            </Button>
-          </form>
-        </section>
-
-        {/* Available Games */}
-        <section>
-          <h2 className="mb-3 text-lg font-semibold text-text-primary">
-            Available Games
-          </h2>
-
-          {loadingGames && (
-            <div className="space-y-2">
-              <Skeleton height="3.5rem" className="w-full" />
-              <Skeleton height="3.5rem" className="w-full" />
-              <Skeleton height="3.5rem" className="w-full" />
-            </div>
-          )}
-
-          {!loadingGames && gamesPage && gamesPage.content.length === 0 && (
-            <EmptyState
-              title="No battles available"
-              description="Create one to start!"
-            />
-          )}
-
-          {!loadingGames && gamesPage && gamesPage.content.length > 0 && (
-            <div className="space-y-2">
-              {gamesPage.content.map((game) => (
-                <Card key={game.id} padding="md">
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-text-primary">
-                        {game.bluePlayerName}
-                      </p>
-                      <p className="text-xs text-text-muted">
-                        Token: {game.token} · {formatDate(game.createdAt)}
-                      </p>
-                    </div>
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      onClick={() => handleJoinFromList(game.token)}
-                      loading={joiningGame}
-                    >
-                      Join
-                    </Button>
-                  </div>
-                </Card>
-              ))}
-
-              {/* Pagination */}
-              <div className="flex items-center justify-between pt-3">
+              <div className="flex gap-2 mb-4">
                 <Button
-                  variant="secondary"
+                  variant={leaderboardTab === "ALL" ? "primary" : "secondary"}
                   size="sm"
-                  onClick={handlePrevPage}
-                  disabled={currentPage === 0}
+                  onClick={() => setLeaderboardTab("ALL")}
                 >
-                  Previous
+                  All
                 </Button>
-                <span className="text-sm text-text-secondary">
-                  Page {currentPage + 1} of {gamesPage.totalPages}
-                </span>
                 <Button
-                  variant="secondary"
+                  variant={leaderboardTab === "PIRATE" ? "primary" : "secondary"}
                   size="sm"
-                  onClick={handleNextPage}
-                  disabled={gamesPage.last}
+                  onClick={() => setLeaderboardTab("PIRATE")}
                 >
-                  Next
+                  Pirates
+                </Button>
+                <Button
+                  variant={leaderboardTab === "MARINE" ? "primary" : "secondary"}
+                  size="sm"
+                  onClick={() => setLeaderboardTab("MARINE")}
+                >
+                  Marines
                 </Button>
               </div>
-            </div>
-          )}
-        </section>
 
-        {/* Battle Log */}
-        <section className="mt-8">
-          <h2 className="mb-3 text-lg font-semibold text-text-primary">
-            ⚔️ Battle Log
-          </h2>
+              {loadingLeaderboard && (
+                <div className="space-y-2">
+                  <Skeleton height="3.5rem" className="w-full" />
+                  <Skeleton height="3.5rem" className="w-full" />
+                  <Skeleton height="3.5rem" className="w-full" />
+                </div>
+              )}
 
-          {loadingBattleLog && (
-            <div className="space-y-2">
-              <Skeleton height="3.5rem" className="w-full" />
-              <Skeleton height="3.5rem" className="w-full" />
-              <Skeleton height="3.5rem" className="w-full" />
-            </div>
-          )}
+              {!loadingLeaderboard && leaderboard && leaderboard.entries.length === 0 && (
+                <EmptyState
+                  title="No rankings yet"
+                  description="Battle other captains to claim your spot!"
+                />
+              )}
 
-          {!loadingBattleLog && battleLog.length === 0 && (
-            <EmptyState
-              title="No battles yet"
-              description="Your war record is empty, Captain!"
-            />
-          )}
-
-          {!loadingBattleLog && battleLog.length > 0 && (
-            <div className="space-y-2">
-              {battleLog.map((entry) => (
-                <Card key={entry.gameId} padding="md">
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <p className="text-sm font-medium text-text-primary">
-                          vs {entry.opponentName}
+              {!loadingLeaderboard && leaderboard && leaderboard.entries.length > 0 && (
+                <div>
+                  {/* Top 3 Podium */}
+                  <div className="flex items-end justify-center gap-4 mb-6">
+                    {/* 2nd place */}
+                    {leaderboard.entries.length >= 2 && (
+                      <div className={`flex flex-col items-center p-3 rounded-lg bg-surface-elevated border-t-2 ${podiumBorderColors[1]} mt-6 w-28`}>
+                        <Image
+                          src="/skull-icon.png"
+                          alt="avatar"
+                          width={48}
+                          height={48}
+                          className={`rounded-full ring-2 ${podiumRingColors[1]}`}
+                        />
+                        <span className="mt-1 text-sm">{podiumMedals[1]}</span>
+                        <p className="text-sm font-semibold text-text-primary truncate w-full text-center">
+                          {leaderboard.entries[1].name}
                         </p>
-                        <Badge
-                          variant={
-                            entry.result === "VICTORY" ? "success" : "danger"
-                          }
-                        >
-                          {entry.result}
-                        </Badge>
+                        <span className="text-xs">
+                          {leaderboard.entries[1].filiation === "PIRATE" ? "🏴‍☠️" : "⚓"}
+                        </span>
+                        <p className="text-xs text-text-muted">
+                          {leaderboard.entries[1].wins} wins
+                        </p>
                       </div>
-                      <p className="text-xs text-text-muted mt-1">
-                        {formatDate(entry.date)} · {entry.shotsFired} shots
-                        fired · {entry.shipsSunk} ships sunk
-                        {entry.duration ? ` · ${entry.duration}` : ""}
-                      </p>
-                    </div>
+                    )}
+
+                    {/* 1st place */}
+                    {leaderboard.entries.length >= 1 && (
+                      <div className={`flex flex-col items-center p-3 rounded-lg bg-surface-elevated border-t-2 ${podiumBorderColors[0]} mt-0 w-28`}>
+                        <Image
+                          src="/skull-icon.png"
+                          alt="avatar"
+                          width={48}
+                          height={48}
+                          className={`rounded-full ring-2 ${podiumRingColors[0]}`}
+                        />
+                        <span className="mt-1 text-sm">{podiumMedals[0]}</span>
+                        <p className="text-sm font-semibold text-text-primary truncate w-full text-center">
+                          {leaderboard.entries[0].name}
+                        </p>
+                        <span className="text-xs">
+                          {leaderboard.entries[0].filiation === "PIRATE" ? "🏴‍☠️" : "⚓"}
+                        </span>
+                        <p className="text-xs text-text-muted">
+                          {leaderboard.entries[0].wins} wins
+                        </p>
+                      </div>
+                    )}
+
+                    {/* 3rd place */}
+                    {leaderboard.entries.length >= 3 && (
+                      <div className={`flex flex-col items-center p-3 rounded-lg bg-surface-elevated border-t-2 ${podiumBorderColors[2]} mt-6 w-28`}>
+                        <Image
+                          src="/skull-icon.png"
+                          alt="avatar"
+                          width={48}
+                          height={48}
+                          className={`rounded-full ring-2 ${podiumRingColors[2]}`}
+                        />
+                        <span className="mt-1 text-sm">{podiumMedals[2]}</span>
+                        <p className="text-sm font-semibold text-text-primary truncate w-full text-center">
+                          {leaderboard.entries[2].name}
+                        </p>
+                        <span className="text-xs">
+                          {leaderboard.entries[2].filiation === "PIRATE" ? "🏴‍☠️" : "⚓"}
+                        </span>
+                        <p className="text-xs text-text-muted">
+                          {leaderboard.entries[2].wins} wins
+                        </p>
+                      </div>
+                    )}
                   </div>
-                </Card>
-              ))}
-            </div>
-          )}
-        </section>
+
+                  {/* Entries 4-10 compact list */}
+                  {leaderboard.entries.length > 3 && (
+                    <div className="space-y-1">
+                      {leaderboard.entries.slice(3, 10).map((entry) => (
+                        <div
+                          key={`${entry.position}-${entry.name}`}
+                          className={`flex items-center gap-2 py-1.5 px-2 rounded-md hover:bg-surface-secondary ${
+                            entry.isCurrentUser ? "bg-surface-secondary ring-1 ring-primary" : ""
+                          }`}
+                        >
+                          <span className="text-sm font-bold text-text-secondary w-6 text-center">
+                            {entry.position}
+                          </span>
+                          <span className="text-xs">
+                            {entry.filiation === "PIRATE" ? "🏴‍☠️" : "⚓"}
+                          </span>
+                          <span className="text-sm text-text-primary flex-1 truncate">
+                            {entry.name}
+                          </span>
+                          <span className="text-sm text-text-secondary">
+                            {entry.wins} wins
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Current user outside top 10 */}
+                  {leaderboard.currentUserEntry && (
+                    <div className="mt-4 pt-4 border-t border-border-light">
+                      <p className="text-xs text-text-muted mb-2">Your position</p>
+                      <div className="flex items-center gap-2 py-1.5 px-2 rounded-md bg-surface-secondary ring-1 ring-primary">
+                        <span className="text-sm font-bold text-text-secondary w-6 text-center">
+                          {leaderboard.currentUserEntry.position}
+                        </span>
+                        <span className="text-xs">
+                          {leaderboard.currentUserEntry.filiation === "PIRATE" ? "🏴‍☠️" : "⚓"}
+                        </span>
+                        <span className="text-sm text-text-primary flex-1 truncate">
+                          {leaderboard.currentUserEntry.name}
+                        </span>
+                        <span className="text-sm text-text-secondary">
+                          {leaderboard.currentUserEntry.wins} wins
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </section>
+
+            {/* Battle Log section */}
+            <section className="mt-8">
+              <h2 className="mb-3 text-lg font-semibold text-text-primary">
+                ⚔️ Battle Log
+              </h2>
+
+              {loadingBattleLog && (
+                <div className="space-y-2">
+                  <Skeleton height="2rem" className="w-full" />
+                  <Skeleton height="2rem" className="w-full" />
+                  <Skeleton height="2rem" className="w-full" />
+                </div>
+              )}
+
+              {!loadingBattleLog && battleLog.length === 0 && (
+                <EmptyState
+                  title="No battles yet"
+                  description="Your war record is empty, Captain!"
+                />
+              )}
+
+              {!loadingBattleLog && battleLog.length > 0 && (
+                <div>
+                  {battleLog.map((entry) => (
+                    <div
+                      key={entry.gameId}
+                      className="flex items-center gap-2 py-2 border-b border-border-light cursor-pointer hover:bg-surface-secondary rounded"
+                    >
+                      <Badge
+                        variant={entry.result === "VICTORY" ? "success" : "danger"}
+                      >
+                        {entry.result}
+                      </Badge>
+                      <span className="text-sm text-text-primary flex-1 truncate">
+                        vs {entry.opponentName}
+                      </span>
+                      <span className="text-xs text-text-muted">
+                        {formatDate(entry.date)}
+                      </span>
+                      <span className="text-text-muted">→</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+          </div>
+
+          {/* Right column — Games section (action-first on mobile) */}
+          <div className="order-first lg:order-none">
+            <section>
+              <h2 className="mb-3 text-lg font-semibold text-text-primary">
+                ⚓ Battle Station
+              </h2>
+
+              {/* Start Battle — big primary button */}
+              <Button
+                variant="primary"
+                fullWidth
+                loading={creatingGame}
+                onClick={handleCreateGame}
+                className="py-4 text-lg font-bold"
+              >
+                Start Battle
+              </Button>
+
+              {/* Active games list */}
+              <div className="mt-4">
+                {loadingGames && (
+                  <div className="space-y-2">
+                    <Skeleton height="3rem" className="w-full" />
+                    <Skeleton height="3rem" className="w-full" />
+                    <Skeleton height="3rem" className="w-full" />
+                  </div>
+                )}
+
+                {!loadingGames && gamesPage && gamesPage.content.length === 0 && (
+                  <EmptyState
+                    title="No battles available"
+                    description="Create one to start!"
+                  />
+                )}
+
+                {!loadingGames && gamesPage && gamesPage.content.length > 0 && (
+                  <div className="max-h-[320px] overflow-y-auto space-y-2">
+                    {gamesPage.content.map((game) => (
+                      <Card key={game.id} padding="sm">
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-text-primary">
+                              {game.bluePlayerName}
+                            </p>
+                            <p className="text-xs text-text-muted">
+                              Token: {game.token} · {formatDate(game.createdAt)}
+                            </p>
+                          </div>
+                          <Button
+                            variant="primary"
+                            size="sm"
+                            onClick={() => handleJoinFromList(game.token)}
+                            loading={joiningGame}
+                          >
+                            Join
+                          </Button>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Join by token — compact form */}
+              <div className="mt-4 pt-4 border-t border-border-light">
+                <label className="text-sm text-text-secondary mb-1 block">
+                  Join by Token
+                </label>
+                <form onSubmit={handleSubmit(onJoin)} className="flex gap-2">
+                  <div className="flex-1">
+                    <Input
+                      id="join-token"
+                      placeholder="Enter game token"
+                      error={errors.token?.message}
+                      {...register("token")}
+                    />
+                  </div>
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    type="submit"
+                    loading={joiningGame}
+                  >
+                    Join
+                  </Button>
+                </form>
+              </div>
+            </section>
+          </div>
+        </div>
       </div>
     </div>
   );

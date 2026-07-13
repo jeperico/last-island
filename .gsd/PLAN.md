@@ -1,132 +1,90 @@
-# Add Battle Log (Game History) Feature
+# Restructure Dashboard into 60/40 Two-Column Grid Layout
 
 ## Objective
 
-Add a GET `/api/games/history` endpoint returning last 10 finished games for the authenticated user (opponent name, result, date, shots fired, ships sunk, duration), a service + mapper layer, a unit test, and a Battle Log section on the home dashboard page.
+Rewrite `client/src/app/page.tsx` into a responsive 60/40 two-column grid layout with an Olympic podium leaderboard, compact battle log, and action-first games column, while preserving all existing data-fetching logic and the blue ocean theme.
 
 ## Files to touch
 
-- **create** `service/src/main/java/com/last_island/api/domain/game/dto/BattleLogEntryResponse.java` — DTO record
-- **modify** `service/src/main/java/com/last_island/api/domain/game/repository/GameResultRepository.java` — add fetch-join query
-- **create** `service/src/main/java/com/last_island/api/domain/game/service/BattleLogService.java` — service with getBattleLog(userId) method
-- **modify** `service/src/main/java/com/last_island/api/domain/game/mapper/GameMapper.java` — add `toBattleLogEntry` static method
-- **modify** `service/src/main/java/com/last_island/api/domain/game/controller/GameController.java` — add GET `/history` endpoint
-- **create** `service/src/test/java/com/last_island/api/domain/game/service/BattleLogServiceTest.java` — unit test
-- **modify** `client/src/interfaces/api.ts` — add `BattleLogEntryResponse` interface
-- **modify** `client/src/lib/api/games.ts` — add `getBattleLog()` function
-- **modify** `client/src/lib/api/index.ts` — re-export `getBattleLog`
-- **modify** `client/src/app/page.tsx` — add Battle Log section
+- `client/src/app/page.tsx` — modify (full rewrite of JSX, keep hooks/state/handlers intact)
+- `client/src/styles/globals.css` — modify (add gold/silver/bronze color tokens for podium)
 
 ## Steps
 
-1. **Create `BattleLogEntryResponse.java`** — Java record with fields: `UUID gameId`, `String opponentName`, `String result` (VICTORY/DEFEAT), `String date` (ISO string of `endedAt`), `int shotsFired`, `long shipsSunk`, `String duration` (formatted from `Duration`).
+1. **Add podium color tokens to `globals.css`**
+   - In `:root`, add:
+     - `--color-gold: #fbbf24;`
+     - `--color-silver: #94a3b8;`
+     - `--color-bronze: #cd7f32;`
+   - In `@theme inline`, expose them:
+     - `--color-gold: var(--color-gold);`
+     - `--color-silver: var(--color-silver);`
+     - `--color-bronze: var(--color-bronze);`
 
-2. **Modify `GameResultRepository.java`** — Add a JPQL query method:
-   ```java
-   @Query("""
-       SELECT gr FROM GameResult gr
-       JOIN FETCH gr.game g
-       JOIN FETCH g.blueBoard bb
-       JOIN FETCH bb.owner
-       JOIN FETCH bb.ships
-       JOIN FETCH bb.shots
-       LEFT JOIN FETCH g.redBoard rb
-       LEFT JOIN FETCH rb.owner
-       LEFT JOIN FETCH rb.ships
-       LEFT JOIN FETCH rb.shots
-       WHERE gr.winner.id = :userId OR gr.loser.id = :userId
-       ORDER BY g.endedAt DESC
-       LIMIT 10
-   """)
-   List<GameResult> findTop10ByUserIdOrderByEndedAtDesc(@Param("userId") UUID userId);
-   ```
-   Note: If Hibernate complains about LIMIT in JPQL with fetch joins on collections (due to "in-memory" pagination warning), use `Pageable` with `PageRequest.of(0, 10)` instead and return `List<GameResult>` from the query (removing LIMIT clause). Test will confirm.
+2. **Restructure page layout (page.tsx)**
+   - Replace the single `max-w-2xl` wrapper with a full-width `max-w-7xl` container.
+   - Keep the `PageHeader` (welcome + logout) spanning full width above the grid.
+   - Keep the `Alert` for errors spanning full width below header.
+   - Add a two-column grid: `grid grid-cols-1 lg:grid-cols-[3fr_2fr] gap-6`.
+   - Left column (`<div>`): Leaderboard section + Battle Log section.
+   - Right column (`<div className="order-first lg:order-none">`): Games section (action-first on mobile).
 
-3. **Add `toBattleLogEntry` in `GameMapper.java`** — Static method taking `(GameResult gr, UUID userId)`:
-   - Determine if user is winner → result = "VICTORY" or "DEFEAT".
-   - Opponent = winner if user is loser, else loser → `opponent.getName()`.
-   - Game from `gr.getGame()`.
-   - Player's board = board whose owner matches userId.
-   - Opponent's board = the other board.
-   - `shotsFired` = `opponentBoard.getShots().size()` (shots received by opponent = shots fired by player).
-   - `shipsSunk` = `opponentBoard.getShips().stream().filter(Ship::isSunk).count()`.
-   - `duration` = format `game.getDuration()` as "Xm Ys" or null-safe.
-   - `date` = `game.getEndedAt().toString()`.
+3. **Right column — Games section**
+   - Section title: "⚓ Battle Station"
+   - Big `Button` (variant="primary", fullWidth, large size feel) — "Start Battle" calling `handleCreateGame`.
+   - Active games list: change `listGames` call from `size: 10` to `size: 5`, remove pagination state/handlers/buttons, wrap the game cards in `max-h-[320px] overflow-y-auto` container.
+   - Each game card: keep existing Card layout but make it more compact (padding="sm").
+   - At the bottom: small join-by-token form (Input + Button), same as existing `onJoin` logic but visually smaller (text-sm label, compact spacing).
 
-4. **Create `BattleLogService.java`** — `@Service` class:
-   - Inject `GameResultRepository`.
-   - Method: `List<BattleLogEntryResponse> getBattleLog(UUID userId)` — calls repository, maps each result via `GameMapper.toBattleLogEntry`.
+4. **Left column — Leaderboard section**
+   - Section title: "🏆 Leaderboard" with All/Pirates/Marines tab buttons below (keep existing tab logic).
+   - **Top 3 podium**: When `leaderboard.entries` has ≥1 entries, render positions 1-3 as a flex row with 3 podium cards:
+     - Layout: flex with items arranged as [2nd] [1st] [3rd] visually (1st elevated with `mt-0`, 2nd/3rd with `mt-6`).
+     - Each podium card: centered column with:
+       - `<img src="/skull-icon.png" alt="avatar" className="w-12 h-12 rounded-full" />` with a colored ring glow (`ring-2 ring-gold` / `ring-silver` / `ring-bronze`).
+       - Position medal emoji (🥇/🥈/🥉).
+       - Player name (truncated, `text-sm font-semibold`).
+       - Filiation emoji (🏴‍☠️ / ⚓).
+       - Win count (`text-xs text-text-muted`).
+     - Card background: `bg-surface-elevated` with a subtle colored top border or glow matching medal.
+   - **Entries 4-10**: Compact list below the podium:
+     - Each entry: single row with `flex items-center gap-2 py-1.5 px-2 rounded-md hover:bg-surface-secondary`.
+     - Show: position number (text-sm, bold), filiation emoji, name, wins aligned right.
+     - Current user highlighted with `bg-surface-secondary ring-1 ring-primary`.
+   - **Current user outside top 10**: Show the `currentUserEntry` divider as before but in compact style.
+   - Fix existing bug: change `ring-accent-primary` → `ring-primary` (token doesn't exist).
 
-5. **Modify `GameController.java`** — Add:
-   ```java
-   @GetMapping("/history")
-   public List<BattleLogEntryResponse> getBattleLog(@AuthenticationPrincipal AuthenticatedUser principal) {
-       return battleLogService.getBattleLog(principal.getId());
-   }
-   ```
-   Inject `BattleLogService` alongside existing constructor params.
+5. **Left column — Battle Log section (below leaderboard)**
+   - Section title: "⚔️ Battle Log"
+   - Compact rows: no `Card` wrapper per entry. Instead use `flex items-center gap-2 py-2 border-b border-border-light` per row.
+   - Each row: Badge (VICTORY/DEFEAT, size small), opponent name (`text-sm`), date (`text-xs text-text-muted`), a "→" indicator as a placeholder for future modal.
+   - Add `cursor-pointer hover:bg-surface-secondary rounded` to each row (placeholder for modal click).
+   - If empty or loading, keep the existing EmptyState/Skeleton but make skeletons shorter (`height="2rem"`).
 
-6. **Create `BattleLogServiceTest.java`** — `@ExtendWith(MockitoExtension.class)`:
-   - Mock `GameResultRepository`.
-   - Test `getBattleLog` returns correct mapping for a victory scenario (user is winner, verify opponent name, result=VICTORY, shotsFired, shipsSunk, duration).
-   - Test `getBattleLog` returns DEFEAT when user is loser.
-   - Test empty list returns empty.
+6. **Mobile responsiveness**
+   - The grid is `grid-cols-1 lg:grid-cols-[3fr_2fr]`.
+   - Right column (Games) has `order-first lg:order-none` to appear first on mobile.
+   - All sections remain full-width stacked on mobile.
 
-7. **Add `BattleLogEntryResponse` interface in `client/src/interfaces/api.ts`**:
-   ```ts
-   export interface BattleLogEntryResponse {
-     gameId: string;
-     opponentName: string;
-     result: "VICTORY" | "DEFEAT";
-     date: string;
-     shotsFired: number;
-     shipsSunk: number;
-     duration: string | null;
-   }
-   ```
-
-8. **Add `getBattleLog` in `client/src/lib/api/games.ts`**:
-   ```ts
-   export function getBattleLog(): Promise<BattleLogEntryResponse[]> {
-     return apiGet<BattleLogEntryResponse[]>("/api/games/history");
-   }
-   ```
-
-9. **Re-export in `client/src/lib/api/index.ts`** — add `getBattleLog` to the games export line and `BattleLogEntryResponse` to the type export.
-
-10. **Modify `client/src/app/page.tsx`** — Add a "Battle Log" section after the "Available Games" section:
-    - New state: `battleLog` (array), `loadingBattleLog` (boolean).
-    - Fetch `getBattleLog()` in the same `useEffect` that loads games.
-    - Render section with heading "⚔️ Battle Log".
-    - Loading state: 3 `<Skeleton>` rows.
-    - Empty state: `<EmptyState title="No battles yet" description="Your war record is empty, Captain!" />`.
-    - Populated: list of `<Card>` items showing opponent name, `<Badge variant="success">VICTORY</Badge>` or `<Badge variant="danger">DEFEAT</Badge>`, date (formatted), stats line (shots fired, ships sunk, duration).
+7. **Clean up removed code**
+   - Remove `currentPage`, `setCurrentPage`, `handlePrevPage`, `handleNextPage` state/functions (no more pagination).
+   - Update the `listGames` call to use `{ page: 0, size: 5 }` (always first page, 5 items).
+   - Remove `PageResponse` generic wrapping if no longer needed — actually keep it, just don't paginate UI.
 
 ## Verification
 
 ```bash
-make service-build
-make service-test
 make client-build
 make client-lint
 ```
 
-- `service-build` compiles without errors.
-- `service-test` passes all tests including the new `BattleLogServiceTest`.
-- `client-build` succeeds.
-- `client-lint` shows no new errors (2 pre-existing acceptable).
+- `client-build` must pass (no TypeScript errors).
+- `client-lint` must not introduce new errors beyond the 3 pre-existing issues.
+- Manual check: verify `skull-icon.png` is referenced with correct path `/skull-icon.png` (exists in `client/public/`).
+- No backend changes — `make service-test` not required but can optionally confirm 51/51 still pass.
 
 ## Rollback
 
 ```bash
-git checkout -- service/src/main/java/com/last_island/api/domain/game/repository/GameResultRepository.java
-git checkout -- service/src/main/java/com/last_island/api/domain/game/mapper/GameMapper.java
-git checkout -- service/src/main/java/com/last_island/api/domain/game/controller/GameController.java
-git checkout -- client/src/interfaces/api.ts
-git checkout -- client/src/lib/api/games.ts
-git checkout -- client/src/lib/api/index.ts
-git checkout -- client/src/app/page.tsx
-rm -f service/src/main/java/com/last_island/api/domain/game/dto/BattleLogEntryResponse.java
-rm -f service/src/main/java/com/last_island/api/domain/game/service/BattleLogService.java
-rm -f service/src/test/java/com/last_island/api/domain/game/service/BattleLogServiceTest.java
+git checkout -- client/src/app/page.tsx client/src/styles/globals.css
 ```

@@ -157,3 +157,19 @@ export interface BattleLogEntryResponse {
   shipsSunk: number;
   duration: string | null;
 }
+
+// ─── Leaderboard ─────────────────────────────────────────────────────────────
+
+export interface LeaderboardEntryResponse {
+  position: number;
+  name: string;
+  filiation: Filiation;
+  wins: number;
+  rank: string;
+  isCurrentUser: boolean;
+}
+
+export interface LeaderboardResponse {
+  entries: LeaderboardEntryResponse[];
+  currentUserEntry: LeaderboardEntryResponse | null;
+}

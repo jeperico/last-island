@@ -41,6 +41,11 @@
   --color-warning: #fbbf24;
   --color-warning-bg: rgba(120, 53, 15, 0.3);
 
+  /* Podium (Olympic medal colors) */
+  --color-gold: #fbbf24;
+  --color-silver: #94a3b8;
+  --color-bronze: #cd7f32;
+
   /* Accent */
   --color-ocean: #38bdf8;
   --color-navy: #0a1628;
@@ -78,6 +83,9 @@
   --color-warning-bg: var(--color-warning-bg);
   --color-ocean: var(--color-ocean);
   --color-navy: var(--color-navy);
+  --color-gold: var(--color-gold);
+  --color-silver: var(--color-silver);
+  --color-bronze: var(--color-bronze);
   --radius-sm: var(--radius-sm);
   --radius-md: var(--radius-md);
   --radius-lg: var(--radius-lg);
