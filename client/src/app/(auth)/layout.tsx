@@ -12,7 +12,7 @@ export default function AuthLayout({
     >
       <Card
         padding="lg"
-        className="w-full max-w-md backdrop-blur-md bg-surface-elevated/80 border-border/50"
+        className="w-full max-w-lg backdrop-blur-md bg-surface-elevated/80 border-border/50"
       >
         {children}
       </Card>

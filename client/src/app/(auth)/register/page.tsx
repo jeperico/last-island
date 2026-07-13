@@ -53,9 +53,20 @@ export default function RegisterPage() {
 
   return (
     <div>
-      <h1 className="mb-6 text-center text-2xl font-bold text-text-primary">
-        Create Account
-      </h1>
+      <div className="mb-6 flex flex-col items-center gap-2">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/skull-icon.png"
+          alt="Jolly Roger"
+          width={64}
+          height={64}
+          className="drop-shadow-[0_0_8px_rgba(37,99,235,0.4)]"
+        />
+        <h1 className="text-2xl font-bold text-text-primary">Join the Crew!</h1>
+        <p className="text-sm text-text-secondary">
+          Every great pirate starts somewhere
+        </p>
+      </div>
 
       {error && (
         <Alert variant="error" className="mb-4">
@@ -64,52 +75,76 @@ export default function RegisterPage() {
       )}
 
       <form onSubmit={handleSubmit(onValid)} className="space-y-4">
-        <Input
-          label="Name"
-          id="name"
-          type="text"
-          error={errors.name?.message}
-          {...register("name")}
-        />
+        <div className="grid grid-cols-2 gap-3">
+          <Input
+            label="Pirate Name"
+            id="name"
+            type="text"
+            placeholder="Monkey D. Luffy"
+            error={errors.name?.message}
+            {...register("name")}
+          />
 
-        <Input
-          label="Email"
-          id="email"
-          type="email"
-          error={errors.email?.message}
-          {...register("email")}
-        />
+          <Input
+            label="Den Den Mushi Address"
+            id="email"
+            type="email"
+            placeholder="luffy@strawhat.crew"
+            error={errors.email?.message}
+            {...register("email")}
+          />
 
-        <Input
-          label="Password"
-          id="password"
-          type="password"
-          error={errors.password?.message}
-          {...register("password")}
-        />
+          <Input
+            label="Secret Code"
+            id="password"
+            type="password"
+            placeholder="••••••••"
+            error={errors.password?.message}
+            {...register("password")}
+          />
+
+          <Input
+            label="Repeat Secret Code"
+            id="confirmPassword"
+            type="password"
+            placeholder="••••••••"
+            error={errors.confirmPassword?.message}
+            {...register("confirmPassword")}
+          />
+        </div>
 
         <fieldset>
-          <legend className="sr-only">Filiation</legend>
+          <legend className="text-sm font-medium text-text-secondary mb-2">
+            Choose your allegiance
+          </legend>
           <div className="grid grid-cols-2 gap-3">
             <button
               type="button"
               onClick={() =>
                 setValue("filiation", "PIRATE", { shouldValidate: true })
               }
-              className={`flex flex-col items-center gap-2 rounded-lg border-2 px-4 py-5 transition-all cursor-pointer ${
+              className={`relative flex flex-col items-center gap-2 rounded-lg border-2 px-4 py-5 transition-all duration-200 cursor-pointer ${
                 filiation === "PIRATE"
-                  ? "border-primary bg-primary/10 shadow-[0_0_12px_rgba(37,99,235,0.3)]"
-                  : "border-border hover:border-primary/50 hover:bg-surface-secondary"
+                  ? "border-secondary bg-secondary/10 shadow-[0_0_12px_rgba(245,158,11,0.3)] scale-[1.03] hover:bg-secondary/20"
+                  : "border-border hover:border-secondary/50 hover:bg-surface-secondary"
               }`}
               aria-pressed={filiation === "PIRATE"}
             >
+              {filiation === "PIRATE" && (
+                <span className="absolute top-2 right-2 flex h-5 w-5 items-center justify-center rounded-full bg-secondary text-navy text-xs font-bold">
+                  ✓
+                </span>
+              )}
               <span className="text-4xl">🏴‍☠️</span>
               <span
                 className={`text-sm font-semibold ${
-                  filiation === "PIRATE" ? "text-primary" : "text-text-primary"
+                  filiation === "PIRATE" ? "text-secondary" : "text-text-primary"
                 }`}
               >
                 Pirate
+              </span>
+              <span className={`text-xs font-bold ${filiation === "PIRATE" ? "text-secondary/80" : "text-text-secondary"}`}>
+                Freedom on the seas
               </span>
             </button>
             <button
@@ -117,21 +152,27 @@ export default function RegisterPage() {
               onClick={() =>
                 setValue("filiation", "MARINE", { shouldValidate: true })
               }
-              className={`flex flex-col items-center gap-2 rounded-lg border-2 px-4 py-5 transition-all cursor-pointer ${
+              className={`relative flex flex-col items-center gap-2 rounded-lg border-2 px-4 py-5 transition-all duration-200 cursor-pointer ${
                 filiation === "MARINE"
-                  ? "border-ocean bg-ocean/10 shadow-[0_0_12px_rgba(56,189,248,0.3)]"
-                  : "border-border hover:border-ocean/50 hover:bg-surface-secondary"
+                  ? "border-secondary bg-secondary/10 shadow-[0_0_12px_rgba(245,158,11,0.3)] scale-[1.03] hover:bg-secondary/20"
+                  : "border-border hover:border-secondary/50 hover:bg-surface-secondary"
               }`}
               aria-pressed={filiation === "MARINE"}
             >
+              {filiation === "MARINE" && (
+                <span className="absolute top-2 right-2 flex h-5 w-5 items-center justify-center rounded-full bg-secondary text-navy text-xs font-bold">
+                  ✓
+                </span>
+              )}
               <span className="text-4xl">⚓</span>
               <span
                 className={`text-sm font-semibold ${
-                  filiation === "MARINE" ? "text-ocean" : "text-text-primary"
+                  filiation === "MARINE" ? "text-secondary" : "text-text-primary"
                 }`}
               >
                 Marine
               </span>
+              <span className={`text-xs font-bold ${filiation === "MARINE" ? "text-secondary/80" : "text-text-secondary"}`}>Justice above all</span>
             </button>
           </div>
           {errors.filiation && (
@@ -142,12 +183,12 @@ export default function RegisterPage() {
         </fieldset>
 
         <Button variant="primary" fullWidth loading={loading} type="submit">
-          Sign Up
+          Set Sail! 🏴‍☠️
         </Button>
       </form>
 
       <p className="mt-4 text-center text-sm text-text-secondary">
-        Already have an account?{" "}
+        Already part of a crew?{" "}
         <Link href="/login" className="text-primary hover:underline">
           Log in
         </Link>
