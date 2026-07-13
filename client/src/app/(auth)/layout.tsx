@@ -6,8 +6,14 @@ export default function AuthLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-surface px-4">
-      <Card padding="lg" className="w-full max-w-md">
+    <div
+      className="flex min-h-screen items-center justify-center px-4 bg-cover bg-center bg-no-repeat"
+      style={{ backgroundImage: "url('/background-03.jpg')" }}
+    >
+      <Card
+        padding="lg"
+        className="w-full max-w-md backdrop-blur-md bg-surface-elevated/80 border-border/50"
+      >
         {children}
       </Card>
     </div>

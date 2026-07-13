@@ -98,7 +98,7 @@ export default function RegisterPage() {
               }
               className={`flex flex-col items-center gap-2 rounded-lg border-2 px-4 py-5 transition-all cursor-pointer ${
                 filiation === "PIRATE"
-                  ? "border-primary bg-primary/10 shadow-[0_0_12px_rgba(212,160,23,0.3)]"
+                  ? "border-primary bg-primary/10 shadow-[0_0_12px_rgba(37,99,235,0.3)]"
                   : "border-border hover:border-primary/50 hover:bg-surface-secondary"
               }`}
               aria-pressed={filiation === "PIRATE"}
