@@ -2,12 +2,12 @@ import { z } from "zod";
 
 export const registerSchema = z
   .object({
-    name: z.string().min(1, "Name is required"),
-    email: z.string().email("Valid email required"),
-    password: z.string().min(8, "Password must be at least 8 characters"),
-    confirmPassword: z.string().min(1, "Confirm your secret code"),
+    name: z.string().min(1, "Every pirate needs a name!"),
+    email: z.string().email("That Den Den Mushi address doesn't look right"),
+    password: z.string().min(8, "Secret code must be at least 8 characters, captain!"),
+    confirmPassword: z.string().min(1, "Confirm your secret code, nakama!"),
     filiation: z.enum(["PIRATE", "MARINE"], {
-      message: "Choose your filiation",
+      message: "Pick a side! Are you pirate or marine?",
     }),
   })
   .refine((data) => data.password === data.confirmPassword, {

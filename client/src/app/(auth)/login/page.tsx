@@ -77,6 +77,7 @@ export default function LoginPage() {
           id="email"
           type="email"
           placeholder="luffy@strawhat.crew"
+          autoComplete="email"
           error={errors.email?.message}
           {...register("email")}
         />
@@ -86,6 +87,7 @@ export default function LoginPage() {
           id="password"
           type="password"
           placeholder="••••••••"
+          autoComplete="current-password"
           error={errors.password?.message}
           {...register("password")}
         />

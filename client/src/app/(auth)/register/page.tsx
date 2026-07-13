@@ -81,6 +81,7 @@ export default function RegisterPage() {
             id="name"
             type="text"
             placeholder="Monkey D. Luffy"
+            autoComplete="name"
             error={errors.name?.message}
             {...register("name")}
           />
@@ -90,6 +91,7 @@ export default function RegisterPage() {
             id="email"
             type="email"
             placeholder="luffy@strawhat.crew"
+            autoComplete="email"
             error={errors.email?.message}
             {...register("email")}
           />
@@ -99,6 +101,7 @@ export default function RegisterPage() {
             id="password"
             type="password"
             placeholder="••••••••"
+            autoComplete="new-password"
             error={errors.password?.message}
             {...register("password")}
           />
@@ -108,6 +111,7 @@ export default function RegisterPage() {
             id="confirmPassword"
             type="password"
             placeholder="••••••••"
+            autoComplete="new-password"
             error={errors.confirmPassword?.message}
             {...register("confirmPassword")}
           />
