@@ -48,9 +48,22 @@ export default function LoginPage() {
 
   return (
     <div>
-      <h1 className="mb-6 text-center text-2xl font-bold text-text-primary">
-        Log In
-      </h1>
+      <div className="mb-6 flex flex-col items-center gap-2">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/skull-icon.png"
+          alt="Jolly Roger"
+          width={64}
+          height={64}
+          className="drop-shadow-[0_0_8px_rgba(37,99,235,0.4)]"
+        />
+        <h1 className="text-2xl font-bold text-text-primary">
+          Welcome Aboard!
+        </h1>
+        <p className="text-sm text-text-secondary">
+          Identify yourself to the crew, pirate
+        </p>
+      </div>
 
       {error && (
         <Alert variant="error" className="mb-4">
@@ -60,30 +73,32 @@ export default function LoginPage() {
 
       <form onSubmit={handleSubmit(onValid)} className="space-y-4">
         <Input
-          label="Email"
+          label="Den Den Mushi Address"
           id="email"
           type="email"
+          placeholder="luffy@strawhat.crew"
           error={errors.email?.message}
           {...register("email")}
         />
 
         <Input
-          label="Password"
+          label="Secret Code"
           id="password"
           type="password"
+          placeholder="••••••••"
           error={errors.password?.message}
           {...register("password")}
         />
 
         <Button variant="primary" fullWidth loading={loading} type="submit">
-          Log In
+          Board the Ship ⚓
         </Button>
       </form>
 
       <p className="mt-4 text-center text-sm text-text-secondary">
-        Don&apos;t have an account?{" "}
+        No crew yet?{" "}
         <Link href="/register" className="text-primary hover:underline">
-          Sign up
+          Join now
         </Link>
       </p>
     </div>
