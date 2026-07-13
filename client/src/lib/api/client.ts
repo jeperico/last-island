@@ -1,5 +1,4 @@
 import type { ApiErrorResponse } from "./types";
-import { getRefreshToken, setTokens } from "../auth-storage";
 
 // ─── Base URL ────────────────────────────────────────────────────────────────
 
@@ -24,16 +23,6 @@ export class ApiError extends Error {
   }
 }
 
-// ─── Token provider ──────────────────────────────────────────────────────────
-
-type TokenProvider = () => string | null;
-
-let tokenProvider: TokenProvider | null = null;
-
-export function setTokenProvider(fn: TokenProvider | null): void {
-  tokenProvider = fn;
-}
-
 // ─── Unauthorized callback ───────────────────────────────────────────────────
 
 let onUnauthorizedCallback: (() => void) | null = null;
@@ -53,15 +42,9 @@ export async function attemptRefresh(): Promise<void> {
 
   refreshPromise = (async () => {
     try {
-      const refreshToken = getRefreshToken();
-      if (!refreshToken) {
-        throw new Error("No refresh token available");
-      }
-
       // Import refresh dynamically to avoid circular dependency
       const { refresh } = await import("./auth");
-      const response = await refresh({ refreshToken });
-      setTokens(response.accessToken, response.refreshToken);
+      await refresh();
     } catch {
       if (onUnauthorizedCallback) {
         onUnauthorizedCallback();
@@ -78,19 +61,10 @@ export async function attemptRefresh(): Promise<void> {
 // ─── Internal helpers ────────────────────────────────────────────────────────
 
 function getHeaders(): HeadersInit {
-  const headers: Record<string, string> = {
+  return {
     "Content-Type": "application/json",
     "ngrok-skip-browser-warning": "true",
   };
-
-  if (tokenProvider) {
-    const token = tokenProvider();
-    if (token) {
-      headers["Authorization"] = `Bearer ${token}`;
-    }
-  }
-
-  return headers;
 }
 
 function buildUrl(path: string, params?: Record<string, string>): string {
@@ -129,8 +103,24 @@ function buildUrl(path: string, params?: Record<string, string>): string {
 
 async function handleResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
-    const errorBody: ApiErrorResponse = await response.json();
+    let errorBody: ApiErrorResponse;
+    try {
+      errorBody = await response.json();
+    } catch {
+      // Non-JSON error response (e.g. empty 401/403 from Spring Security)
+      errorBody = {
+        status: response.status,
+        error: response.statusText || "Error",
+        message: response.statusText || "Request failed",
+        timestamp: new Date().toISOString(),
+      };
+    }
     throw new ApiError(errorBody);
+  }
+
+  // 204 No Content — no body to parse
+  if (response.status === 204) {
+    return undefined as T;
   }
 
   return (await response.json()) as T;
@@ -148,15 +138,17 @@ export async function apiGet<T>(
     const response = await fetch(url, {
       method: "GET",
       headers: getHeaders(),
+      credentials: "include",
     });
     return await handleResponse<T>(response);
   } catch (error) {
     if (error instanceof ApiError && error.isUnauthorized) {
       await attemptRefresh();
-      // Retry once with new token
+      // Retry once with new cookie
       const retryResponse = await fetch(url, {
         method: "GET",
         headers: getHeaders(),
+        credentials: "include",
       });
       return await handleResponse<T>(retryResponse);
     }
@@ -175,16 +167,18 @@ export async function apiPost<T>(
     const response = await fetch(url, {
       method: "POST",
       headers: getHeaders(),
+      credentials: "include",
       body: body !== undefined ? JSON.stringify(body) : undefined,
     });
     return await handleResponse<T>(response);
   } catch (error) {
     if (!options?.skipAuth && error instanceof ApiError && error.isUnauthorized) {
       await attemptRefresh();
-      // Retry once with new token
+      // Retry once with new cookie
       const retryResponse = await fetch(url, {
         method: "POST",
         headers: getHeaders(),
+        credentials: "include",
         body: body !== undefined ? JSON.stringify(body) : undefined,
       });
       return await handleResponse<T>(retryResponse);

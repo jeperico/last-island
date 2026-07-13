@@ -1,8 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { getAccessToken } from "@/lib/auth-storage";
-import { attemptRefresh } from "@/lib/api";
 import type {
   GameEventHandlers,
   ConnectedEventData,
@@ -42,27 +40,12 @@ export function useGameEvents(
 
     let aborted = false;
 
-    async function connect() {
+    function connect() {
       if (aborted) return;
-
-      // Attempt token refresh before connecting
-      try {
-        await attemptRefresh();
-      } catch {
-        // Refresh failed — user is logged out (onUnauthorizedCallback already fired)
-        return;
-      }
-
-      if (aborted) return;
-
-      const jwt = getAccessToken();
-      if (!jwt) {
-        return;
-      }
 
       const basePath = API_BASE_URL || "/api";
-      const url = `${basePath}/games/${gameToken}/events?token=${encodeURIComponent(jwt)}`;
-      const es = new EventSource(url);
+      const url = `${basePath}/games/${gameToken}/events`;
+      const es = new EventSource(url, { withCredentials: true });
       esRef.current = es;
 
       function handleConnected(event: MessageEvent) {

@@ -2,7 +2,6 @@ import { apiGet, apiPost } from "./client";
 import type {
   AuthResponse,
   LoginRequest,
-  RefreshRequest,
   RegisterRequest,
   UserResponse,
 } from "./types";
@@ -15,8 +14,12 @@ export function login(data: LoginRequest): Promise<AuthResponse> {
   return apiPost<AuthResponse>("/api/auth/login", data, { skipAuth: true });
 }
 
-export function refresh(data: RefreshRequest): Promise<AuthResponse> {
-  return apiPost<AuthResponse>("/api/auth/refresh", data, { skipAuth: true });
+export function refresh(): Promise<AuthResponse> {
+  return apiPost<AuthResponse>("/api/auth/refresh", undefined, { skipAuth: true });
+}
+
+export function logout(): Promise<void> {
+  return apiPost<void>("/api/auth/logout");
 }
 
 export function getProfile(): Promise<UserResponse> {

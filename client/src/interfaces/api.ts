@@ -20,10 +20,6 @@ export interface LoginRequest {
   password: string;
 }
 
-export interface RefreshRequest {
-  refreshToken: string;
-}
-
 export interface ShipPlacementDto {
   type: ShipType;
   row: number;
@@ -43,8 +39,6 @@ export interface ShotRequest {
 // ─── Response interfaces ─────────────────────────────────────────────────────
 
 export interface AuthResponse {
-  accessToken: string;
-  refreshToken: string;
   user: UserResponse;
 }
 

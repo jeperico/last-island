@@ -27,7 +27,7 @@ public class AuthService {
         this.jwtProvider = jwtProvider;
     }
 
-    public AuthResponse register(RegisterRequest request) {
+    public AuthResult register(RegisterRequest request) {
         if (request.password() == null || request.password().length() < 8) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Password must be at least 8 characters");
         }
@@ -60,10 +60,10 @@ public class AuthService {
         String accessToken = jwtProvider.generateAccessToken(user);
         String refreshToken = jwtProvider.generateRefreshToken(user);
 
-        return new AuthResponse(accessToken, refreshToken, UserMapper.toResponse(user));
+        return new AuthResult(new TokenPair(accessToken, refreshToken), UserMapper.toResponse(user));
     }
 
-    public AuthResponse login(LoginRequest request) {
+    public AuthResult login(LoginRequest request) {
         User user = userRepository.findByEmail(request.email())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid credentials"));
 
@@ -74,18 +74,18 @@ public class AuthService {
         String accessToken = jwtProvider.generateAccessToken(user);
         String refreshToken = jwtProvider.generateRefreshToken(user);
 
-        return new AuthResponse(accessToken, refreshToken, UserMapper.toResponse(user));
+        return new AuthResult(new TokenPair(accessToken, refreshToken), UserMapper.toResponse(user));
     }
 
-    public AuthResponse refresh(RefreshRequest request) {
+    public AuthResult refresh(String refreshTokenValue) {
         JwtClaims claims;
         try {
-            claims = jwtProvider.parseToken(request.refreshToken());
+            claims = jwtProvider.parseToken(refreshTokenValue);
         } catch (Exception e) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid or expired refresh token");
         }
 
-        if (!jwtProvider.isRefreshToken(request.refreshToken())) {
+        if (!jwtProvider.isRefreshToken(refreshTokenValue)) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Token is not a refresh token");
         }
 
@@ -95,7 +95,7 @@ public class AuthService {
         String accessToken = jwtProvider.generateAccessToken(user);
         String refreshToken = jwtProvider.generateRefreshToken(user);
 
-        return new AuthResponse(accessToken, refreshToken, UserMapper.toResponse(user));
+        return new AuthResult(new TokenPair(accessToken, refreshToken), UserMapper.toResponse(user));
     }
 
     public UserResponse getProfile(UUID userId) {

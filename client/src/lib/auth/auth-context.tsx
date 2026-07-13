@@ -12,14 +12,10 @@ import { useRouter } from "next/navigation";
 import {
   login as loginApi,
   register as registerApi,
+  logout as logoutApi,
   getProfile,
 } from "@/lib/api/auth";
-import { setTokenProvider, setOnUnauthorized } from "@/lib/api/client";
-import {
-  setTokens,
-  getAccessToken,
-  clearTokens,
-} from "@/lib/auth-storage";
+import { setOnUnauthorized } from "@/lib/api/client";
 import type { UserResponse } from "@/lib/api/types";
 import type { AuthContextValue } from "@/interfaces/auth";
 
@@ -34,9 +30,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<UserResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const performLogout = useCallback(() => {
-    clearTokens();
-    setTokenProvider(null);
+  const performLogout = useCallback(async () => {
+    try {
+      await logoutApi();
+    } catch {
+      // Ignore errors — cookies may already be cleared
+    }
     setUser(null);
 
     // Skip redirect if already on an auth page to prevent flash/loop
@@ -47,23 +46,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [router]);
 
   useEffect(() => {
-    setTokenProvider(() => getAccessToken());
     setOnUnauthorized(() => performLogout());
 
     const hydrate = async () => {
-      const token = getAccessToken();
-      if (!token) {
-        // No token at all — skip hydration entirely
-        setIsLoading(false);
-        return;
-      }
-
       try {
         const profile = await getProfile();
         setUser(profile);
       } catch {
-        // Swallow any error (including "Refresh failed") — clear stale tokens silently
-        clearTokens();
+        // 401 or network error — user is not logged in
         setUser(null);
       }
       setIsLoading(false);
@@ -75,7 +65,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = useCallback(
     async (email: string, password: string) => {
       const response = await loginApi({ email, password });
-      setTokens(response.accessToken, response.refreshToken);
       setUser(response.user);
     },
     [],
@@ -94,7 +83,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         password,
         filiation: filiation as "PIRATE" | "MARINE",
       });
-      setTokens(response.accessToken, response.refreshToken);
       setUser(response.user);
     },
     [],

@@ -1,7 +1,7 @@
-export { register, login, refresh, getProfile } from "./auth";
+export { register, login, refresh, logout, getProfile } from "./auth";
 export { createGame, joinGame, listGames, getGame } from "./games";
 export { placeShips, fireShot } from "./board";
-export { ApiError, setTokenProvider, attemptRefresh } from "./client";
+export { ApiError, attemptRefresh } from "./client";
 export type {
   Filiation,
   PirateRank,
@@ -12,7 +12,6 @@ export type {
   ShotResult,
   RegisterRequest,
   LoginRequest,
-  RefreshRequest,
   ShipPlacementDto,
   PlaceShipsRequest,
   ShotRequest,

@@ -5,6 +5,7 @@ import com.last_island.api.infrastructure.security.jwt.JwtProvider;
 import com.last_island.api.infrastructure.security.principal.AuthenticatedUser;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -27,19 +28,27 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
 
+        String token = null;
         String authHeader = request.getHeader("Authorization");
-        String token;
 
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            String queryToken = request.getParameter("token");
-            if (queryToken != null && request.getRequestURI().contains("/events")) {
-                token = queryToken;
-            } else {
-                filterChain.doFilter(request, response);
-                return;
-            }
-        } else {
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
             token = authHeader.substring(7);
+        } else {
+            // Fallback: read from httpOnly cookie
+            Cookie[] cookies = request.getCookies();
+            if (cookies != null) {
+                for (Cookie cookie : cookies) {
+                    if ("access_token".equals(cookie.getName())) {
+                        token = cookie.getValue();
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (token == null) {
+            filterChain.doFilter(request, response);
+            return;
         }
 
         try {
