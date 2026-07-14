@@ -140,7 +140,7 @@ export function GameOverPanel({
             ⏱️ {formatDuration(durationSeconds)}
           </span>
           <span className={`font-bold ${isWinner ? "text-success" : "text-danger"}`}>
-            🏴‍☠️ {myBounty.toLocaleString()}
+            🏴‍☠️ {myBounty >= 1_000_000_000 ? `${(myBounty / 1_000_000_000).toFixed(1)}B` : myBounty >= 1_000_000 ? `${Math.round(myBounty / 1_000_000)}M` : myBounty.toLocaleString()}
           </span>
         </div>
       </div>

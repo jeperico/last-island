@@ -46,7 +46,7 @@ class LeaderboardServiceTest {
         assertThat(response.entries().get(0).name()).isEqualTo("Luffy");
         assertThat(response.entries().get(0).wins()).isEqualTo(10);
         assertThat(response.entries().get(0).winRate()).isGreaterThan(0.0);
-        assertThat(response.entries().get(0).bounty()).isEqualTo(10000L);
+        assertThat(response.entries().get(0).bounty()).isEqualTo(100_000_000L);
         assertThat(response.entries().get(1).position()).isEqualTo(2);
         assertThat(response.entries().get(2).position()).isEqualTo(3);
 
@@ -108,7 +108,7 @@ class LeaderboardServiceTest {
         assertThat(response.currentUserEntry().position()).isEqualTo(16);
         assertThat(response.currentUserEntry().name()).isEqualTo("Buggy");
         assertThat(response.currentUserEntry().wins()).isEqualTo(2);
-        assertThat(response.currentUserEntry().bounty()).isEqualTo(2000L);
+        assertThat(response.currentUserEntry().bounty()).isEqualTo(20_000_000L);
         assertThat(response.currentUserEntry().isCurrentUser()).isTrue();
     }
 
@@ -123,7 +123,7 @@ class LeaderboardServiceTest {
                 .rank("Rookie")
                 .wins(wins)
                 .losses(wins / 2)
-                .bounty(wins * 1000L)
+                .bounty(wins * 10_000_000L)
                 .build();
         user.setId(UUID.randomUUID());
         return user;

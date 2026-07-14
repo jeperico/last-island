@@ -260,6 +260,18 @@ export default function Home() {
     }
   }
 
+  function formatBounty(bounty: number): string {
+    if (bounty >= 1_000_000_000) {
+      const b = bounty / 1_000_000_000;
+      return `${b % 1 === 0 ? b.toFixed(0) : b.toFixed(1)}B`;
+    }
+    if (bounty >= 1_000_000) {
+      const m = bounty / 1_000_000;
+      return `${m % 1 === 0 ? m.toFixed(0) : m.toFixed(0)}M`;
+    }
+    return bounty.toLocaleString();
+  }
+
   const podiumMedals = ["🥇", "🥈", "🥉"] as const;
   const podiumBgColors = [
     "bg-gold-bg",
@@ -385,7 +397,7 @@ export default function Home() {
                                   : entry.position}
                               </td>
                               <td className="py-3 px-2 text-left text-secondary font-medium">
-                                {entry.bounty.toLocaleString()}
+                                {formatBounty(entry.bounty)}
                               </td>
                               <td className="py-3 px-2 text-left text-text-primary font-medium truncate">
                                 {entry.filiation === "PIRATE" ? "🏴‍☠️" : "⚓"}{" "}
@@ -434,7 +446,7 @@ export default function Home() {
                                   {userEntry.position}
                                 </td>
                                 <td className="py-3 px-2 text-left text-secondary font-medium">
-                                  {userEntry.bounty.toLocaleString()}
+                                  {formatBounty(userEntry.bounty)}
                                 </td>
                                 <td className="py-3 px-2 text-left text-text-primary font-medium truncate">
                                   {userEntry.filiation === "PIRATE"
