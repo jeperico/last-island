@@ -22,7 +22,7 @@ public interface GameRepository extends JpaRepository<Game, UUID> {
 
     boolean existsByToken(String token);
 
-    @Query("SELECT g FROM Game g WHERE g.phase = 'IN_PROGRESS' AND g.isActive = true AND g.turnStartedAt < :turnDeadline")
+    @Query("SELECT g FROM Game g JOIN FETCH g.blueBoard bb JOIN FETCH bb.owner JOIN FETCH g.redBoard rb JOIN FETCH rb.owner JOIN FETCH g.currentTurn WHERE g.phase = 'IN_PROGRESS' AND g.isActive = true AND g.turnStartedAt < :turnDeadline")
     List<Game> findGamesWithExpiredTurns(@Param("turnDeadline") LocalDateTime turnDeadline);
 
     @Query("SELECT g FROM Game g WHERE g.phase = 'IN_PROGRESS' AND g.isActive = true AND g.startedAt < :gameDeadline")

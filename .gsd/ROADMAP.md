@@ -14,10 +14,18 @@
 - Zod + react-hook-form validation (2026-07-02) — 627e86c
 - SSE real-time communication backend (2026-07-06) — 7552f20
 - SSE client integration (2026-07-06) — 29f2f02, 9ce95dc
+- Migrate JWT storage to httpOnly cookies (2026-07-13)
+- Replace Next.js rewrites with App Router route handler proxy (2026-07-13)
+- Battle Log / game history (2026-07-13)
+- Ranking leaderboard with bounty-based sorting (2026-07-13)
+- Dashboard 60/40 two-column grid layout (2026-07-13)
+- Battle detail modal with boards (2026-07-14)
+- Lobby SSE — auto-update available battles (2026-07-14)
+- Battle expiration timers (turn 120s + game 30min) (2026-07-14) — c79db6e
+- Leaderboard UI improvements: table layout, scrollbar, bounty formula (2026-07-14) — c79db6e
 
 ## Next
 
-1. Dashboard home page — game history, ranking leaderboard, massively improved UI/One Piece theming, SSE/connection perf fixes, optional profile config (choose nakama/yonko avatar)
+1. Responsive mobile layout
 2. Deploy publicly accessible (service + client)
 3. Reconnection handling (rejoin mid-game after disconnect)
-4. Responsive mobile layout

@@ -2,7 +2,7 @@
 
 ## Position
 
-Planning complete — Add Battle Expiration Timers (Turn 120s + Game 30min)
+Planning complete — Responsive Mobile Layout (CSS/Tailwind fixes)
 
 ## Decisions
 

@@ -37,6 +37,7 @@ public class GameExpirationService {
     }
 
     @Scheduled(fixedRate = 5000)
+    @Transactional
     public void checkExpirations() {
         LocalDateTime turnDeadline = LocalDateTime.now().minusSeconds(TURN_TIMEOUT_SECONDS);
         LocalDateTime gameDeadline = LocalDateTime.now().minusMinutes(GAME_TIMEOUT_MINUTES);
@@ -61,7 +62,6 @@ public class GameExpirationService {
         }
     }
 
-    @Transactional
     public void handleGameExpiration(Game game) {
         game.setPhase(GamePhase.CANCELLED);
         game.setEndedAt(LocalDateTime.now());
@@ -78,7 +78,6 @@ public class GameExpirationService {
         }
     }
 
-    @Transactional
     public void handleTurnExpiration(Game game, LocalDateTime turnDeadline) {
         // Race guard: re-verify turnStartedAt is still expired
         if (game.getTurnStartedAt() == null || !game.getTurnStartedAt().isBefore(turnDeadline)) {
