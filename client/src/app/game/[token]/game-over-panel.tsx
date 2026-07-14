@@ -27,7 +27,6 @@ interface GameOverPanelProps {
 function buildMyBoardCells(myBoard: MyBoardResponse): Map<string, CellState> {
   const cells = new Map<string, CellState>();
 
-  // Mark ship cells
   for (const ship of myBoard.ships) {
     const shipCells = getShipCells(
       ship.row,
@@ -40,7 +39,6 @@ function buildMyBoardCells(myBoard: MyBoardResponse): Map<string, CellState> {
     }
   }
 
-  // Overlay shots received
   for (const shot of myBoard.shotsReceived) {
     const key = cellKey(shot.row, shot.col);
     const existing = cells.get(key);
@@ -109,132 +107,123 @@ export function GameOverPanel({
   }
 
   return (
-    <div className="flex flex-col items-center gap-6 w-full max-w-4xl px-4">
-      {/* Section 1 — Banner */}
-      {isWinner ? (
-        <div className="flex flex-col items-center gap-2 print:text-black">
-          <span className="text-5xl">🏴‍☠️</span>
-          <h1 className="text-3xl font-bold text-success">Victory!</h1>
-        </div>
-      ) : (
-        <div className="flex flex-col items-center gap-2 print:text-black">
-          <span className="text-5xl">💀</span>
-          <h1 className="text-3xl font-bold text-danger">Defeat</h1>
-        </div>
-      )}
-
-      {/* Opponent subtitle */}
-      <p className="text-text-muted text-sm print:text-black">
-        vs{" "}
-        <span className="font-semibold text-text-primary">{opponentName}</span>
-      </p>
-
-      {/* Section 2 — Boards */}
-      <div className="game-results-boards flex flex-wrap items-start justify-center gap-6 w-full">
-        {myBoard && <BoardGrid title="My Fleet" cells={myBoardCells} />}
-        {opponentBoard && (
-          <BoardGrid title="Enemy Waters" cells={opponentBoardCells} />
-        )}
-      </div>
-
-      {/* Section 3 — Stats card */}
-      <div className="w-full max-w-lg rounded-xl border border-border bg-surface-elevated overflow-hidden">
-        {/* Duration banner */}
-        <div className="flex items-center justify-center gap-2 border-b border-border bg-surface-secondary px-4 py-2.5">
-          <span className="text-base">⏱️</span>
-          <span className="text-sm font-medium text-text-secondary">
-            {formatDuration(durationSeconds)}
+    <div className="flex flex-col items-center w-full max-w-5xl h-full print:h-auto">
+      {/* Header — result banner + opponent + duration */}
+      <div
+        className={`w-full flex items-center justify-between px-6 py-3 rounded-t-xl border border-b-0 ${
+          isWinner
+            ? "bg-gradient-to-r from-success/20 via-success/10 to-transparent border-success/30"
+            : "bg-gradient-to-r from-danger/20 via-danger/10 to-transparent border-danger/30"
+        } print:border-black print:bg-white`}
+      >
+        <div className="flex items-center gap-3">
+          <span className="text-3xl print:text-2xl">
+            {isWinner ? "🏴‍☠️" : "💀"}
           </span>
-        </div>
-
-        {/* Player comparison */}
-        <div className="grid grid-cols-3 px-4 py-3 border-b border-border-light">
-          <div className="text-left">
-            <p className="text-xs text-text-muted uppercase tracking-wide">
-              You
-            </p>
-            <p className="text-sm font-semibold text-text-primary truncate">
-              {winnerName === opponentName
-                ? "—"
-                : isWinner
-                  ? winnerName
-                  : "You"}
-            </p>
-          </div>
-          <div className="flex items-center justify-center">
-            <span className="text-xs font-bold text-text-muted">VS</span>
-          </div>
-          <div className="text-right">
-            <p className="text-xs text-text-muted uppercase tracking-wide">
-              Enemy
-            </p>
-            <p className="text-sm font-semibold text-text-primary truncate">
-              {opponentName}
+          <div>
+            <h1
+              className={`text-xl font-bold ${isWinner ? "text-success" : "text-danger"} print:text-black`}
+            >
+              {isWinner ? "Victory!" : "Defeat"}
+            </h1>
+            <p className="text-xs text-text-muted print:text-black">
+              vs{" "}
+              <span className="font-semibold text-text-primary print:text-black">
+                {opponentName}
+              </span>
             </p>
           </div>
         </div>
-
-        {/* Stat rows */}
-        <div className="divide-y divide-border-light">
-          <StatRow
-            icon="💣"
-            label="Cannonballs"
-            myValue={myShots}
-            opponentValue={opponentShots}
-          />
-          <StatRow
-            icon="🎯"
-            label="Direct Hits"
-            myValue={myHits}
-            opponentValue={opponentHits}
-            highlightBetter
-          />
-          <StatRow
-            icon="🧭"
-            label="Accuracy"
-            myValue={`${myAccuracy}%`}
-            opponentValue={`${opponentAccuracy}%`}
-            myRaw={myAccuracy}
-            opponentRaw={opponentAccuracy}
-            highlightBetter
-          />
-        </div>
-
-        {/* Winner banner */}
-        <div
-          className={`flex items-center justify-center gap-2 px-4 py-3 ${
-            isWinner
-              ? "bg-success-bg border-t border-success-border"
-              : "bg-danger-bg border-t border-danger-border"
-          }`}
-        >
-          <span className="text-base">{isWinner ? "👑" : "⚔️"}</span>
-          <span
-            className={`text-sm font-bold ${
-              isWinner ? "text-success" : "text-danger"
-            }`}
+        <div className="flex items-center gap-4 text-sm">
+          <span className="text-text-muted print:text-black">
+            ⏱️ {formatDuration(durationSeconds)}
+          </span>
+          <Link
+            href="/"
+            className="print:hidden inline-flex items-center gap-1 rounded-md bg-primary px-4 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-primary-hover"
           >
-            {winnerName} wins!
-          </span>
+            Back to Grand Line
+          </Link>
         </div>
       </div>
 
-      {/* Section 4 — Navigation */}
-      <div className="print:hidden">
-        <Link
-          href="/"
-          className="inline-flex items-center justify-center gap-2 rounded-md bg-primary px-6 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-primary-ring"
-        >
-          Back to Grand Line
-        </Link>
+      {/* Main content — boards + stats side by side */}
+      <div className="w-full flex-1 flex flex-col lg:flex-row border border-border rounded-b-xl bg-surface-elevated overflow-hidden print:border-black">
+        {/* Boards section */}
+        <div className="flex-1 flex items-center justify-center gap-4 p-4 print:p-2">
+          {myBoard && <BoardGrid title="My Fleet" cells={myBoardCells} />}
+          {opponentBoard && (
+            <BoardGrid title="Enemy Waters" cells={opponentBoardCells} />
+          )}
+        </div>
+
+        {/* Stats sidebar */}
+        <div className="lg:w-56 border-t lg:border-t-0 lg:border-l border-border-light bg-surface-secondary/50 flex flex-col print:border-black">
+          {/* Player vs Player */}
+          <div className="grid grid-cols-3 px-3 py-2 border-b border-border-light">
+            <div className="text-left">
+              <p className="text-[10px] text-text-muted uppercase">You</p>
+            </div>
+            <div className="flex items-center justify-center">
+              <span className="text-[10px] font-bold text-text-muted">VS</span>
+            </div>
+            <div className="text-right">
+              <p className="text-[10px] text-text-muted uppercase">Enemy</p>
+            </div>
+          </div>
+
+          {/* Stat rows */}
+          <div className="flex-1 flex flex-col justify-center divide-y divide-border-light">
+            <CompactStatRow
+              icon="💣"
+              label="Shots"
+              myValue={myShots}
+              opponentValue={opponentShots}
+            />
+            <CompactStatRow
+              icon="🎯"
+              label="Hits"
+              myValue={myHits}
+              opponentValue={opponentHits}
+              highlightBetter
+            />
+            <CompactStatRow
+              icon="🧭"
+              label="Accuracy"
+              myValue={`${myAccuracy}%`}
+              opponentValue={`${opponentAccuracy}%`}
+              myRaw={myAccuracy}
+              opponentRaw={opponentAccuracy}
+              highlightBetter
+            />
+          </div>
+
+          {/* Winner banner */}
+          <div
+            className={`flex items-center justify-center gap-2 px-3 py-2 ${
+              isWinner
+                ? "bg-success-bg border-t border-success-border"
+                : "bg-danger-bg border-t border-danger-border"
+            } print:bg-white print:border-black`}
+          >
+            <span className="text-sm">{isWinner ? "👑" : "⚔️"}</span>
+            <span
+              className={`text-xs font-bold ${
+                isWinner ? "text-success" : "text-danger"
+              } print:text-black`}
+            >
+              {winnerName} wins!
+            </span>
+          </div>
+        </div>
       </div>
     </div>
   );
 }
 
-// ─── StatRow sub-component ───────────────────────────────────────────────────
+// ─── CompactStatRow sub-component ────────────────────────────────────────────
 
-function StatRow({
+function CompactStatRow({
   icon,
   label,
   myValue,
@@ -258,20 +247,20 @@ function StatRow({
   const oppBetter = highlightBetter && oppNum > myNum;
 
   return (
-    <div className="grid grid-cols-3 items-center px-4 py-3">
+    <div className="grid grid-cols-3 items-center px-3 py-2">
       <div
-        className={`text-left text-lg font-bold ${myBetter ? "text-success" : "text-text-primary"}`}
+        className={`text-left text-sm font-bold ${myBetter ? "text-success" : "text-text-primary"} print:text-black`}
       >
         {myValue}
       </div>
-      <div className="flex flex-col items-center gap-0.5">
-        <span className="text-base">{icon}</span>
-        <span className="text-[10px] uppercase tracking-wider text-text-muted font-medium">
+      <div className="flex flex-col items-center gap-0">
+        <span className="text-sm">{icon}</span>
+        <span className="text-[9px] uppercase tracking-wider text-text-muted font-medium print:text-black">
           {label}
         </span>
       </div>
       <div
-        className={`text-right text-lg font-bold ${oppBetter ? "text-danger" : "text-text-primary"}`}
+        className={`text-right text-sm font-bold ${oppBetter ? "text-danger" : "text-text-primary"} print:text-black`}
       >
         {opponentValue}
       </div>

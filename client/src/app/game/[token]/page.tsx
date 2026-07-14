@@ -226,7 +226,7 @@ export default function GamePage() {
         : null;
 
     return (
-      <div className="flex flex-1 flex-col items-center justify-center gap-6 px-4 py-6">
+      <div className="flex flex-1 flex-col items-center justify-center px-4 py-4 h-full overflow-hidden print:overflow-visible print:h-auto">
         <GameOverPanel
           isWinner={isWinner}
           winnerName={gameState.winnerName ?? "Unknown"}
