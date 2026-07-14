@@ -220,6 +220,41 @@ export function ShipPlacement({
     }
   }
 
+  function handleRandomize() {
+    const newPlacements = new Map<ShipType, PlacementEntry>();
+    const occupied = new Set<string>();
+
+    for (const shipType of fleet) {
+      const size = SHIP_SIZES[shipType];
+      let placed = false;
+
+      // Try up to 100 random positions
+      for (let attempt = 0; attempt < 100 && !placed; attempt++) {
+        const orientation: Orientation =
+          Math.random() < 0.5 ? "HORIZONTAL" : "VERTICAL";
+        const maxRow = orientation === "VERTICAL" ? 10 - size : 9;
+        const maxCol = orientation === "HORIZONTAL" ? 10 - size : 9;
+        const row = Math.floor(Math.random() * (maxRow + 1));
+        const col = Math.floor(Math.random() * (maxCol + 1));
+
+        const cells = getShipCells(row, col, size, orientation);
+        const overlaps = cells.some((c) => occupied.has(cellKey(c.row, c.col)));
+
+        if (!overlaps) {
+          newPlacements.set(shipType, { row, col, orientation });
+          for (const c of cells) {
+            occupied.add(cellKey(c.row, c.col));
+          }
+          placed = true;
+        }
+      }
+    }
+
+    setPlacements(newPlacements);
+    setSelectedShipType(null);
+    setError(null);
+  }
+
   function handleReset() {
     setPlacements(new Map());
     setSelectedShipType(null);
@@ -413,6 +448,9 @@ export function ShipPlacement({
               disabled={!allPlaced}
             >
               Deploy Fleet
+            </Button>
+            <Button variant="secondary" onClick={handleRandomize}>
+              🎲 Random
             </Button>
             <Button variant="secondary" onClick={handleReset}>
               Reset
