@@ -20,139 +20,113 @@ class BountyServiceTest {
     }
 
     @Test
-    void updateBounties_equalRatings_winnerGainsSignificant() {
-        User winner = buildUser("Luffy", Filiation.PIRATE, 50_000_000L);
-        User loser = buildUser("Akainu", Filiation.MARINE, 50_000_000L);
+    void updateBounties_equalMatch_winnerGains50M() {
+        User winner = buildUser("Luffy", Filiation.PIRATE, 100_000_000L);
+        User loser = buildUser("Akainu", Filiation.MARINE, 100_000_000L);
 
         bountyService.updateBounties(winner, loser);
 
-        // Low-elo players use K*2 = 320, expected=0.5, gain = 320*0.5 = 160M but min is 5M
-        assertThat(winner.getBounty()).isGreaterThan(50_000_000L);
-        assertThat(loser.getBounty()).isLessThan(50_000_000L);
-        // Loser protected: loses at most 30% of winner's gain
-        assertThat(loser.getBounty()).isGreaterThan(1_000_000L);
+        assertThat(winner.getBounty()).isEqualTo(150_000_000L);
+        assertThat(loser.getBounty()).isEqualTo(50_000_000L);
     }
 
     @Test
-    void updateBounties_lowEloProtection_loserLosesLittle() {
-        User winner = buildUser("Luffy", Filiation.PIRATE, 50_000_000L);
-        User loser = buildUser("Buggy", Filiation.PIRATE, 10_000_000L);
-
-        bountyService.updateBounties(winner, loser);
-
-        // Loser is low-bounty (<100M), should lose at most 30% of winner gain
-        long winnerGain = winner.getBounty() - 50_000_000L;
-        long loserLoss = 10_000_000L - loser.getBounty();
-        assertThat(loserLoss).isLessThanOrEqualTo(winnerGain * 3 / 10 + 1); // +1 for rounding
-    }
-
-    @Test
-    void updateBounties_underdogWins_massiveGain() {
+    void updateBounties_underdogWins_gainsDouble() {
+        // ratio = 50/200 = 0.25 < 0.5 → gain 2x (100M), loss 25M
         User underdog = buildUser("Luffy", Filiation.PIRATE, 50_000_000L);
-        User favorite = buildUser("Kaido", Filiation.PIRATE, 1_500_000_000L);
+        User favorite = buildUser("Kaido", Filiation.PIRATE, 200_000_000L);
 
         bountyService.updateBounties(underdog, favorite);
 
-        // Underdog (low K*2) beating emperor: huge gain
-        assertThat(underdog.getBounty()).isGreaterThan(300_000_000L);
+        assertThat(underdog.getBounty()).isEqualTo(150_000_000L); // +100M
+        assertThat(favorite.getBounty()).isEqualTo(175_000_000L); // -25M
     }
 
     @Test
-    void updateBounties_favoriteWins_smallGain() {
-        User favorite = buildUser("Kaido", Filiation.PIRATE, 1_500_000_000L);
+    void updateBounties_favoriteWins_gainsLess() {
+        // ratio = 200/50 = 4.0 > 2.0 → gain 0.5x (25M), loss 100M
+        User favorite = buildUser("Kaido", Filiation.PIRATE, 200_000_000L);
         User underdog = buildUser("Luffy", Filiation.PIRATE, 50_000_000L);
 
         bountyService.updateBounties(favorite, underdog);
 
-        // Emperor (K*0.8) beating rookie: minimum gain of 5M
-        assertThat(favorite.getBounty()).isGreaterThanOrEqualTo(1_505_000_000L);
+        assertThat(favorite.getBounty()).isEqualTo(225_000_000L); // +25M
+        assertThat(underdog.getBounty()).isEqualTo(0L); // 50M - 100M → floor at 0
     }
 
     @Test
-    void updateBounties_bountyFloor_cannotGoBelowMinimum() {
-        User winner = buildUser("Luffy", Filiation.PIRATE, 50_000_000L);
-        User loser = buildUser("Buggy", Filiation.PIRATE, 1_000_000L);
+    void updateBounties_bountyFloor_cannotGoBelowZero() {
+        User winner = buildUser("Luffy", Filiation.PIRATE, 100_000_000L);
+        User loser = buildUser("Buggy", Filiation.PIRATE, 10_000_000L);
 
         bountyService.updateBounties(winner, loser);
 
-        assertThat(loser.getBounty()).isGreaterThanOrEqualTo(1_000_000L);
+        assertThat(loser.getBounty()).isGreaterThanOrEqualTo(0L);
     }
 
     @Test
     void updateBounties_rankPromotion_crossesSupernova() {
-        // Winner at 95M, should cross 100M → SUPERNOVA
-        User winner = buildUser("Zoro", Filiation.PIRATE, 95_000_000L);
-        User loser = buildUser("Akainu", Filiation.MARINE, 95_000_000L);
+        // Winner at 160M (SUPER_ROOKIE), wins equal match → 210M (SUPERNOVA)
+        User winner = buildUser("Zoro", Filiation.PIRATE, 160_000_000L);
+        User loser = buildUser("Sanji", Filiation.PIRATE, 160_000_000L);
 
         bountyService.updateBounties(winner, loser);
 
-        assertThat(winner.getBounty()).isGreaterThanOrEqualTo(100_000_000L);
+        assertThat(winner.getBounty()).isEqualTo(210_000_000L);
         assertThat(winner.getRank()).isEqualTo("SUPERNOVA");
     }
 
     @Test
     void updateBounties_rankDemotion_dropsBelowSuperRookie() {
-        // Loser at 51M might drop below 50M → ROOKIE
-        User winner = buildUser("Akainu", Filiation.MARINE, 200_000_000L);
-        User loser = buildUser("Buggy", Filiation.PIRATE, 51_000_000L);
+        // Loser at 100M (SUPER_ROOKIE), loses equal match → 50M (ROOKIE)
+        User winner = buildUser("Akainu", Filiation.MARINE, 100_000_000L);
+        User loser = buildUser("Buggy", Filiation.PIRATE, 100_000_000L);
 
         bountyService.updateBounties(winner, loser);
 
-        if (loser.getBounty() < 50_000_000L) {
-            assertThat(loser.getRank()).isEqualTo("ROOKIE");
-        }
+        assertThat(loser.getBounty()).isEqualTo(50_000_000L);
+        assertThat(loser.getRank()).isEqualTo("ROOKIE");
     }
 
     @Test
     void updateBounties_marineRankPromotion() {
-        User winner = buildUser("Garp", Filiation.MARINE, 95_000_000L);
-        User loser = buildUser("Luffy", Filiation.PIRATE, 95_000_000L);
+        User winner = buildUser("Garp", Filiation.MARINE, 160_000_000L);
+        User loser = buildUser("Luffy", Filiation.PIRATE, 160_000_000L);
 
         bountyService.updateBounties(winner, loser);
 
-        assertThat(winner.getBounty()).isGreaterThanOrEqualTo(100_000_000L);
+        assertThat(winner.getBounty()).isEqualTo(210_000_000L);
         assertThat(winner.getRank()).isEqualTo("COMMODORE");
     }
 
     @Test
     void computeRank_pirateThresholds() {
-        assertThat(BountyService.computeRank(1_000_000L, Filiation.PIRATE)).isEqualTo("ROOKIE");
-        assertThat(BountyService.computeRank(49_999_999L, Filiation.PIRATE)).isEqualTo("ROOKIE");
-        assertThat(BountyService.computeRank(50_000_000L, Filiation.PIRATE)).isEqualTo("SUPER_ROOKIE");
-        assertThat(BountyService.computeRank(99_999_999L, Filiation.PIRATE)).isEqualTo("SUPER_ROOKIE");
-        assertThat(BountyService.computeRank(100_000_000L, Filiation.PIRATE)).isEqualTo("SUPERNOVA");
-        assertThat(BountyService.computeRank(499_999_999L, Filiation.PIRATE)).isEqualTo("SUPERNOVA");
-        assertThat(BountyService.computeRank(500_000_000L, Filiation.PIRATE)).isEqualTo("SHICHIBUKAI");
-        assertThat(BountyService.computeRank(1_499_999_999L, Filiation.PIRATE)).isEqualTo("SHICHIBUKAI");
-        assertThat(BountyService.computeRank(1_500_000_000L, Filiation.PIRATE)).isEqualTo("YONKO");
-        assertThat(BountyService.computeRank(2_999_999_999L, Filiation.PIRATE)).isEqualTo("YONKO");
-        assertThat(BountyService.computeRank(3_000_000_000L, Filiation.PIRATE)).isEqualTo("PIRATE_KING");
+        assertThat(BountyService.computeRank(0L, Filiation.PIRATE)).isEqualTo("ROOKIE");
+        assertThat(BountyService.computeRank(99_999_999L, Filiation.PIRATE)).isEqualTo("ROOKIE");
+        assertThat(BountyService.computeRank(100_000_000L, Filiation.PIRATE)).isEqualTo("SUPER_ROOKIE");
+        assertThat(BountyService.computeRank(199_999_999L, Filiation.PIRATE)).isEqualTo("SUPER_ROOKIE");
+        assertThat(BountyService.computeRank(200_000_000L, Filiation.PIRATE)).isEqualTo("SUPERNOVA");
+        assertThat(BountyService.computeRank(399_999_999L, Filiation.PIRATE)).isEqualTo("SUPERNOVA");
+        assertThat(BountyService.computeRank(400_000_000L, Filiation.PIRATE)).isEqualTo("SHICHIBUKAI");
+        assertThat(BountyService.computeRank(799_999_999L, Filiation.PIRATE)).isEqualTo("SHICHIBUKAI");
+        assertThat(BountyService.computeRank(800_000_000L, Filiation.PIRATE)).isEqualTo("YONKO");
+        assertThat(BountyService.computeRank(1_499_999_999L, Filiation.PIRATE)).isEqualTo("YONKO");
+        assertThat(BountyService.computeRank(1_500_000_000L, Filiation.PIRATE)).isEqualTo("PIRATE_KING");
     }
 
     @Test
     void computeRank_marineThresholds() {
-        assertThat(BountyService.computeRank(1_000_000L, Filiation.MARINE)).isEqualTo("SEAMAN");
-        assertThat(BountyService.computeRank(49_999_999L, Filiation.MARINE)).isEqualTo("SEAMAN");
-        assertThat(BountyService.computeRank(50_000_000L, Filiation.MARINE)).isEqualTo("CAPTAIN");
-        assertThat(BountyService.computeRank(99_999_999L, Filiation.MARINE)).isEqualTo("CAPTAIN");
-        assertThat(BountyService.computeRank(100_000_000L, Filiation.MARINE)).isEqualTo("COMMODORE");
-        assertThat(BountyService.computeRank(499_999_999L, Filiation.MARINE)).isEqualTo("COMMODORE");
-        assertThat(BountyService.computeRank(500_000_000L, Filiation.MARINE)).isEqualTo("VICE_ADMIRAL");
-        assertThat(BountyService.computeRank(1_499_999_999L, Filiation.MARINE)).isEqualTo("VICE_ADMIRAL");
-        assertThat(BountyService.computeRank(1_500_000_000L, Filiation.MARINE)).isEqualTo("ADMIRAL");
-        assertThat(BountyService.computeRank(2_999_999_999L, Filiation.MARINE)).isEqualTo("ADMIRAL");
-        assertThat(BountyService.computeRank(3_000_000_000L, Filiation.MARINE)).isEqualTo("FLEET_ADMIRAL");
-    }
-
-    @Test
-    void updateBounties_winnerAlwaysGainsMinimum() {
-        // Even a massive favorite wins at least 5M
-        User favorite = buildUser("Roger", Filiation.PIRATE, 5_000_000_000L);
-        User underdog = buildUser("Fodder", Filiation.PIRATE, 1_000_000L);
-
-        bountyService.updateBounties(favorite, underdog);
-
-        assertThat(favorite.getBounty()).isGreaterThanOrEqualTo(5_005_000_000L);
+        assertThat(BountyService.computeRank(0L, Filiation.MARINE)).isEqualTo("SEAMAN");
+        assertThat(BountyService.computeRank(99_999_999L, Filiation.MARINE)).isEqualTo("SEAMAN");
+        assertThat(BountyService.computeRank(100_000_000L, Filiation.MARINE)).isEqualTo("CAPTAIN");
+        assertThat(BountyService.computeRank(199_999_999L, Filiation.MARINE)).isEqualTo("CAPTAIN");
+        assertThat(BountyService.computeRank(200_000_000L, Filiation.MARINE)).isEqualTo("COMMODORE");
+        assertThat(BountyService.computeRank(399_999_999L, Filiation.MARINE)).isEqualTo("COMMODORE");
+        assertThat(BountyService.computeRank(400_000_000L, Filiation.MARINE)).isEqualTo("VICE_ADMIRAL");
+        assertThat(BountyService.computeRank(799_999_999L, Filiation.MARINE)).isEqualTo("VICE_ADMIRAL");
+        assertThat(BountyService.computeRank(800_000_000L, Filiation.MARINE)).isEqualTo("ADMIRAL");
+        assertThat(BountyService.computeRank(1_499_999_999L, Filiation.MARINE)).isEqualTo("ADMIRAL");
+        assertThat(BountyService.computeRank(1_500_000_000L, Filiation.MARINE)).isEqualTo("FLEET_ADMIRAL");
     }
 
     private User buildUser(String name, Filiation filiation, long bounty) {
