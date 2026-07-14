@@ -2,8 +2,10 @@ package com.last_island.api.domain.game.service;
 
 import com.last_island.api.domain.board.entity.Board;
 import com.last_island.api.domain.game.entity.Game;
+import com.last_island.api.domain.game.entity.GameResult;
 import com.last_island.api.domain.game.enums.GamePhase;
 import com.last_island.api.domain.game.repository.GameRepository;
+import com.last_island.api.domain.game.repository.GameResultRepository;
 import com.last_island.api.domain.user.entity.User;
 import com.last_island.api.infrastructure.sse.GameEventEmitter;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -25,10 +27,12 @@ public class GameExpirationService {
     private static final int GAME_TIMEOUT_MINUTES = 30;
 
     private final GameRepository gameRepository;
+    private final GameResultRepository gameResultRepository;
     private final GameEventEmitter gameEventEmitter;
 
-    public GameExpirationService(GameRepository gameRepository, GameEventEmitter gameEventEmitter) {
+    public GameExpirationService(GameRepository gameRepository, GameResultRepository gameResultRepository, GameEventEmitter gameEventEmitter) {
         this.gameRepository = gameRepository;
+        this.gameResultRepository = gameResultRepository;
         this.gameEventEmitter = gameEventEmitter;
     }
 
@@ -81,20 +85,35 @@ public class GameExpirationService {
             return;
         }
 
-        User currentPlayer = game.getCurrentTurn();
-        User opponent = getOpponent(game, currentPlayer);
+        // The player who timed out loses
+        User loser = game.getCurrentTurn();
+        User winner = getOpponent(game, loser);
 
-        game.setCurrentTurn(opponent);
-        game.setTurnStartedAt(LocalDateTime.now());
+        game.setPhase(GamePhase.FINISHED);
+        game.setEndedAt(LocalDateTime.now());
+
+        int totalTurns = game.getBlueBoard().getShots().size() + game.getRedBoard().getShots().size();
+
+        GameResult gameResult = GameResult.builder()
+                .game(game)
+                .winner(winner)
+                .loser(loser)
+                .turns(totalTurns)
+                .build();
+        gameResultRepository.save(gameResult);
+
+        winner.setWins(winner.getWins() + 1);
+        loser.setLosses(loser.getLosses() + 1);
+
         gameRepository.save(game);
 
         String gameToken = game.getToken();
-        String newTurnPlayerName = opponent.getName();
+        String winnerName = winner.getName();
         if (TransactionSynchronizationManager.isSynchronizationActive()) {
             TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
                 @Override
                 public void afterCommit() {
-                    gameEventEmitter.emitTurnExpired(gameToken, newTurnPlayerName);
+                    gameEventEmitter.emitGameOver(gameToken, winnerName);
                 }
             });
         }

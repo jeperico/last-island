@@ -2,14 +2,17 @@ package com.last_island.api.domain.game.service;
 
 import com.last_island.api.domain.board.entity.Board;
 import com.last_island.api.domain.game.entity.Game;
+import com.last_island.api.domain.game.entity.GameResult;
 import com.last_island.api.domain.game.enums.GamePhase;
 import com.last_island.api.domain.game.repository.GameRepository;
+import com.last_island.api.domain.game.repository.GameResultRepository;
 import com.last_island.api.domain.user.entity.User;
 import com.last_island.api.domain.user.enums.Filiation;
 import com.last_island.api.infrastructure.sse.GameEventEmitter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -31,6 +34,9 @@ class GameExpirationServiceTest {
     private GameRepository gameRepository;
 
     @Mock
+    private GameResultRepository gameResultRepository;
+
+    @Mock
     private GameEventEmitter gameEventEmitter;
 
     @InjectMocks
@@ -46,8 +52,8 @@ class GameExpirationServiceTest {
     }
 
     @Test
-    void checkExpirations_turnExpired_switchesTurnToOpponent() {
-        // Given: a game with turn started 121 seconds ago
+    void checkExpirations_turnExpired_loserIsTimedOutPlayer() {
+        // Given: a game with turn started 121 seconds ago (blue's turn)
         Game game = buildInProgressGame();
         game.setCurrentTurn(bluePlayer);
         game.setTurnStartedAt(LocalDateTime.now().minusSeconds(121));
@@ -58,10 +64,19 @@ class GameExpirationServiceTest {
         // When
         gameExpirationService.checkExpirations();
 
-        // Then
+        // Then: game is finished, blue (timed out) loses, red wins
         verify(gameRepository).save(game);
-        assertThat(game.getCurrentTurn()).isEqualTo(redPlayer);
-        assertThat(game.getTurnStartedAt()).isAfter(LocalDateTime.now().minusSeconds(5));
+        assertThat(game.getPhase()).isEqualTo(GamePhase.FINISHED);
+        assertThat(game.getEndedAt()).isNotNull();
+
+        ArgumentCaptor<GameResult> captor = ArgumentCaptor.forClass(GameResult.class);
+        verify(gameResultRepository).save(captor.capture());
+        GameResult result = captor.getValue();
+        assertThat(result.getWinner()).isEqualTo(redPlayer);
+        assertThat(result.getLoser()).isEqualTo(bluePlayer);
+
+        assertThat(redPlayer.getWins()).isEqualTo(1);
+        assertThat(bluePlayer.getLosses()).isEqualTo(1);
     }
 
     @Test
