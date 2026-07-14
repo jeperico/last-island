@@ -337,17 +337,19 @@ export default function Home() {
               {!loadingLeaderboard &&
                 leaderboard &&
                 leaderboard.entries.length === 0 && (
-                  <EmptyState
-                    title="No rankings yet"
-                    description="Battle other captains to claim your spot!"
-                  />
+                  <div className="h-60 flex items-center justify-center">
+                    <EmptyState
+                      title="No rankings yet"
+                      description="Battle other captains to claim your spot!"
+                    />
+                  </div>
                 )}
 
               {!loadingLeaderboard &&
                 leaderboard &&
                 leaderboard.entries.length > 0 && (
                   <div>
-                    <div className="max-h-60 min-h-[15rem] overflow-y-auto overflow-x-auto custom-scrollbar">
+                    <div className="h-60 overflow-y-auto overflow-x-auto custom-scrollbar">
                       <table className="w-full text-sm table-fixed">
                         <colgroup>
                           <col className="w-10" />
@@ -369,12 +371,12 @@ export default function Home() {
                           {leaderboard.entries.map((entry) => (
                             <tr
                               key={`${entry.position}-${entry.name}`}
-                              className={`hover:bg-surface-secondary ${
+                              className={`hover:bg-surface-secondary border-l-2 ${
                                 entry.isCurrentUser
-                                  ? "bg-surface-secondary border-l-2 border-l-primary"
+                                  ? "bg-surface-secondary border-l-primary"
                                   : entry.position <= 3
-                                    ? podiumBgColors[entry.position - 1]
-                                    : ""
+                                    ? `${podiumBgColors[entry.position - 1]} border-l-transparent`
+                                    : "border-l-transparent"
                               }`}
                             >
                               <td className="py-3 px-2 font-bold text-text-secondary">
@@ -403,12 +405,18 @@ export default function Home() {
                       </table>
                     </div>
 
-                    {/* Your position — always shown */}
+                    {/* Your position — shown when relevant */}
                     {(() => {
                       const userEntry =
                         leaderboard.currentUserEntry ??
                         leaderboard.entries.find((e) => e.isCurrentUser);
                       if (!userEntry) return null;
+                      // Hide if viewing a filiation tab that doesn't match the user
+                      if (
+                        leaderboardTab !== "ALL" &&
+                        userEntry.filiation !== leaderboardTab
+                      )
+                        return null;
                       return (
                         <div className="mt-4 pt-4 border-t border-border-light">
                           <p className="text-xs text-text-muted mb-2">
