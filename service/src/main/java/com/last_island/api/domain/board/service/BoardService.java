@@ -292,9 +292,16 @@ public class BoardService {
             return new ShotResponse(result, sunkShipType, request.row(), request.col(), true, attacker.getName());
         }
 
-        // 11. Switch turn to opponent (game continues)
-        game.setCurrentTurn(opponentBoard.getOwner());
-        game.setTurnStartedAt(LocalDateTime.now());
+        // 11. Switch turn only on MISS (player keeps firing on HIT/SUNK)
+        boolean turnSwitched = false;
+        if (result == ShotResult.MISS) {
+            game.setCurrentTurn(opponentBoard.getOwner());
+            game.setTurnStartedAt(LocalDateTime.now());
+            turnSwitched = true;
+        } else {
+            // HIT or SUNK — same player continues, reset turn timer
+            game.setTurnStartedAt(LocalDateTime.now());
+        }
 
         // 12. Save game (cascades)
         gameRepository.save(game);
@@ -305,11 +312,12 @@ public class BoardService {
         int shotCol = request.col();
         String shotResult = result.name();
         String sunkType = sunkShipType;
+        boolean isOpponentTurn = turnSwitched;
         if (TransactionSynchronizationManager.isSynchronizationActive()) {
             TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
                 @Override
                 public void afterCommit() {
-                    gameEventEmitter.emitShotReceived(token, targetPlayerId, shotRow, shotCol, shotResult, sunkType, true);
+                    gameEventEmitter.emitShotReceived(token, targetPlayerId, shotRow, shotCol, shotResult, sunkType, isOpponentTurn);
                 }
             });
         }

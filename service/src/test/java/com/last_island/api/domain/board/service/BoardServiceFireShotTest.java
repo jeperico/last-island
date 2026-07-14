@@ -236,13 +236,48 @@ class BoardServiceFireShotTest {
     }
 
     @Test
-    void fireShot_switchesTurn() {
+    void fireShot_switchesTurn_onMiss() {
         Game game = buildInProgressGame();
         when(gameRepository.findByTokenAndIsActiveTrue(TOKEN)).thenReturn(Optional.of(game));
 
         boardService.fireShot(TOKEN, bluePlayer.getId(), new ShotRequest(5, 5)); // MISS
 
         assertThat(game.getCurrentTurn()).isEqualTo(redPlayer);
+    }
+
+    @Test
+    void fireShot_keepsTurn_onHit() {
+        Game game = buildInProgressGame();
+        when(gameRepository.findByTokenAndIsActiveTrue(TOKEN)).thenReturn(Optional.of(game));
+
+        // Fire at (0,0) → HIT on striker
+        boardService.fireShot(TOKEN, bluePlayer.getId(), new ShotRequest(0, 0));
+
+        assertThat(game.getCurrentTurn()).isEqualTo(bluePlayer);
+    }
+
+    @Test
+    void fireShot_keepsTurn_onSunk() {
+        Game game = buildInProgressGame();
+        // Set striker (size=2) to already have 1 hit
+        game.getRedBoard().getShips().get(0).setHits(1);
+
+        // Add another ship so game doesn't end
+        Ship cutter = Ship.builder()
+                .board(game.getRedBoard())
+                .type(ShipType.CUTTER)
+                .orientation(Orientation.HORIZONTAL)
+                .row(5).col(5).hits(0)
+                .build();
+        cutter.setId(UUID.randomUUID());
+        game.getRedBoard().getShips().add(cutter);
+
+        when(gameRepository.findByTokenAndIsActiveTrue(TOKEN)).thenReturn(Optional.of(game));
+
+        // Fire at (0,1) — sinks the striker
+        boardService.fireShot(TOKEN, bluePlayer.getId(), new ShotRequest(0, 1));
+
+        assertThat(game.getCurrentTurn()).isEqualTo(bluePlayer);
     }
 
     @Test
