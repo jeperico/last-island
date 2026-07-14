@@ -143,11 +143,15 @@ export function BattleScreen({
         />
       </div>
 
-      {/* Firing indicator */}
-      {!readOnly && firing && (
-        <span className="flex items-center gap-2 text-sm text-text-muted">
-          <Spinner size="sm" /> Firing…
-        </span>
+      {/* Firing indicator — fixed height to prevent layout shift */}
+      {!readOnly && (
+        <div className="h-6 flex items-center justify-center">
+          {firing && (
+            <span className="flex items-center gap-2 text-sm text-text-muted">
+              <Spinner size="sm" /> Firing…
+            </span>
+          )}
+        </div>
       )}
 
       {/* Error banner */}
