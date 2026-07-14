@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-const BACKEND_BASE = "http://localhost:8081/api/v1";
+const BACKEND_BASE = process.env.BACKEND_URL ?? "http://localhost:8081/api/v1";
 
 const FORWARDED_HEADERS = ["cookie", "content-type", "accept", "authorization", "last-event-id"];
 
