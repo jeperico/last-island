@@ -40,8 +40,10 @@ export function ShipPlacement({
   filiation,
   onPlacementComplete,
 }: ShipPlacementProps) {
+  const fleet = useMemo(() => getFleetForFiliation(filiation), [filiation]);
+
   const [selectedShipType, setSelectedShipType] = useState<ShipType | null>(
-    null,
+    () => getFleetForFiliation(filiation)[0] ?? null,
   );
   const [orientation, setOrientation] = useState<Orientation>("HORIZONTAL");
   const [placements, setPlacements] = useState<Map<ShipType, PlacementEntry>>(
@@ -53,8 +55,6 @@ export function ShipPlacement({
   } | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const fleet = useMemo(() => getFleetForFiliation(filiation), [filiation]);
 
   const occupiedCells = useMemo(() => {
     const cells = new Set<string>();
@@ -200,7 +200,10 @@ export function ShipPlacement({
     const newPlacements = new Map(placements);
     newPlacements.set(selectedShipType, { row, col, orientation });
     setPlacements(newPlacements);
-    setSelectedShipType(null);
+
+    // Auto-select next unplaced ship
+    const nextShip = fleet.find((s) => s !== selectedShipType && !newPlacements.has(s));
+    setSelectedShipType(nextShip ?? null);
   }
 
   function handleShipSelect(shipType: ShipType) {
