@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRequireAuth, useAuth } from "@/lib/auth";
+import { useLobbyEvents } from "@/lib/game";
 import {
   createGame,
   joinGame,
@@ -19,6 +20,10 @@ import type {
   LeaderboardResponse,
   PageResponse,
 } from "@/lib/api/types";
+import type {
+  GameCreatedEventData,
+  GameRemovedEventData,
+} from "@/types/game-events";
 import {
   joinGameSchema,
   type JoinGameFormData,
@@ -34,6 +39,7 @@ import {
   Skeleton,
   Spinner,
 } from "@/components/ui";
+import { BattleDetailModal } from "@/components/battle-detail-modal";
 
 export default function Home() {
   const { user, isLoading } = useRequireAuth();
@@ -63,6 +69,8 @@ export default function Home() {
     null,
   );
   const [loadingLeaderboard, setLoadingLeaderboard] = useState(false);
+  const [selectedBattle, setSelectedBattle] =
+    useState<BattleLogEntryResponse | null>(null);
 
   useEffect(() => {
     if (isLoading || !user) return;
@@ -136,6 +144,43 @@ export default function Home() {
     };
   }, [isLoading, user, leaderboardTab]);
 
+  useLobbyEvents(
+    {
+      onGameCreated: (data: GameCreatedEventData) => {
+        setGamesPage((prev) => {
+          if (!prev) return prev;
+          const alreadyExists = prev.content.some((g) => g.token === data.token);
+          if (alreadyExists) return prev;
+          const newGame: GameSummaryResponse = {
+            id: "",
+            token: data.token,
+            bluePlayerName: data.bluePlayerName,
+            createdAt: data.createdAt,
+          };
+          const updatedContent = [newGame, ...prev.content].slice(0, prev.size);
+          return {
+            ...prev,
+            content: updatedContent,
+            totalElements: prev.totalElements + 1,
+          };
+        });
+      },
+      onGameRemoved: (data: GameRemovedEventData) => {
+        setGamesPage((prev) => {
+          if (!prev) return prev;
+          const updatedContent = prev.content.filter((g) => g.token !== data.token);
+          if (updatedContent.length === prev.content.length) return prev;
+          return {
+            ...prev,
+            content: updatedContent,
+            totalElements: Math.max(0, prev.totalElements - 1),
+          };
+        });
+      },
+    },
+    !isLoading && !!user,
+  );
+
   if (isLoading) {
     return (
       <div className="flex flex-1 items-center justify-center">
@@ -166,7 +211,11 @@ export default function Home() {
       router.push(`/game/${response.token}`);
     } catch (err) {
       const apiError = err as ApiError;
-      setError(apiError.message ?? "Failed to join game");
+      if (apiError.status === 409 && apiError.message?.includes("own")) {
+        router.push(`/game/${data.token.trim()}`);
+      } else {
+        setError(apiError.message ?? "Failed to join game");
+      }
     } finally {
       setJoiningGame(false);
     }
@@ -180,7 +229,11 @@ export default function Home() {
       router.push(`/game/${response.token}`);
     } catch (err) {
       const apiError = err as ApiError;
-      setError(apiError.message ?? "Failed to join game");
+      if (apiError.status === 409 && apiError.message?.includes("own")) {
+        router.push(`/game/${token}`);
+      } else {
+        setError(apiError.message ?? "Failed to join game");
+      }
     } finally {
       setJoiningGame(false);
     }
@@ -396,11 +449,12 @@ export default function Home() {
               )}
 
               {!loadingBattleLog && battleLog.length > 0 && (
-                <div>
+                <div className="space-y-2">
                   {battleLog.map((entry) => (
                     <div
                       key={entry.gameId}
-                      className="flex items-center gap-2 py-2 border-b border-border-light cursor-pointer hover:bg-surface-secondary rounded"
+                      className="group flex items-center gap-3 px-3 py-3 rounded-lg border border-border-light cursor-pointer hover:border-primary/50 hover:bg-surface-secondary transition-all duration-150"
+                      onClick={() => setSelectedBattle(entry)}
                     >
                       <Badge
                         variant={
@@ -409,13 +463,17 @@ export default function Home() {
                       >
                         {entry.result}
                       </Badge>
-                      <span className="text-sm text-text-primary flex-1 truncate">
-                        vs {entry.opponentName}
+                      <div className="flex-1 min-w-0">
+                        <span className="text-sm font-medium text-text-primary block truncate">
+                          vs {entry.opponentName}
+                        </span>
+                        <span className="text-xs text-text-muted">
+                          {formatDate(entry.date)}
+                        </span>
+                      </div>
+                      <span className="text-xs text-text-muted group-hover:text-primary transition-colors">
+                        View details →
                       </span>
-                      <span className="text-xs text-text-muted">
-                        {formatDate(entry.date)}
-                      </span>
-                      <span className="text-text-muted">→</span>
                     </div>
                   ))}
                 </div>
@@ -516,6 +574,12 @@ export default function Home() {
           </div>
         </div>
       </div>
+
+      <BattleDetailModal
+        entry={selectedBattle}
+        open={!!selectedBattle}
+        onClose={() => setSelectedBattle(null)}
+      />
     </div>
   );
 }

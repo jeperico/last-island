@@ -49,3 +49,26 @@ export interface GameEventHandlers {
   onGameExpired?: (data: GameExpiredEventData) => void;
   onError?: (error: Event) => void;
 }
+
+// Lobby SSE event types
+
+export type LobbyEventType =
+  | "LOBBY_CONNECTED"
+  | "GAME_CREATED"
+  | "GAME_REMOVED";
+
+export interface GameCreatedEventData {
+  token: string;
+  bluePlayerName: string;
+  createdAt: string;
+}
+
+export interface GameRemovedEventData {
+  token: string;
+}
+
+export interface LobbyEventHandlers {
+  onGameCreated?: (data: GameCreatedEventData) => void;
+  onGameRemoved?: (data: GameRemovedEventData) => void;
+  onError?: (error: Event) => void;
+}

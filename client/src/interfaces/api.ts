@@ -151,6 +151,7 @@ export interface ApiErrorResponse {
 
 export interface BattleLogEntryResponse {
   gameId: string;
+  token: string;
   opponentName: string;
   result: "VICTORY" | "DEFEAT";
   date: string;

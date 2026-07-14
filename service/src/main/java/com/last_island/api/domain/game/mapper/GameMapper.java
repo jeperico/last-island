@@ -150,6 +150,7 @@ public final class GameMapper {
 
         return new BattleLogEntryResponse(
                 game.getId(),
+                game.getToken(),
                 opponent.getName(),
                 result,
                 date,

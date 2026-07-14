@@ -72,3 +72,30 @@ Implementer: Created `V5__add_turn_started_at_and_cancelled_phase.sql` (+1) — 
 
 Reviewer: PASS — service-build ✓, service-test 55/55 ✓ (incl. GameExpirationServiceTest 4/4), client-build ✓, client-lint 5 pre-existing issues (none introduced)
 Commit: uncommitted
+
+## 2026-07-14T10:39 — Add Battle Detail Modal to Battle Log
+
+Implementer: Created `client/src/components/ui/modal.tsx` (+68) — reusable modal with fixed backdrop (bg-black/60), Escape key close, backdrop click close, close button, aria-modal, fade-in animation. Modified `client/src/components/ui/index.ts` (+1) — exported Modal. Created `client/src/components/battle-detail-modal.tsx` (+99) — BattleDetailModal component with themed stats layout (result Badge, opponent name, 2×2 grid of StatCards with emoji icons and One Piece themed labels: Cannonballs Fired, Vessels Sunk, Battle Duration, Date of Clash), ISO 8601 duration formatting. Modified `client/src/app/page.tsx` (+10) — added selectedBattle state, onClick handler on battle log entries, rendered BattleDetailModal at bottom of component.
+
+Files changed: `client/src/components/ui/modal.tsx` (created, +68), `client/src/components/ui/index.ts` (modified, +1), `client/src/components/battle-detail-modal.tsx` (created, +99), `client/src/app/page.tsx` (modified, +10)
+
+Reviewer: PASS — client-build ✓, client-lint 5 pre-existing issues (none introduced), no new errors
+Commit: uncommitted
+
+## 2026-07-14T10:45 — Recreate Battle Detail Modal with Boards
+
+Implementer: Added `String token` field to `BattleLogEntryResponse.java` (+1). Updated `GameMapper.toBattleLogEntry()` to pass `game.getToken()` (+1). Added `token: string` to frontend `BattleLogEntryResponse` interface in `client/src/interfaces/api.ts` (+1). Added `className` prop to `client/src/components/ui/modal.tsx` (+3) to allow custom max-width. Rewrote `client/src/components/battle-detail-modal.tsx` (+193) — fetches full game state via `getGame(entry.token)` on open, shows Spinner while loading, title with Badge + "vs opponent", compact horizontal stats row (Shots/Sunk/Duration/Date), two 10×10 board grids (My Fleet + Enemy Waters) side-by-side on desktop, stacked on mobile, using `BoardGrid` component from `app/game/[token]/board-grid.tsx` with duplicated `buildMyBoardCells`/`buildOpponentBoardCells` helpers.
+
+Files changed: `BattleLogEntryResponse.java` (modified, +1), `GameMapper.java` (modified, +1), `client/src/interfaces/api.ts` (modified, +1), `client/src/components/ui/modal.tsx` (modified, +3), `client/src/components/battle-detail-modal.tsx` (rewritten, +193)
+
+Reviewer: PASS — service-build ✓, service-test 55/55 ✓, client-build ✓, client-lint 6 issues (1 new same-pattern set-state-in-effect in battle-detail-modal.tsx, non-blocking)
+Commit: uncommitted
+
+## 2026-07-14T11:25 — Add Lobby SSE — Auto-update Available Battles
+
+Implementer: Created `LobbySseRegistry.java` (+60) — global userId→SseEmitter map with broadcast, register, remove, LOBBY_CONNECTED on connect. Created `LobbyEvent.java` (+20) — record with type/data fields, constants LOBBY_CONNECTED/GAME_CREATED/GAME_REMOVED. Created `LobbyEventEmitter.java` (+32) — service with emitGameCreated(token, bluePlayerName, createdAt) and emitGameRemoved(token). Created `LobbyController.java` (+28) — GET /lobby/events SSE endpoint with @AuthenticationPrincipal. Modified `GameService.java` (+15) — added LobbyEventEmitter dependency, emit GAME_CREATED after createGame commit, emit GAME_REMOVED after joinGame commit. Modified `client/src/types/game-events.ts` (+18) — added LobbyEventType, GameCreatedEventData, GameRemovedEventData, LobbyEventHandlers. Created `client/src/lib/game/use-lobby-events.ts` (+113) — hook with EventSource to /api/lobby/events, retry with backoff, handlers for GAME_CREATED/GAME_REMOVED. Modified `client/src/lib/game/index.ts` (+1) — exported useLobbyEvents. Modified `client/src/app/page.tsx` (+38) — integrated useLobbyEvents to prepend new games and remove joined games from gamesPage state.
+
+Files changed: `LobbySseRegistry.java` (created), `LobbyEvent.java` (created), `LobbyEventEmitter.java` (created), `LobbyController.java` (created), `GameService.java` (modified), `client/src/types/game-events.ts` (modified), `client/src/lib/game/use-lobby-events.ts` (created), `client/src/lib/game/index.ts` (modified), `client/src/app/page.tsx` (modified)
+
+Reviewer: PASS — service-build ✓, service-test 55/55 ✓, client-build ✓, client-lint 7 issues (1 new same-pattern set-state-in-effect in use-lobby-events.ts, non-blocking)
+Commit: uncommitted

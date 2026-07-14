@@ -14,6 +14,7 @@ import com.last_island.api.domain.game.repository.GameRepository;
 import com.last_island.api.domain.user.entity.User;
 import com.last_island.api.domain.user.repository.UserRepository;
 import com.last_island.api.infrastructure.sse.GameEventEmitter;
+import com.last_island.api.infrastructure.sse.LobbyEventEmitter;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -23,6 +24,7 @@ import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -32,11 +34,14 @@ public class GameService {
     private final GameRepository gameRepository;
     private final UserRepository userRepository;
     private final GameEventEmitter gameEventEmitter;
+    private final LobbyEventEmitter lobbyEventEmitter;
 
-    public GameService(GameRepository gameRepository, UserRepository userRepository, GameEventEmitter gameEventEmitter) {
+    public GameService(GameRepository gameRepository, UserRepository userRepository,
+                       GameEventEmitter gameEventEmitter, LobbyEventEmitter lobbyEventEmitter) {
         this.gameRepository = gameRepository;
         this.userRepository = userRepository;
         this.gameEventEmitter = gameEventEmitter;
+        this.lobbyEventEmitter = lobbyEventEmitter;
     }
 
     @Transactional
@@ -57,6 +62,17 @@ public class GameService {
                 .build();
 
         gameRepository.save(game);
+
+        String bluePlayerName = user.getName();
+        LocalDateTime createdAt = game.getCreatedAt();
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    lobbyEventEmitter.emitGameCreated(token, bluePlayerName, createdAt);
+                }
+            });
+        }
 
         return GameMapper.toCreateResponse(game);
     }
@@ -98,6 +114,7 @@ public class GameService {
                 @Override
                 public void afterCommit() {
                     gameEventEmitter.emitOpponentJoined(token, bluePlayerId, joinerName);
+                    lobbyEventEmitter.emitGameRemoved(token);
                 }
             });
         }

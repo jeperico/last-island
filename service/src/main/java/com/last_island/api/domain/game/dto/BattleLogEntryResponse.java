@@ -4,6 +4,7 @@ import java.util.UUID;
 
 public record BattleLogEntryResponse(
         UUID gameId,
+        String token,
         String opponentName,
         String result,
         String date,

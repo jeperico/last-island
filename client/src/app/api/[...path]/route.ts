@@ -3,7 +3,7 @@ export const runtime = "nodejs";
 
 const BACKEND_BASE = "http://localhost:8081/api/v1";
 
-const FORWARDED_HEADERS = ["cookie", "content-type", "accept", "authorization"];
+const FORWARDED_HEADERS = ["cookie", "content-type", "accept", "authorization", "last-event-id"];
 
 async function proxyRequest(
   request: Request,
@@ -40,15 +40,40 @@ async function proxyRequest(
   if (contentType.includes("text/event-stream")) {
     const responseHeaders = new Headers();
     responseHeaders.set("content-type", "text/event-stream");
-    responseHeaders.set("cache-control", "no-cache");
+    responseHeaders.set("cache-control", "no-cache, no-transform");
     responseHeaders.set("connection", "keep-alive");
+    responseHeaders.set("x-accel-buffering", "no");
 
     // Copy Set-Cookie headers for SSE responses too
     for (const cookie of backendResponse.headers.getSetCookie()) {
       responseHeaders.append("set-cookie", cookie);
     }
 
-    return new Response(backendResponse.body, {
+    // Pipe through a TransformStream to ensure chunks flush immediately
+    const { readable, writable } = new TransformStream();
+    const reader = backendResponse.body?.getReader();
+
+    if (!reader) {
+      return new Response(null, { status: 502, headers: responseHeaders });
+    }
+
+    const writer = writable.getWriter();
+
+    (async () => {
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          await writer.write(value);
+        }
+      } catch {
+        // Stream closed by client disconnect
+      } finally {
+        try { writer.close(); } catch { /* already closed */ }
+      }
+    })();
+
+    return new Response(readable, {
       status: backendResponse.status,
       headers: responseHeaders,
     });

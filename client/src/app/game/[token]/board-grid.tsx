@@ -31,7 +31,7 @@ function getCellClasses(state: CellState, interactive: boolean): string {
     case "hit":
       return `${base} bg-[var(--color-danger)] text-white`;
     case "miss":
-      return `${base} bg-slate-700 text-text-muted opacity-70`;
+      return `${base} bg-blue-800/70 text-blue-300`;
     case "sunk":
       return `${base} bg-purple-800 text-white border-purple-900`;
     default:

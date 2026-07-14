@@ -14,3 +14,4 @@ export {
 } from "./placement-logic";
 
 export { useGameEvents } from "./use-game-events";
+export { useLobbyEvents } from "./use-lobby-events";

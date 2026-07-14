@@ -1,62 +1,50 @@
-# Add Battle Detail Modal to Battle Log
+# Add Lobby SSE — Auto-update Available Battles
 
 ## Objective
 
-Create a modal/dialog component that opens when clicking a Battle Log entry on the dashboard, showing detailed battle stats (result, opponent, shots fired, ships sunk, duration, date) in a themed One Piece card layout.
+Add a global lobby SSE channel so the dashboard auto-updates the "available battles" list when a new game is created or a game becomes unavailable (joined/cancelled). Users on the dashboard subscribe to a `/lobby/events` stream and receive GAME_CREATED/GAME_REMOVED events.
 
 ## Files to touch
 
+### Backend
+- **create** `service/src/main/java/com/last_island/api/infrastructure/sse/LobbySseRegistry.java` — global SSE registry for lobby connections (userId → SseEmitter), no buffering needed
+- **create** `service/src/main/java/com/last_island/api/infrastructure/sse/LobbyEvent.java` — record for lobby events (GAME_CREATED, GAME_REMOVED)
+- **create** `service/src/main/java/com/last_island/api/infrastructure/sse/LobbyEventEmitter.java` — service that broadcasts lobby events to all connected users
+- **create** `service/src/main/java/com/last_island/api/domain/lobby/controller/LobbyController.java` — GET `/lobby/events` SSE endpoint
+- **modify** `service/src/main/java/com/last_island/api/domain/game/service/GameService.java` — emit GAME_CREATED after createGame, emit GAME_REMOVED after joinGame
+
 ### Frontend
-- **create** `client/src/components/ui/modal.tsx` — reusable modal/dialog component with backdrop, close button, and animation
-- **modify** `client/src/components/ui/index.ts` — export Modal
-- **create** `client/src/components/battle-detail-modal.tsx` — Battle Detail Modal content (stats layout with themed styling)
-- **modify** `client/src/app/page.tsx` — add state for selected battle log entry, open modal on click, render BattleDetailModal
+- **modify** `client/src/types/game-events.ts` — add lobby event types
+- **create** `client/src/lib/game/use-lobby-events.ts` — hook to subscribe to lobby SSE
+- **modify** `client/src/lib/game/index.ts` — export useLobbyEvents
+- **modify** `client/src/app/page.tsx` — use lobby SSE to prepend/remove games from the list
 
 ## Steps
 
-1. **Modal component**: Create `client/src/components/ui/modal.tsx`:
-   - Props: `open: boolean`, `onClose: () => void`, `title?: string`, `children: ReactNode`
-   - Renders a fixed overlay (backdrop with bg-black/60) + centered panel
-   - Uses `<dialog>` element or a div with role="dialog" and aria-modal
-   - Close on backdrop click and Escape key
-   - Close button (×) in top-right corner
-   - Smooth fade-in animation via Tailwind classes
-   - Accessible: focus trap not required for v1, but aria-labels present
+1. **LobbySseRegistry**: Manages userId→SseEmitter map. `register(userId)` creates emitter, `remove(userId)` cleans up, `broadcast(LobbyEvent)` sends to all. Simple — no event buffering (lobby is ephemeral).
 
-2. **Export Modal**: Add `export { Modal } from "./modal";` to `client/src/components/ui/index.ts`.
+2. **LobbyEvent**: Record with `type` and `data` (Map). Types: `LOBBY_CONNECTED`, `GAME_CREATED`, `GAME_REMOVED`.
 
-3. **BattleDetailModal component**: Create `client/src/components/battle-detail-modal.tsx`:
-   - Props: `entry: BattleLogEntryResponse | null`, `open: boolean`, `onClose: () => void`
-   - Layout: Modal wrapping a Card with:
-     - Header: Result badge (VICTORY green / DEFEAT red) + "vs {opponentName}"
-     - Stats grid (2x2 or 2x3): 🎯 Shots Fired, 🚢 Ships Sunk, ⏱️ Duration, 📅 Date
-     - Each stat in a mini-card with emoji icon, label, and value
-   - One Piece themed language ("Cannonballs Fired", "Vessels Sunk", "Battle Duration", "Date of Clash")
+3. **LobbyEventEmitter**: Service with `emitGameCreated(token, bluePlayerName, createdAt)` and `emitGameRemoved(token)`.
 
-4. **Dashboard integration**: In `client/src/app/page.tsx`:
-   - Add `const [selectedBattle, setSelectedBattle] = useState<BattleLogEntryResponse | null>(null);`
-   - On battle log entry click: `onClick={() => setSelectedBattle(entry)}`
-   - Render `<BattleDetailModal entry={selectedBattle} open={!!selectedBattle} onClose={() => setSelectedBattle(null)} />` at the bottom of the page component
+4. **LobbyController**: `GET /lobby/events` — authenticates user, registers in LobbySseRegistry, returns SseEmitter.
+
+5. **GameService changes**: After `createGame` commit → emit GAME_CREATED. After `joinGame` commit → emit GAME_REMOVED.
+
+6. **Frontend hook**: `useLobbyEvents({ onGameCreated, onGameRemoved }, enabled)` — similar pattern to `useGameEvents` but connects to `/api/lobby/events`.
+
+7. **Dashboard integration**: On GAME_CREATED → prepend to game list (if under limit). On GAME_REMOVED → filter out by token.
 
 ## Verification
 
 ```bash
-# Frontend build
+cd service && ./mvnw clean verify -q
 cd client && npm run build
-
-# Frontend lint
 cd client && npm run lint
 ```
-
-Manual checks:
-- Click a battle log entry → modal opens with correct stats
-- Click backdrop or × button → modal closes
-- Press Escape → modal closes
-- Modal shows VICTORY in green / DEFEAT in red
-- Stats are readable and themed
 
 ## Rollback
 
 ```bash
-git checkout -- client/src/components/ui/modal.tsx client/src/components/ui/index.ts client/src/components/battle-detail-modal.tsx client/src/app/page.tsx
+git checkout -- service/src/main/java/com/last_island/api/infrastructure/sse/LobbySseRegistry.java service/src/main/java/com/last_island/api/infrastructure/sse/LobbyEvent.java service/src/main/java/com/last_island/api/infrastructure/sse/LobbyEventEmitter.java service/src/main/java/com/last_island/api/domain/lobby/controller/LobbyController.java service/src/main/java/com/last_island/api/domain/game/service/GameService.java client/src/types/game-events.ts client/src/lib/game/use-lobby-events.ts client/src/lib/game/index.ts client/src/app/page.tsx
 ```

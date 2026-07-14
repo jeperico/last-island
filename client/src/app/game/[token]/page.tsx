@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { useRequireAuth, useAuth } from "@/lib/auth";
 import { getGame } from "@/lib/api";
@@ -20,13 +20,10 @@ export default function GamePage() {
   const [gameState, setGameState] = useState<GameStateResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const hasFetchedRef = useRef(false);
 
   // Initial fetch on mount (after auth resolves)
   useEffect(() => {
     if (authLoading || !user) return;
-    if (hasFetchedRef.current) return;
-    hasFetchedRef.current = true;
 
     let cancelled = false;
 
