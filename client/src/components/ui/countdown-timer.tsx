@@ -20,8 +20,9 @@ export function CountdownTimer({
     }
 
     function computeRemaining(): number {
+      const ts = turnStartedAt!.endsWith("Z") ? turnStartedAt! : turnStartedAt! + "Z";
       const deadline =
-        new Date(turnStartedAt!).getTime() + turnDurationSeconds * 1000;
+        new Date(ts).getTime() + turnDurationSeconds * 1000;
       const now = Date.now();
       const diff = Math.max(0, Math.ceil((deadline - now) / 1000));
       return diff;
