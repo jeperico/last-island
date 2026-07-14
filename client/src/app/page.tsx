@@ -164,7 +164,9 @@ export default function Home() {
               last: true,
             };
           }
-          const alreadyExists = prev.content.some((g) => g.token === data.token);
+          const alreadyExists = prev.content.some(
+            (g) => g.token === data.token,
+          );
           if (alreadyExists) return prev;
           const updatedContent = [newGame, ...prev.content].slice(0, prev.size);
           return {
@@ -177,7 +179,9 @@ export default function Home() {
       onGameRemoved: (data: GameRemovedEventData) => {
         setGamesPage((prev) => {
           if (!prev) return prev;
-          const updatedContent = prev.content.filter((g) => g.token !== data.token);
+          const updatedContent = prev.content.filter(
+            (g) => g.token !== data.token,
+          );
           if (updatedContent.length === prev.content.length) return prev;
           return {
             ...prev,
@@ -409,6 +413,11 @@ export default function Home() {
                                 <td className="py-3 px-2 font-bold text-text-secondary w-8">
                                   {userEntry.position}
                                 </td>
+                                <td className="py-3 px-2 text-left text-secondary font-medium">
+                                  {Math.round(
+                                    userEntry.wins * userEntry.winRate * 10000,
+                                  ).toLocaleString()}
+                                </td>
                                 <td className="py-3 px-2 text-left text-text-primary font-medium truncate max-w-[150px]">
                                   {userEntry.filiation === "PIRATE"
                                     ? "🏴‍☠️"
@@ -420,11 +429,6 @@ export default function Home() {
                                 </td>
                                 <td className="py-3 px-2 text-left text-text-secondary">
                                   {Math.round(userEntry.winRate * 100)}%
-                                </td>
-                                <td className="py-3 px-2 text-left text-secondary font-medium">
-                                  {Math.round(
-                                    userEntry.wins * userEntry.winRate * 10000,
-                                  ).toLocaleString()}
                                 </td>
                               </tr>
                             </tbody>

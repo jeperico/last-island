@@ -221,38 +221,51 @@ export function ShipPlacement({
   }
 
   function handleRandomize() {
-    const newPlacements = new Map<ShipType, PlacementEntry>();
-    const occupied = new Set<string>();
+    // Retry entire layout until all ships are placed
+    for (let layoutAttempt = 0; layoutAttempt < 50; layoutAttempt++) {
+      const newPlacements = new Map<ShipType, PlacementEntry>();
+      const occupied = new Set<string>();
+      let allPlacedOk = true;
 
-    for (const shipType of fleet) {
-      const size = SHIP_SIZES[shipType];
-      let placed = false;
+      for (const shipType of fleet) {
+        const size = SHIP_SIZES[shipType];
+        let placed = false;
 
-      // Try up to 100 random positions
-      for (let attempt = 0; attempt < 100 && !placed; attempt++) {
-        const orientation: Orientation =
-          Math.random() < 0.5 ? "HORIZONTAL" : "VERTICAL";
-        const maxRow = orientation === "VERTICAL" ? 10 - size : 9;
-        const maxCol = orientation === "HORIZONTAL" ? 10 - size : 9;
-        const row = Math.floor(Math.random() * (maxRow + 1));
-        const col = Math.floor(Math.random() * (maxCol + 1));
+        for (let attempt = 0; attempt < 200 && !placed; attempt++) {
+          const ori: Orientation =
+            Math.random() < 0.5 ? "HORIZONTAL" : "VERTICAL";
+          const maxRow = ori === "VERTICAL" ? 10 - size : 9;
+          const maxCol = ori === "HORIZONTAL" ? 10 - size : 9;
+          const row = Math.floor(Math.random() * (maxRow + 1));
+          const col = Math.floor(Math.random() * (maxCol + 1));
 
-        const cells = getShipCells(row, col, size, orientation);
-        const overlaps = cells.some((c) => occupied.has(cellKey(c.row, c.col)));
+          const cells = getShipCells(row, col, size, ori);
+          const overlaps = cells.some((c) =>
+            occupied.has(cellKey(c.row, c.col)),
+          );
 
-        if (!overlaps) {
-          newPlacements.set(shipType, { row, col, orientation });
-          for (const c of cells) {
-            occupied.add(cellKey(c.row, c.col));
+          if (!overlaps) {
+            newPlacements.set(shipType, { row, col, orientation: ori });
+            for (const c of cells) {
+              occupied.add(cellKey(c.row, c.col));
+            }
+            placed = true;
           }
-          placed = true;
+        }
+
+        if (!placed) {
+          allPlacedOk = false;
+          break;
         }
       }
-    }
 
-    setPlacements(newPlacements);
-    setSelectedShipType(null);
-    setError(null);
+      if (allPlacedOk) {
+        setPlacements(newPlacements);
+        setSelectedShipType(null);
+        setError(null);
+        return;
+      }
+    }
   }
 
   function handleReset() {
