@@ -421,11 +421,11 @@ export function ShipPlacement({
           <div className="inline-block">
             {/* Column labels */}
             <div className="flex">
-              <div className="h-8 w-8" /> {/* Corner spacer */}
+              <div className="h-8 w-7 sm:w-8" /> {/* Corner spacer */}
               {Array.from({ length: GRID_SIZE }).map((_, col) => (
                 <div
                   key={col}
-                  className="flex h-8 w-8 items-center justify-center text-xs font-medium text-text-muted"
+                  className="flex h-8 w-7 sm:w-8 items-center justify-center text-xs font-medium text-text-muted"
                 >
                   {col + 1}
                 </div>
@@ -436,7 +436,7 @@ export function ShipPlacement({
             {Array.from({ length: GRID_SIZE }).map((_, row) => (
               <div key={row} className="flex">
                 {/* Row label */}
-                <div className="flex h-8 w-8 items-center justify-center text-xs font-medium text-text-muted">
+                <div className="flex h-7 sm:h-8 w-7 sm:w-8 items-center justify-center text-xs font-medium text-text-muted">
                   {ROW_LABELS[row]}
                 </div>
 
@@ -446,7 +446,7 @@ export function ShipPlacement({
                   return (
                     <div
                       key={col}
-                      className={`h-8 w-8 cursor-pointer border border-border transition-colors ${
+                      className={`h-7 w-7 sm:h-8 sm:w-8 cursor-pointer border border-border transition-colors ${
                         state === "placed"
                           ? "bg-teal-600"
                           : state === "preview-valid"

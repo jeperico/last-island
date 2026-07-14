@@ -143,7 +143,7 @@ export function GameOverPanel({
       {/* Main content — boards + stats side by side */}
       <div className="w-full flex-1 flex flex-col lg:flex-row border border-border rounded-b-xl bg-surface-elevated overflow-hidden print:border-black">
         {/* Boards section */}
-        <div className="flex-1 flex items-center justify-center gap-4 p-4 print:p-2">
+        <div className="flex-1 flex flex-wrap items-center justify-center gap-4 p-4 print:p-2">
           {myBoard && <BoardGrid title="My Fleet" cells={myBoardCells} />}
           {opponentBoard && (
             <BoardGrid title="Enemy Waters" cells={opponentBoardCells} />

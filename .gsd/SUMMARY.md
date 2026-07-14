@@ -107,3 +107,12 @@ Implementer: Modified 10 files, created 2 new files. Backend: added `SURRENDER` 
 Reviewer: PASS — service-build ✓, service-test 64/64 ✓ (incl. GameServiceSurrenderTest 7/7), client-build ✓, client-lint 7 pre-existing issues (none introduced)
 
 Commit: uncommitted
+
+## 2026-07-14T12:41 — Responsive Mobile Layout
+
+Implementer: CSS/Tailwind-only changes across 6 files. BoardGrid: cell sizes `h-7 w-7 sm:h-8 sm:w-8`, column labels `w-7 sm:w-8`, row labels `h-7 sm:h-8`. Game Over Panel: added `flex-wrap` to boards container. Ship Placement: same responsive cell sizing as BoardGrid. Dashboard (`page.tsx`): `gap-8 lg:gap-[80px]` on main grid. Register page: `grid-cols-1 sm:grid-cols-2` for form inputs. Battle Detail Modal: stats `grid-cols-2 sm:grid-cols-4`. Modal: verified `p-4` wrapper already handles mobile padding.
+
+Files changed: `client/src/app/game/[token]/board-grid.tsx` (modified, net 0), `client/src/app/game/[token]/game-over-panel.tsx` (modified, net 0), `client/src/app/game/[token]/ship-placement.tsx` (modified, net 0), `client/src/app/page.tsx` (modified, net 0), `client/src/app/(auth)/register/page.tsx` (modified, net 0), `client/src/components/battle-detail-modal.tsx` (modified, net 0)
+
+Reviewer: PASS — client-build ✓, client-lint 7 pre-existing issues (none introduced), all 6 responsive checks confirmed
+Commit: uncommitted

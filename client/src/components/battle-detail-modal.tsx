@@ -156,7 +156,7 @@ export function BattleDetailModal({
         </div>
 
         {/* Stats bar */}
-        <div className="grid grid-cols-4 divide-x divide-border-light border-b border-border-light bg-surface-secondary/50">
+        <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-border-light border-b border-border-light bg-surface-secondary/50">
           <StatItem emoji="🎯" value={String(entry.shotsFired)} label="Shots" />
           <StatItem emoji="🚢" value={String(entry.shipsSunk)} label="Sunk" />
           <StatItem

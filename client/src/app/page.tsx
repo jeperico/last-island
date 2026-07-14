@@ -293,7 +293,7 @@ export default function Home() {
         )}
 
         {/* Two-column grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-[3fr_2fr] gap-[80px]">
+        <div className="grid grid-cols-1 lg:grid-cols-[3fr_2fr] gap-8 lg:gap-[80px]">
           {/* Left column — Leaderboard + Battle Log */}
           <div>
             {/* Leaderboard section */}

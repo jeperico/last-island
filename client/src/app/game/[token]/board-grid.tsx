@@ -21,7 +21,7 @@ function cellKey(row: number, col: number): string {
 
 function getCellClasses(state: CellState, interactive: boolean): string {
   const base =
-    "board-cell h-8 w-8 flex items-center justify-center text-xs font-bold border border-border transition-colors";
+    "board-cell h-7 w-7 sm:h-8 sm:w-8 flex items-center justify-center text-xs font-bold border border-border transition-colors";
 
   switch (state.type) {
     case "empty":
@@ -68,7 +68,7 @@ export function BoardGrid({
           {COL_LABELS.map((label) => (
             <div
               key={label}
-              className="flex h-6 w-8 items-center justify-center text-xs font-medium text-text-muted"
+              className="flex h-6 w-7 sm:w-8 items-center justify-center text-xs font-medium text-text-muted"
             >
               {label}
             </div>
@@ -78,7 +78,7 @@ export function BoardGrid({
         {ROW_LABELS.map((rowLabel, rowIdx) => (
           <div key={rowLabel} className="flex">
             {/* Row label */}
-            <div className="flex h-8 w-6 items-center justify-center text-xs font-medium text-text-muted">
+            <div className="flex h-7 sm:h-8 w-6 items-center justify-center text-xs font-medium text-text-muted">
               {rowLabel}
             </div>
             {/* Cells */}
