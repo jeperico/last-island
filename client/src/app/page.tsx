@@ -148,15 +148,24 @@ export default function Home() {
     {
       onGameCreated: (data: GameCreatedEventData) => {
         setGamesPage((prev) => {
-          if (!prev) return prev;
-          const alreadyExists = prev.content.some((g) => g.token === data.token);
-          if (alreadyExists) return prev;
           const newGame: GameSummaryResponse = {
             id: "",
             token: data.token,
             bluePlayerName: data.bluePlayerName,
             createdAt: data.createdAt,
           };
+          if (!prev) {
+            return {
+              content: [newGame],
+              totalElements: 1,
+              totalPages: 1,
+              size: 5,
+              page: 0,
+              last: true,
+            };
+          }
+          const alreadyExists = prev.content.some((g) => g.token === data.token);
+          if (alreadyExists) return prev;
           const updatedContent = [newGame, ...prev.content].slice(0, prev.size);
           return {
             ...prev,
