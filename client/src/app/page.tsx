@@ -348,10 +348,17 @@ export default function Home() {
                 leaderboard.entries.length > 0 && (
                   <div>
                     <div className="max-h-60 overflow-y-auto overflow-x-auto custom-scrollbar">
-                      <table className="w-full text-sm">
+                      <table className="w-full text-sm table-fixed">
+                        <colgroup>
+                          <col className="w-10" />
+                          <col className="w-20" />
+                          <col />
+                          <col className="w-14" />
+                          <col className="w-18" />
+                        </colgroup>
                         <thead className="sticky top-0 bg-surface z-10">
                           <tr className="text-text-muted text-xs border-b border-border-light">
-                            <th className="py-2 px-2 text-left w-8">#</th>
+                            <th className="py-2 px-2 text-left">#</th>
                             <th className="py-2 px-2 text-left">Bounty</th>
                             <th className="py-2 px-2 text-left">Name</th>
                             <th className="py-2 px-2 text-left">Wins</th>
@@ -380,7 +387,7 @@ export default function Home() {
                                   entry.wins * entry.winRate * 10000,
                                 ).toLocaleString()}
                               </td>
-                              <td className="py-3 px-2 text-left text-text-primary font-medium truncate max-w-[150px]">
+                              <td className="py-3 px-2 text-left text-text-primary font-medium truncate">
                                 {entry.filiation === "PIRATE" ? "🏴‍☠️" : "⚓"}{" "}
                                 {entry.name}
                               </td>
@@ -407,10 +414,17 @@ export default function Home() {
                           <p className="text-xs text-text-muted mb-2">
                             Your position
                           </p>
-                          <table className="w-full text-sm">
+                          <table className="w-full text-sm table-fixed">
+                            <colgroup>
+                              <col className="w-10" />
+                              <col className="w-20" />
+                              <col />
+                              <col className="w-14" />
+                              <col className="w-18" />
+                            </colgroup>
                             <tbody>
                               <tr className="bg-surface-secondary border-l-2 border-l-primary">
-                                <td className="py-3 px-2 font-bold text-text-secondary w-8">
+                                <td className="py-3 px-2 font-bold text-text-secondary">
                                   {userEntry.position}
                                 </td>
                                 <td className="py-3 px-2 text-left text-secondary font-medium">
@@ -418,7 +432,7 @@ export default function Home() {
                                     userEntry.wins * userEntry.winRate * 10000,
                                   ).toLocaleString()}
                                 </td>
-                                <td className="py-3 px-2 text-left text-text-primary font-medium truncate max-w-[150px]">
+                                <td className="py-3 px-2 text-left text-text-primary font-medium truncate">
                                   {userEntry.filiation === "PIRATE"
                                     ? "🏴‍☠️"
                                     : "⚓"}{" "}
