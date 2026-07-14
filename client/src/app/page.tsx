@@ -367,6 +367,7 @@ export default function Home() {
                           <col className="w-10" />
                           <col className="w-20" />
                           <col />
+                          <col className="w-48" />
                           <col className="w-14" />
                           <col className="w-18" />
                         </colgroup>
@@ -375,6 +376,7 @@ export default function Home() {
                             <th className="py-2 px-2 text-left">#</th>
                             <th className="py-2 px-2 text-left">Bounty</th>
                             <th className="py-2 px-2 text-left">Name</th>
+                            <th className="py-2 px-2 text-left">Rank</th>
                             <th className="py-2 px-2 text-left">Wins</th>
                             <th className="py-2 px-2 text-left">Win Rate</th>
                           </tr>
@@ -402,6 +404,9 @@ export default function Home() {
                               <td className="py-3 px-2 text-left text-text-primary font-medium truncate">
                                 {entry.filiation === "PIRATE" ? "🏴‍☠️" : "⚓"}{" "}
                                 {entry.name}
+                              </td>
+                              <td className="py-3 px-2 text-left text-text-muted text-xs">
+                                {entry.rank.replace("_", " ")}
                               </td>
                               <td className="py-3 px-2 text-left text-text-secondary">
                                 {entry.wins}
@@ -437,6 +442,7 @@ export default function Home() {
                               <col className="w-10" />
                               <col className="w-20" />
                               <col />
+                              <col className="w-48" />
                               <col className="w-14" />
                               <col className="w-18" />
                             </colgroup>
@@ -453,6 +459,9 @@ export default function Home() {
                                     ? "🏴‍☠️"
                                     : "⚓"}{" "}
                                   {userEntry.name}
+                                </td>
+                                <td className="py-3 px-2 text-left text-text-muted text-xs">
+                                  {userEntry.rank.replace("_", " ")}
                                 </td>
                                 <td className="py-3 px-2 text-left text-text-secondary">
                                   {userEntry.wins}
