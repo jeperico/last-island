@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import type {
   MyBoardResponse,
   OpponentBoardResponse,
@@ -138,12 +137,6 @@ export function GameOverPanel({
           <span className="text-text-muted print:text-black">
             ⏱️ {formatDuration(durationSeconds)}
           </span>
-          <Link
-            href="/"
-            className="print:hidden inline-flex items-center gap-1 rounded-md bg-primary px-4 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-primary-hover"
-          >
-            Back to Grand Line
-          </Link>
         </div>
       </div>
 

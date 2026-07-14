@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
+import Link from "next/link";
 import { useRequireAuth, useAuth } from "@/lib/auth";
 import { getGame } from "@/lib/api";
 import type { GamePhase, GameStateResponse } from "@/lib/api/types";
@@ -126,154 +127,166 @@ export default function GamePage() {
     );
   }
 
-  // Phase: WAITING_OPPONENT
-  if (gameState.phase === "WAITING_OPPONENT") {
-    return (
-      <div className="flex flex-1 flex-col items-center justify-center px-4 gap-6">
-        <div className="flex flex-col items-center gap-3 text-center">
-          <span className="text-6xl animate-[bounce_3s_ease-in-out_infinite]">
-            ⛵
-          </span>
-          <h1 className="text-xl font-bold text-text-primary">
-            Scanning the horizon…
-          </h1>
-          <p className="text-sm text-text-muted max-w-sm">
-            Your ship is anchored and ready. Share the token below so a
-            challenger can find you on the Grand Line.
-          </p>
-        </div>
-        <div className="flex flex-col items-center gap-2">
-          <span className="text-xs uppercase tracking-wider text-text-muted font-medium">
-            Battle Token
-          </span>
-          <Badge variant="neutral">{token}</Badge>
-        </div>
-      </div>
-    );
-  }
+  // Render phase content
+  function renderPhaseContent() {
+    if (!gameState || !user) return null;
 
-  // Phase: PLACING_SHIPS
-  if (gameState.phase === "PLACING_SHIPS") {
-    const hasPlacedShips =
-      gameState.myBoard !== null && gameState.myBoard.ships.length > 0;
-
-    if (!hasPlacedShips) {
+    // Phase: WAITING_OPPONENT
+    if (gameState.phase === "WAITING_OPPONENT") {
       return (
-        <ShipPlacement
+        <div className="flex flex-1 flex-col items-center justify-center px-4 gap-6">
+          <div className="flex flex-col items-center gap-3 text-center">
+            <span className="text-6xl animate-[bounce_3s_ease-in-out_infinite]">
+              ⛵
+            </span>
+            <h1 className="text-xl font-bold text-text-primary">
+              Scanning the horizon…
+            </h1>
+            <p className="text-sm text-text-muted max-w-sm">
+              Your ship is anchored and ready. Share the token below so a
+              challenger can find you on the Grand Line.
+            </p>
+          </div>
+          <div className="flex flex-col items-center gap-2">
+            <span className="text-xs uppercase tracking-wider text-text-muted font-medium">
+              Battle Token
+            </span>
+            <Badge variant="neutral">{token}</Badge>
+          </div>
+        </div>
+      );
+    }
+
+    // Phase: PLACING_SHIPS
+    if (gameState.phase === "PLACING_SHIPS") {
+      const hasPlacedShips =
+        gameState.myBoard !== null && gameState.myBoard.ships.length > 0;
+
+      if (!hasPlacedShips) {
+        return (
+          <ShipPlacement
+            gameToken={token}
+            filiation={user.filiation}
+            onPlacementComplete={handlePlacementComplete}
+          />
+        );
+      }
+
+      return (
+        <div className="flex flex-1 flex-col items-center justify-center px-4 gap-6">
+          <div className="flex flex-col items-center gap-3 text-center">
+            <span className="text-6xl animate-pulse">🧭</span>
+            <h1 className="text-xl font-bold text-text-primary">
+              Fleet deployed, Captain!
+            </h1>
+            <p className="text-sm text-text-muted max-w-sm">
+              Your vessels are in position. The enemy is still plotting their
+              formation. The clash begins once both fleets set sail.
+            </p>
+          </div>
+          <div className="flex items-center gap-2 rounded-full border border-border bg-surface-secondary px-4 py-2">
+            <span className="h-2 w-2 rounded-full bg-warning animate-pulse" />
+            <span className="text-xs text-text-muted font-medium">
+              Opponent preparing fleet…
+            </span>
+          </div>
+        </div>
+      );
+    }
+
+    // Phase: IN_PROGRESS
+    if (gameState.phase === "IN_PROGRESS") {
+      return (
+        <BattleScreen
+          gameState={gameState}
+          user={user}
           gameToken={token}
-          filiation={user.filiation}
-          onPlacementComplete={handlePlacementComplete}
+          onGameStateUpdate={setGameState}
         />
       );
     }
 
-    return (
-      <div className="flex flex-1 flex-col items-center justify-center px-4 gap-6">
-        <div className="flex flex-col items-center gap-3 text-center">
-          <span className="text-6xl animate-pulse">🧭</span>
-          <h1 className="text-xl font-bold text-text-primary">
-            Fleet deployed, Captain!
-          </h1>
-          <p className="text-sm text-text-muted max-w-sm">
-            Your vessels are in position. The enemy is still plotting their
-            formation. The clash begins once both fleets set sail.
-          </p>
+    // Phase: FINISHED
+    if (gameState.phase === "FINISHED") {
+      const isWinner = gameState.winnerName === user.name;
+      const opponentName =
+        gameState.bluePlayerName === user.name
+          ? (gameState.redPlayerName ?? "Unknown")
+          : gameState.bluePlayerName;
+      const myShots = gameState.opponentBoard?.shotsFired.length ?? 0;
+      const myHits =
+        gameState.opponentBoard?.shotsFired.filter(
+          (s) => s.result === "HIT" || s.result === "SUNK",
+        ).length ?? 0;
+      const opponentShots = gameState.myBoard?.shotsReceived.length ?? 0;
+      const opponentHits =
+        gameState.myBoard?.shotsReceived.filter(
+          (s) => s.result === "HIT" || s.result === "SUNK",
+        ).length ?? 0;
+      const durationSeconds =
+        gameState.startedAt && gameState.endedAt
+          ? (new Date(gameState.endedAt).getTime() -
+              new Date(gameState.startedAt).getTime()) /
+            1000
+          : null;
+
+      return (
+        <div className="flex flex-1 flex-col items-center justify-center px-4 py-4 h-full overflow-hidden print:overflow-visible print:h-auto">
+          <GameOverPanel
+            isWinner={isWinner}
+            winnerName={gameState.winnerName ?? "Unknown"}
+            opponentName={opponentName}
+            myShots={myShots}
+            myHits={myHits}
+            opponentShots={opponentShots}
+            opponentHits={opponentHits}
+            durationSeconds={durationSeconds}
+            myBoard={gameState.myBoard}
+            opponentBoard={gameState.opponentBoard}
+          />
         </div>
-        <div className="flex items-center gap-2 rounded-full border border-border bg-surface-secondary px-4 py-2">
-          <span className="h-2 w-2 rounded-full bg-warning animate-pulse" />
-          <span className="text-xs text-text-muted font-medium">
-            Opponent preparing fleet…
-          </span>
+      );
+    }
+
+    // Phase: CANCELLED
+    if (gameState.phase === "CANCELLED") {
+      const opponentName =
+        gameState.bluePlayerName === user.name
+          ? (gameState.redPlayerName ?? "Unknown")
+          : gameState.bluePlayerName;
+
+      return (
+        <div className="flex flex-1 flex-col items-center justify-center gap-6 px-4 py-6">
+          <div className="flex flex-col items-center gap-3 text-center">
+            <span className="text-5xl">⌛</span>
+            <h1 className="text-3xl font-bold text-warning">Battle Expired</h1>
+            <p className="text-sm text-text-muted max-w-sm">
+              The battle against{" "}
+              <span className="font-semibold text-text-primary">
+                {opponentName}
+              </span>{" "}
+              has expired due to inactivity. No winner this time, Captain.
+            </p>
+          </div>
         </div>
-      </div>
-    );
+      );
+    }
+
+    return null;
   }
 
-  // Phase: IN_PROGRESS
-  if (gameState.phase === "IN_PROGRESS") {
-    return (
-      <BattleScreen
-        gameState={gameState}
-        user={user}
-        gameToken={token}
-        onGameStateUpdate={setGameState}
-      />
-    );
-  }
+  return (
+    <div className="relative flex flex-1 flex-col h-full">
+      {/* Persistent back link — top-left */}
+      <Link
+        href="/"
+        className="print:hidden absolute top-4 left-4 z-10 inline-flex items-center gap-1.5 text-xs font-medium text-text-muted hover:text-primary transition-colors"
+      >
+        <span>←</span>
+        <span>Grand Line</span>
+      </Link>
 
-  // Phase: FINISHED
-  if (gameState.phase === "FINISHED") {
-    const isWinner = gameState.winnerName === user.name;
-    const opponentName =
-      gameState.bluePlayerName === user.name
-        ? (gameState.redPlayerName ?? "Unknown")
-        : gameState.bluePlayerName;
-    const myShots = gameState.opponentBoard?.shotsFired.length ?? 0;
-    const myHits =
-      gameState.opponentBoard?.shotsFired.filter(
-        (s) => s.result === "HIT" || s.result === "SUNK",
-      ).length ?? 0;
-    const opponentShots = gameState.myBoard?.shotsReceived.length ?? 0;
-    const opponentHits =
-      gameState.myBoard?.shotsReceived.filter(
-        (s) => s.result === "HIT" || s.result === "SUNK",
-      ).length ?? 0;
-    const durationSeconds =
-      gameState.startedAt && gameState.endedAt
-        ? (new Date(gameState.endedAt).getTime() -
-            new Date(gameState.startedAt).getTime()) /
-          1000
-        : null;
-
-    return (
-      <div className="flex flex-1 flex-col items-center justify-center px-4 py-4 h-full overflow-hidden print:overflow-visible print:h-auto">
-        <GameOverPanel
-          isWinner={isWinner}
-          winnerName={gameState.winnerName ?? "Unknown"}
-          opponentName={opponentName}
-          myShots={myShots}
-          myHits={myHits}
-          opponentShots={opponentShots}
-          opponentHits={opponentHits}
-          durationSeconds={durationSeconds}
-          myBoard={gameState.myBoard}
-          opponentBoard={gameState.opponentBoard}
-        />
-      </div>
-    );
-  }
-
-  // Phase: CANCELLED
-  if (gameState.phase === "CANCELLED") {
-    const opponentName =
-      gameState.bluePlayerName === user.name
-        ? (gameState.redPlayerName ?? "Unknown")
-        : gameState.bluePlayerName;
-
-    return (
-      <div className="flex flex-1 flex-col items-center justify-center gap-6 px-4 py-6">
-        <div className="flex flex-col items-center gap-3 text-center">
-          <span className="text-5xl">⌛</span>
-          <h1 className="text-3xl font-bold text-warning">Battle Expired</h1>
-          <p className="text-sm text-text-muted max-w-sm">
-            The battle against{" "}
-            <span className="font-semibold text-text-primary">
-              {opponentName}
-            </span>{" "}
-            has expired due to inactivity. No winner this time, Captain.
-          </p>
-        </div>
-        <div className="print:hidden">
-          <a
-            href="/"
-            className="inline-flex items-center justify-center gap-2 rounded-md bg-primary px-6 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-primary-ring"
-          >
-            Back to Grand Line
-          </a>
-        </div>
-      </div>
-    );
-  }
-
-  return null;
+      {renderPhaseContent()}
+    </div>
+  );
 }
