@@ -122,7 +122,7 @@ export default function Home() {
     let cancelled = false;
 
     async function fetchLeaderboard() {
-      setLoadingLeaderboard(true);
+      if (!leaderboard) setLoadingLeaderboard(true);
       try {
         const data = await getLeaderboard(leaderboardTab);
         if (!cancelled) {
@@ -347,7 +347,7 @@ export default function Home() {
                 leaderboard &&
                 leaderboard.entries.length > 0 && (
                   <div>
-                    <div className="max-h-60 overflow-y-auto overflow-x-auto custom-scrollbar">
+                    <div className="max-h-60 min-h-[15rem] overflow-y-auto overflow-x-auto custom-scrollbar">
                       <table className="w-full text-sm table-fixed">
                         <colgroup>
                           <col className="w-10" />
