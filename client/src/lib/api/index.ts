@@ -1,5 +1,5 @@
 export { register, login, refresh, logout, getProfile } from "./auth";
-export { createGame, joinGame, listGames, getGame, getBattleLog } from "./games";
+export { createGame, joinGame, listGames, getGame, getBattleLog, surrender } from "./games";
 export { placeShips, fireShot } from "./board";
 export { getLeaderboard } from "./users";
 export { ApiError, attemptRefresh } from "./client";

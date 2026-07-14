@@ -1,16 +1,17 @@
 "use client";
 
 import { useState, useCallback, useMemo } from "react";
-import { fireShot, getGame } from "@/lib/api";
+import { fireShot, getGame, surrender } from "@/lib/api";
 import type {
   GameStateResponse,
   UserResponse,
   ShotCellResponse,
 } from "@/lib/api/types";
 import { getShipCells, cellKey } from "@/lib/game";
-import { Badge, Alert, Spinner } from "@/components/ui";
+import { Badge, Alert, Spinner, Button } from "@/components/ui";
 import { CountdownTimer } from "@/components/ui";
 import { BoardGrid, type CellState } from "./board-grid";
+import { SurrenderModal } from "@/components/surrender-modal";
 
 interface BattleScreenProps {
   gameState: GameStateResponse;
@@ -32,6 +33,8 @@ export function BattleScreen({
   const [optimisticShots, setOptimisticShots] = useState<ShotCellResponse[]>(
     [],
   );
+  const [surrenderOpen, setSurrenderOpen] = useState(false);
+  const [surrendering, setSurrendering] = useState(false);
 
   const isMyTurn = gameState.currentTurnPlayerName === user.name;
 
@@ -96,6 +99,20 @@ export function BattleScreen({
     [isMyTurn, firing, allShotsFired, gameToken, onGameStateUpdate],
   );
 
+  const handleSurrender = useCallback(async () => {
+    setSurrendering(true);
+    try {
+      await surrender(gameToken);
+      const updatedState = await getGame(gameToken);
+      onGameStateUpdate(updatedState);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to surrender");
+    } finally {
+      setSurrendering(false);
+      setSurrenderOpen(false);
+    }
+  }, [gameToken, onGameStateUpdate]);
+
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-6 px-4 py-6">
       {/* Turn indicator (hidden when readOnly) */}
@@ -139,6 +156,25 @@ export function BattleScreen({
           {error}
         </Alert>
       )}
+
+      {/* Surrender button */}
+      {!readOnly && (
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setSurrenderOpen(true)}
+          className="text-text-muted hover:text-danger"
+        >
+          🏳️ Surrender
+        </Button>
+      )}
+
+      <SurrenderModal
+        open={surrenderOpen}
+        onClose={() => setSurrenderOpen(false)}
+        onConfirm={handleSurrender}
+        loading={surrendering}
+      />
     </div>
   );
 }

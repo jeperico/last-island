@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { placeShips } from "@/lib/api";
+import { placeShips, surrender, getGame } from "@/lib/api";
 import type {
   Filiation,
   GamePhase,
@@ -19,6 +19,7 @@ import {
   cellKey,
 } from "@/lib/game";
 import { Alert, Button } from "@/components/ui";
+import { SurrenderModal } from "@/components/surrender-modal";
 
 const GRID_SIZE = 10;
 const ROW_LABELS = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"];
@@ -55,6 +56,8 @@ export function ShipPlacement({
   } | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [surrenderOpen, setSurrenderOpen] = useState(false);
+  const [surrendering, setSurrendering] = useState(false);
 
   const occupiedCells = useMemo(() => {
     const cells = new Set<string>();
@@ -297,6 +300,20 @@ export function ShipPlacement({
     }
   }
 
+  async function handleSurrender() {
+    setSurrendering(true);
+    try {
+      await surrender(gameToken);
+      const updatedState = await getGame(gameToken);
+      onPlacementComplete(updatedState.phase);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to surrender");
+    } finally {
+      setSurrendering(false);
+      setSurrenderOpen(false);
+    }
+  }
+
   function getCellState(
     row: number,
     col: number,
@@ -468,9 +485,24 @@ export function ShipPlacement({
             <Button variant="secondary" onClick={handleReset}>
               Reset
             </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setSurrenderOpen(true)}
+              className="text-text-muted hover:text-danger"
+            >
+              🏳️ Surrender
+            </Button>
           </div>
         </div>
       </div>
+
+      <SurrenderModal
+        open={surrenderOpen}
+        onClose={() => setSurrenderOpen(false)}
+        onConfirm={handleSurrender}
+        loading={surrendering}
+      />
     </div>
   );
 }

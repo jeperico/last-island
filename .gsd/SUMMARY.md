@@ -99,3 +99,11 @@ Files changed: `LobbySseRegistry.java` (created), `LobbyEvent.java` (created), `
 
 Reviewer: PASS — service-build ✓, service-test 55/55 ✓, client-build ✓, client-lint 7 issues (1 new same-pattern set-state-in-effect in use-lobby-events.ts, non-blocking)
 Commit: uncommitted
+
+## 2026-07-14T12:33 — Add WO (Walkover/Surrender) Mechanic
+
+Implementer: Modified 10 files, created 2 new files. Backend: added `SURRENDER` constant to `GameEvent.java`, `emitSurrender` method to `GameEventEmitter.java`, `GameResultRepository` injection + `surrender()` method to `GameService.java`, `POST /{token}/surrender` endpoint to `GameController.java`, created `GameServiceSurrenderTest.java` (7 test cases). Frontend: added `surrender()` to `games.ts` + index export, `SURRENDER` event type + `SurrenderEventData` + `onSurrender` handler to `game-events.ts`, `SURRENDER` listener to `use-game-events.ts`, created `surrender-modal.tsx`, added surrender button+modal to `battle-screen.tsx` and `ship-placement.tsx`, added `onSurrender` handler to `page.tsx`.
+
+Reviewer: PASS — service-build ✓, service-test 64/64 ✓ (incl. GameServiceSurrenderTest 7/7), client-build ✓, client-lint 7 pre-existing issues (none introduced)
+
+Commit: uncommitted

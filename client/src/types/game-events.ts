@@ -7,7 +7,8 @@ export type GameEventType =
   | "SHOT_RECEIVED"
   | "GAME_OVER"
   | "TURN_EXPIRED"
-  | "GAME_EXPIRED";
+  | "GAME_EXPIRED"
+  | "SURRENDER";
 
 export interface ConnectedEventData {}
 
@@ -39,6 +40,10 @@ export interface GameExpiredEventData {
   [key: string]: never;
 }
 
+export interface SurrenderEventData {
+  surrenderedPlayerName: string;
+}
+
 export interface GameEventHandlers {
   onConnected?: (data: ConnectedEventData) => void;
   onOpponentJoined?: (data: OpponentJoinedEventData) => void;
@@ -47,6 +52,7 @@ export interface GameEventHandlers {
   onGameOver?: (data: GameOverEventData) => void;
   onTurnExpired?: (data: TurnExpiredEventData) => void;
   onGameExpired?: (data: GameExpiredEventData) => void;
+  onSurrender?: (data: SurrenderEventData) => void;
   onError?: (error: Event) => void;
 }
 

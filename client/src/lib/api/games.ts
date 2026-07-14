@@ -38,3 +38,7 @@ export function getGame(token: string): Promise<GameStateResponse> {
 export function getBattleLog(): Promise<BattleLogEntryResponse[]> {
   return apiGet<BattleLogEntryResponse[]>("/api/games/history");
 }
+
+export function surrender(token: string): Promise<void> {
+  return apiPost<void>(`/api/games/${token}/surrender`);
+}

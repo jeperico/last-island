@@ -10,6 +10,7 @@ import type {
   GameOverEventData,
   TurnExpiredEventData,
   GameExpiredEventData,
+  SurrenderEventData,
 } from "@/types/game-events";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
@@ -91,6 +92,11 @@ export function useGameEvents(
         handlersRef.current.onGameExpired?.(data);
       }
 
+      function handleSurrender(event: MessageEvent) {
+        const data: SurrenderEventData = JSON.parse(event.data);
+        handlersRef.current.onSurrender?.(data);
+      }
+
       function handleError(event: Event) {
         es.close();
         setConnected(false);
@@ -122,6 +128,7 @@ export function useGameEvents(
       es.addEventListener("GAME_OVER", handleGameOver);
       es.addEventListener("TURN_EXPIRED", handleTurnExpired);
       es.addEventListener("GAME_EXPIRED", handleGameExpired);
+      es.addEventListener("SURRENDER", handleSurrender);
       es.onerror = handleError;
     }
 

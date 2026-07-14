@@ -10,7 +10,9 @@ import com.last_island.api.domain.game.dto.GameSummaryResponse;
 import com.last_island.api.domain.game.entity.Game;
 import com.last_island.api.domain.game.enums.GamePhase;
 import com.last_island.api.domain.game.mapper.GameMapper;
+import com.last_island.api.domain.game.entity.GameResult;
 import com.last_island.api.domain.game.repository.GameRepository;
+import com.last_island.api.domain.game.repository.GameResultRepository;
 import com.last_island.api.domain.user.entity.User;
 import com.last_island.api.domain.user.repository.UserRepository;
 import com.last_island.api.infrastructure.sse.GameEventEmitter;
@@ -32,13 +34,16 @@ import java.util.concurrent.ThreadLocalRandom;
 public class GameService {
 
     private final GameRepository gameRepository;
+    private final GameResultRepository gameResultRepository;
     private final UserRepository userRepository;
     private final GameEventEmitter gameEventEmitter;
     private final LobbyEventEmitter lobbyEventEmitter;
 
-    public GameService(GameRepository gameRepository, UserRepository userRepository,
+    public GameService(GameRepository gameRepository, GameResultRepository gameResultRepository,
+                       UserRepository userRepository,
                        GameEventEmitter gameEventEmitter, LobbyEventEmitter lobbyEventEmitter) {
         this.gameRepository = gameRepository;
+        this.gameResultRepository = gameResultRepository;
         this.userRepository = userRepository;
         this.gameEventEmitter = gameEventEmitter;
         this.lobbyEventEmitter = lobbyEventEmitter;
@@ -156,6 +161,88 @@ public class GameService {
 
         if (!isBlue && !isRed) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You are not a participant in this battle");
+        }
+    }
+
+    @Transactional
+    public void surrender(String token, UUID userId) {
+        Game game = gameRepository.findByTokenAndIsActiveTrue(token)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Battle not found"));
+
+        // Validate participant
+        boolean isBlue = game.getBlueBoard().getOwner().getId().equals(userId);
+        boolean isRed = game.getRedBoard() != null && game.getRedBoard().getOwner().getId().equals(userId);
+
+        if (!isBlue && !isRed) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You are not a participant in this battle");
+        }
+
+        // Validate phase allows surrender
+        if (game.getPhase() != GamePhase.PLACING_SHIPS && game.getPhase() != GamePhase.IN_PROGRESS) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Cannot surrender — battle is not in progress");
+        }
+
+        // During PLACING_SHIPS: just cancel the game (no win/loss recorded)
+        if (game.getPhase() == GamePhase.PLACING_SHIPS) {
+            game.setPhase(GamePhase.CANCELLED);
+            game.setEndedAt(LocalDateTime.now());
+            gameRepository.save(game);
+
+            UUID opponentId = isBlue ? game.getRedBoard().getOwner().getId() : game.getBlueBoard().getOwner().getId();
+            String surrenderedPlayerName = isBlue ? game.getBlueBoard().getOwner().getName() : game.getRedBoard().getOwner().getName();
+            if (TransactionSynchronizationManager.isSynchronizationActive()) {
+                TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                    @Override
+                    public void afterCommit() {
+                        gameEventEmitter.emitSurrender(token, opponentId, surrenderedPlayerName);
+                    }
+                });
+            }
+            return;
+        }
+
+        // IN_PROGRESS: finish the game with a recorded loss
+        game.setPhase(GamePhase.FINISHED);
+        game.setEndedAt(LocalDateTime.now());
+
+        // Determine winner and loser
+        User loser = isBlue ? game.getBlueBoard().getOwner() : game.getRedBoard().getOwner();
+        User winner = isBlue ? game.getRedBoard().getOwner() : game.getBlueBoard().getOwner();
+
+        // Calculate turns
+        int totalTurns = 0;
+        if (game.getBlueBoard().getShots() != null) {
+            totalTurns += game.getBlueBoard().getShots().size();
+        }
+        if (game.getRedBoard() != null && game.getRedBoard().getShots() != null) {
+            totalTurns += game.getRedBoard().getShots().size();
+        }
+
+        // Create GameResult
+        GameResult gameResult = GameResult.builder()
+                .game(game)
+                .winner(winner)
+                .loser(loser)
+                .turns(totalTurns)
+                .build();
+        gameResultRepository.save(gameResult);
+
+        // Update wins/losses
+        winner.setWins(winner.getWins() + 1);
+        loser.setLosses(loser.getLosses() + 1);
+
+        gameRepository.save(game);
+
+        // Emit SURRENDER event to opponent after commit
+        UUID opponentId = winner.getId();
+        String surrenderedPlayerName = loser.getName();
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    gameEventEmitter.emitSurrender(token, opponentId, surrenderedPlayerName);
+                }
+            });
         }
     }
 

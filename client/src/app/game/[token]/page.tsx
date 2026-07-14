@@ -79,6 +79,9 @@ export default function GamePage() {
       onGameExpired: () => {
         refetchGame();
       },
+      onSurrender: () => {
+        refetchGame();
+      },
     },
     sseEnabled,
   );

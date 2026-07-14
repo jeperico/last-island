@@ -85,6 +85,13 @@ public class GameController {
         return boardService.fireShot(token, principal.getId(), request);
     }
 
+    @PostMapping("/{token}/surrender")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void surrender(@PathVariable String token,
+                          @AuthenticationPrincipal AuthenticatedUser principal) {
+        gameService.surrender(token, principal.getId());
+    }
+
     @GetMapping(value = "/{token}/events", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter subscribe(@PathVariable String token,
                                 @RequestHeader(value = "Last-Event-ID", required = false) String lastEventId,

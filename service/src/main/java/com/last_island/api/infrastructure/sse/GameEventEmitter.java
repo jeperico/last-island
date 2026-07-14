@@ -63,4 +63,10 @@ public class GameEventEmitter {
         GameEvent event = GameEvent.of(id, GameEvent.GAME_EXPIRED);
         registry.sendToGame(gameToken, event);
     }
+
+    public void emitSurrender(String gameToken, UUID targetPlayerId, String surrenderedPlayerName) {
+        long id = registry.nextEventId(gameToken);
+        GameEvent event = GameEvent.of(id, GameEvent.SURRENDER, Map.of("surrenderedPlayerName", surrenderedPlayerName));
+        registry.send(gameToken, targetPlayerId, event);
+    }
 }
