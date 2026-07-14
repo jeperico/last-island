@@ -19,6 +19,7 @@ import com.last_island.api.domain.game.repository.GameRepository;
 import com.last_island.api.domain.game.repository.GameResultRepository;
 import com.last_island.api.domain.user.entity.User;
 import com.last_island.api.domain.user.enums.Filiation;
+import com.last_island.api.domain.user.service.BountyService;
 import com.last_island.api.infrastructure.sse.GameEventEmitter;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -37,11 +38,13 @@ public class BoardService {
     private final GameRepository gameRepository;
     private final GameResultRepository gameResultRepository;
     private final GameEventEmitter gameEventEmitter;
+    private final BountyService bountyService;
 
-    public BoardService(GameRepository gameRepository, GameResultRepository gameResultRepository, GameEventEmitter gameEventEmitter) {
+    public BoardService(GameRepository gameRepository, GameResultRepository gameResultRepository, GameEventEmitter gameEventEmitter, BountyService bountyService) {
         this.gameRepository = gameRepository;
         this.gameResultRepository = gameResultRepository;
         this.gameEventEmitter = gameEventEmitter;
+        this.bountyService = bountyService;
     }
 
     @Transactional
@@ -275,6 +278,8 @@ public class BoardService {
 
             attacker.setWins(attacker.getWins() + 1);
             loser.setLosses(loser.getLosses() + 1);
+
+            bountyService.updateBounties(attacker, loser);
 
             // Do NOT switch turn — game is over
             gameRepository.save(game);

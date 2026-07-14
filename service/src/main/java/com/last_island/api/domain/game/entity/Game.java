@@ -44,6 +44,10 @@ public class Game extends BaseEntity {
 
     private LocalDateTime turnStartedAt;
 
+    @OneToOne(mappedBy = "game", fetch = FetchType.LAZY)
+    @ToString.Exclude
+    private GameResult gameResult;
+
     @Column(unique = true, length = 6)
     private String token;
 

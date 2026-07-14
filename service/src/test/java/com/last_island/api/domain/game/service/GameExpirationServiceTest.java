@@ -8,6 +8,7 @@ import com.last_island.api.domain.game.repository.GameRepository;
 import com.last_island.api.domain.game.repository.GameResultRepository;
 import com.last_island.api.domain.user.entity.User;
 import com.last_island.api.domain.user.enums.Filiation;
+import com.last_island.api.domain.user.service.BountyService;
 import com.last_island.api.infrastructure.sse.GameEventEmitter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -38,6 +39,9 @@ class GameExpirationServiceTest {
 
     @Mock
     private GameEventEmitter gameEventEmitter;
+
+    @Mock
+    private BountyService bountyService;
 
     @InjectMocks
     private GameExpirationService gameExpirationService;

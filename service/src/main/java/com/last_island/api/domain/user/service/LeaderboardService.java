@@ -60,7 +60,7 @@ public class LeaderboardService {
     private LeaderboardEntryResponse buildCurrentUserEntry(UUID currentUserId, Filiation filiation) {
         return userRepository.findById(currentUserId)
                 .map(user -> {
-                    double userBounty = user.getWins() * user.getWinRate() * 10000.0;
+                    double userBounty = (double) user.getBounty();
                     long ahead = (filiation == null)
                             ? userRepository.countUsersAhead(userBounty, user.getName())
                             : userRepository.countUsersAheadByFiliation(filiation, userBounty, user.getName());

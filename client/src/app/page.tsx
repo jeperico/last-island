@@ -385,9 +385,7 @@ export default function Home() {
                                   : entry.position}
                               </td>
                               <td className="py-3 px-2 text-left text-secondary font-medium">
-                                {Math.round(
-                                  entry.wins * entry.winRate * 10000,
-                                ).toLocaleString()}
+                                {entry.bounty.toLocaleString()}
                               </td>
                               <td className="py-3 px-2 text-left text-text-primary font-medium truncate">
                                 {entry.filiation === "PIRATE" ? "🏴‍☠️" : "⚓"}{" "}
@@ -436,9 +434,7 @@ export default function Home() {
                                   {userEntry.position}
                                 </td>
                                 <td className="py-3 px-2 text-left text-secondary font-medium">
-                                  {Math.round(
-                                    userEntry.wins * userEntry.winRate * 10000,
-                                  ).toLocaleString()}
+                                  {userEntry.bounty.toLocaleString()}
                                 </td>
                                 <td className="py-3 px-2 text-left text-text-primary font-medium truncate">
                                   {userEntry.filiation === "PIRATE"

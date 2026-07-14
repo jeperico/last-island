@@ -7,6 +7,7 @@ import com.last_island.api.domain.game.enums.GamePhase;
 import com.last_island.api.domain.game.repository.GameRepository;
 import com.last_island.api.domain.game.repository.GameResultRepository;
 import com.last_island.api.domain.user.entity.User;
+import com.last_island.api.domain.user.service.BountyService;
 import com.last_island.api.infrastructure.sse.GameEventEmitter;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -29,11 +30,13 @@ public class GameExpirationService {
     private final GameRepository gameRepository;
     private final GameResultRepository gameResultRepository;
     private final GameEventEmitter gameEventEmitter;
+    private final BountyService bountyService;
 
-    public GameExpirationService(GameRepository gameRepository, GameResultRepository gameResultRepository, GameEventEmitter gameEventEmitter) {
+    public GameExpirationService(GameRepository gameRepository, GameResultRepository gameResultRepository, GameEventEmitter gameEventEmitter, BountyService bountyService) {
         this.gameRepository = gameRepository;
         this.gameResultRepository = gameResultRepository;
         this.gameEventEmitter = gameEventEmitter;
+        this.bountyService = bountyService;
     }
 
     @Scheduled(fixedRate = 5000)
@@ -103,6 +106,8 @@ public class GameExpirationService {
 
         winner.setWins(winner.getWins() + 1);
         loser.setLosses(loser.getLosses() + 1);
+
+        bountyService.updateBounties(winner, loser);
 
         gameRepository.save(game);
 

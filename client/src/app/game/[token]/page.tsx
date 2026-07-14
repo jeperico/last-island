@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { useRequireAuth, useAuth } from "@/lib/auth";
-import { getGame } from "@/lib/api";
+import { getGame, getProfile } from "@/lib/api";
 import type { GamePhase, GameStateResponse } from "@/lib/api/types";
 import { useGameEvents } from "@/lib/game";
 import { ShipPlacement } from "./ship-placement";
@@ -21,6 +21,7 @@ export default function GamePage() {
   const [gameState, setGameState] = useState<GameStateResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [currentBounty, setCurrentBounty] = useState<number>(0);
 
   // Initial fetch on mount (after auth resolves)
   useEffect(() => {
@@ -57,6 +58,13 @@ export default function GamePage() {
 
   // SSE: subscribe to real-time game events
   const sseEnabled = gameState !== null && gameState.phase !== "FINISHED" && gameState.phase !== "CANCELLED";
+
+  // Refresh user bounty when game ends
+  useEffect(() => {
+    if (gameState?.phase === "FINISHED") {
+      getProfile().then((profile) => setCurrentBounty(profile.bounty)).catch(() => {});
+    }
+  }, [gameState?.phase]);
 
   useGameEvents(
     token,
@@ -246,6 +254,7 @@ export default function GamePage() {
             durationSeconds={durationSeconds}
             myBoard={gameState.myBoard}
             opponentBoard={gameState.opponentBoard}
+            myBounty={currentBounty}
           />
         </div>
       );

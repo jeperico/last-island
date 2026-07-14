@@ -116,12 +116,19 @@ public final class GameMapper {
         Board blueBoard = game.getBlueBoard();
         Board redBoard = game.getRedBoard();
 
-        if (redBoard != null && redBoard.getShips().stream().allMatch(s -> s.isSunk())) {
+        // Check if all ships sunk (normal game over)
+        if (redBoard != null && redBoard.getShips().stream().allMatch(Ship::isSunk)) {
             return blueBoard.getOwner().getName();
         }
-        if (blueBoard.getShips().stream().allMatch(s -> s.isSunk())) {
+        if (blueBoard.getShips().stream().allMatch(Ship::isSunk)) {
             return redBoard != null ? redBoard.getOwner().getName() : null;
         }
+
+        // Fallback: check GameResult (surrender, turn expiration)
+        if (game.getGameResult() != null) {
+            return game.getGameResult().getWinner().getName();
+        }
+
         return null;
     }
 

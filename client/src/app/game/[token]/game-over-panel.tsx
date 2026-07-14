@@ -19,6 +19,7 @@ interface GameOverPanelProps {
   durationSeconds: number | null;
   myBoard: MyBoardResponse | null;
   opponentBoard: OpponentBoardResponse | null;
+  myBounty: number;
 }
 
 // ─── Cell-building helpers ───────────────────────────────────────────────────
@@ -85,6 +86,7 @@ export function GameOverPanel({
   durationSeconds,
   myBoard,
   opponentBoard,
+  myBounty,
 }: GameOverPanelProps) {
   const myAccuracy = myShots > 0 ? Math.round((myHits / myShots) * 100) : 0;
   const opponentAccuracy =
@@ -136,6 +138,9 @@ export function GameOverPanel({
         <div className="flex items-center gap-4 text-sm">
           <span className="text-text-muted print:text-black">
             ⏱️ {formatDuration(durationSeconds)}
+          </span>
+          <span className={`font-bold ${isWinner ? "text-success" : "text-danger"}`}>
+            🏴‍☠️ {myBounty.toLocaleString()}
           </span>
         </div>
       </div>

@@ -9,6 +9,7 @@ import com.last_island.api.domain.game.repository.GameResultRepository;
 import com.last_island.api.domain.user.entity.User;
 import com.last_island.api.domain.user.enums.Filiation;
 import com.last_island.api.domain.user.repository.UserRepository;
+import com.last_island.api.domain.user.service.BountyService;
 import com.last_island.api.infrastructure.sse.GameEventEmitter;
 import com.last_island.api.infrastructure.sse.LobbyEventEmitter;
 import org.junit.jupiter.api.BeforeEach;
@@ -46,6 +47,9 @@ class GameServiceSurrenderTest {
 
     @Mock
     private LobbyEventEmitter lobbyEventEmitter;
+
+    @Mock
+    private BountyService bountyService;
 
     @InjectMocks
     private GameService gameService;

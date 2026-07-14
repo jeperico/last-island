@@ -40,7 +40,7 @@ public class AuthService {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Name already in use");
         }
 
-        String defaultRank = request.filiation() == Filiation.PIRATE ? "ROOKIE" : "SEAMAN";
+        String defaultRank = BountyService.computeRank(BountyService.STARTING_BOUNTY, request.filiation());
 
         User user = User.builder()
                 .name(request.name())
@@ -48,7 +48,7 @@ public class AuthService {
                 .passwordHash(passwordEncoder.encode(request.password()))
                 .filiation(request.filiation())
                 .rank(defaultRank)
-                .bounty(0)
+                .bounty(BountyService.STARTING_BOUNTY)
                 .wins(0)
                 .losses(0)
                 .totalShots(0)
