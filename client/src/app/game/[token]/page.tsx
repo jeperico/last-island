@@ -261,14 +261,14 @@ export default function GamePage() {
       return (
         <div className="flex flex-1 flex-col items-center justify-center gap-6 px-4 py-6">
           <div className="flex flex-col items-center gap-3 text-center">
-            <span className="text-5xl">⌛</span>
-            <h1 className="text-3xl font-bold text-warning">Battle Expired</h1>
+            <span className="text-5xl">🏳️</span>
+            <h1 className="text-3xl font-bold text-warning">W.O.</h1>
             <p className="text-sm text-text-muted max-w-sm">
               The battle against{" "}
               <span className="font-semibold text-text-primary">
                 {opponentName}
               </span>{" "}
-              has expired due to inactivity. No winner this time, Captain.
+              ended by walkover. No contest recorded, Captain.
             </p>
           </div>
         </div>
