@@ -101,6 +101,7 @@ public final class GameMapper {
                 winnerName,
                 game.getStartedAt(),
                 game.getEndedAt(),
+                game.getTurnStartedAt(),
                 game.getCreatedAt(),
                 myBoardResponse,
                 opponentBoardResponse
@@ -108,6 +109,10 @@ public final class GameMapper {
     }
 
     private static String determineWinner(Game game) {
+        if (game.getPhase() == GamePhase.CANCELLED) {
+            return null;
+        }
+
         Board blueBoard = game.getBlueBoard();
         Board redBoard = game.getRedBoard();
 

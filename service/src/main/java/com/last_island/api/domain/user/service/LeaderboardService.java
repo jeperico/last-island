@@ -25,8 +25,8 @@ public class LeaderboardService {
         Filiation filiation = parseFiliation(filiationParam);
 
         List<User> top10 = (filiation == null)
-                ? userRepository.findTop10ByOrderByWinsDescNameAsc()
-                : userRepository.findTop10ByFiliationOrderByWinsDescNameAsc(filiation);
+                ? userRepository.findTop10ByOrderByBountyDesc()
+                : userRepository.findTop10ByFiliationOrderByBountyDesc(filiation);
 
         boolean currentUserInTop10 = false;
         List<LeaderboardEntryResponse> entries = new java.util.ArrayList<>();
@@ -42,7 +42,9 @@ public class LeaderboardService {
                     user.getName(),
                     user.getFiliation().name(),
                     user.getWins(),
+                    user.getWinRate(),
                     user.getRank(),
+                    user.getBounty(),
                     isCurrent
             ));
         }
@@ -58,16 +60,19 @@ public class LeaderboardService {
     private LeaderboardEntryResponse buildCurrentUserEntry(UUID currentUserId, Filiation filiation) {
         return userRepository.findById(currentUserId)
                 .map(user -> {
+                    double userBounty = user.getWins() * user.getWinRate() * 10000.0;
                     long ahead = (filiation == null)
-                            ? userRepository.countUsersAhead(user.getWins(), user.getName())
-                            : userRepository.countUsersAheadByFiliation(filiation, user.getWins(), user.getName());
+                            ? userRepository.countUsersAhead(userBounty, user.getName())
+                            : userRepository.countUsersAheadByFiliation(filiation, userBounty, user.getName());
                     int position = (int) (ahead + 1);
                     return new LeaderboardEntryResponse(
                             position,
                             user.getName(),
                             user.getFiliation().name(),
                             user.getWins(),
+                            user.getWinRate(),
                             user.getRank(),
+                            user.getBounty(),
                             true
                     );
                 })

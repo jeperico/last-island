@@ -9,6 +9,7 @@ import type {
 } from "@/lib/api/types";
 import { getShipCells, cellKey } from "@/lib/game";
 import { Badge, Alert, Spinner } from "@/components/ui";
+import { CountdownTimer } from "@/components/ui";
 import { BoardGrid, type CellState } from "./board-grid";
 
 interface BattleScreenProps {
@@ -99,14 +100,17 @@ export function BattleScreen({
     <div className="flex flex-1 flex-col items-center justify-center gap-6 px-4 py-6">
       {/* Turn indicator (hidden when readOnly) */}
       {!readOnly && (
-        <div className="flex items-center justify-center">
-          {isMyTurn ? (
-            <Badge variant="success">Your Turn — Fire!</Badge>
-          ) : (
-            <Badge variant="warning" pulse>
-              Opponent&apos;s Turn — Waiting…
-            </Badge>
-          )}
+        <div className="flex flex-col items-center justify-center gap-2">
+          <div className="flex items-center justify-center">
+            {isMyTurn ? (
+              <Badge variant="success">Your Turn — Fire!</Badge>
+            ) : (
+              <Badge variant="warning" pulse>
+                Opponent&apos;s Turn — Waiting…
+              </Badge>
+            )}
+          </div>
+          <CountdownTimer turnStartedAt={gameState.turnStartedAt} />
         </div>
       )}
 

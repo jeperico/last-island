@@ -8,6 +8,7 @@ import java.util.UUID;
 
 public record GameStateResponse(UUID id, String token, String phase, String bluePlayerName,
                                 String redPlayerName, String currentTurnPlayerName, String winnerName,
-                                LocalDateTime startedAt, LocalDateTime endedAt, LocalDateTime createdAt,
+                                LocalDateTime startedAt, LocalDateTime endedAt, LocalDateTime turnStartedAt,
+                                LocalDateTime createdAt,
                                 MyBoardResponse myBoard, OpponentBoardResponse opponentBoard) {
 }

@@ -28,7 +28,8 @@ export type GamePhase =
   | "WAITING_OPPONENT"
   | "PLACING_SHIPS"
   | "IN_PROGRESS"
-  | "FINISHED";
+  | "FINISHED"
+  | "CANCELLED";
 
 export type ShipType =
   | "THOUSAND_SUNNY"

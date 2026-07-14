@@ -42,6 +42,8 @@ public class Game extends BaseEntity {
 
     private LocalDateTime endedAt;
 
+    private LocalDateTime turnStartedAt;
+
     @Column(unique = true, length = 6)
     private String token;
 

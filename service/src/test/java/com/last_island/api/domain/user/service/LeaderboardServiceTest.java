@@ -17,6 +17,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.*;
 
 @ExtendWith(MockitoExtension.class)
 class LeaderboardServiceTest {
@@ -35,7 +36,7 @@ class LeaderboardServiceTest {
         User currentUser = buildUser("Sanji", Filiation.PIRATE, 6);
         currentUser.setId(currentUserId);
 
-        when(userRepository.findTop10ByOrderByWinsDescNameAsc())
+        when(userRepository.findTop10ByOrderByBountyDesc())
                 .thenReturn(List.of(user1, user2, currentUser));
 
         LeaderboardResponse response = leaderboardService.getLeaderboard(currentUserId, "ALL");
@@ -44,11 +45,13 @@ class LeaderboardServiceTest {
         assertThat(response.entries().get(0).position()).isEqualTo(1);
         assertThat(response.entries().get(0).name()).isEqualTo("Luffy");
         assertThat(response.entries().get(0).wins()).isEqualTo(10);
+        assertThat(response.entries().get(0).winRate()).isGreaterThan(0.0);
+        assertThat(response.entries().get(0).bounty()).isEqualTo(10000L);
         assertThat(response.entries().get(1).position()).isEqualTo(2);
         assertThat(response.entries().get(2).position()).isEqualTo(3);
 
-        verify(userRepository).findTop10ByOrderByWinsDescNameAsc();
-        verify(userRepository, never()).findTop10ByFiliationOrderByWinsDescNameAsc(any());
+        verify(userRepository).findTop10ByOrderByBountyDesc();
+        verify(userRepository, never()).findTop10ByFiliationOrderByBountyDesc(any());
     }
 
     @Test
@@ -57,7 +60,7 @@ class LeaderboardServiceTest {
         User user1 = buildUser("Luffy", Filiation.PIRATE, 10);
         user1.setId(currentUserId);
 
-        when(userRepository.findTop10ByFiliationOrderByWinsDescNameAsc(Filiation.PIRATE))
+        when(userRepository.findTop10ByFiliationOrderByBountyDesc(Filiation.PIRATE))
                 .thenReturn(List.of(user1));
 
         LeaderboardResponse response = leaderboardService.getLeaderboard(currentUserId, "PIRATE");
@@ -65,8 +68,8 @@ class LeaderboardServiceTest {
         assertThat(response.entries()).hasSize(1);
         assertThat(response.entries().get(0).filiation()).isEqualTo("PIRATE");
 
-        verify(userRepository).findTop10ByFiliationOrderByWinsDescNameAsc(Filiation.PIRATE);
-        verify(userRepository, never()).findTop10ByOrderByWinsDescNameAsc();
+        verify(userRepository).findTop10ByFiliationOrderByBountyDesc(Filiation.PIRATE);
+        verify(userRepository, never()).findTop10ByOrderByBountyDesc();
     }
 
     @Test
@@ -75,7 +78,7 @@ class LeaderboardServiceTest {
         User currentUser = buildUser("Luffy", Filiation.PIRATE, 10);
         currentUser.setId(currentUserId);
 
-        when(userRepository.findTop10ByOrderByWinsDescNameAsc())
+        when(userRepository.findTop10ByOrderByBountyDesc())
                 .thenReturn(List.of(currentUser));
 
         LeaderboardResponse response = leaderboardService.getLeaderboard(currentUserId, "ALL");
@@ -92,11 +95,11 @@ class LeaderboardServiceTest {
         User currentUser = buildUser("Buggy", Filiation.PIRATE, 2);
         currentUser.setId(currentUserId);
 
-        when(userRepository.findTop10ByOrderByWinsDescNameAsc())
+        when(userRepository.findTop10ByOrderByBountyDesc())
                 .thenReturn(List.of(topUser));
         when(userRepository.findById(currentUserId))
                 .thenReturn(Optional.of(currentUser));
-        when(userRepository.countUsersAhead(2, "Buggy"))
+        when(userRepository.countUsersAhead(anyDouble(), eq("Buggy")))
                 .thenReturn(15L);
 
         LeaderboardResponse response = leaderboardService.getLeaderboard(currentUserId, "ALL");
@@ -105,6 +108,7 @@ class LeaderboardServiceTest {
         assertThat(response.currentUserEntry().position()).isEqualTo(16);
         assertThat(response.currentUserEntry().name()).isEqualTo("Buggy");
         assertThat(response.currentUserEntry().wins()).isEqualTo(2);
+        assertThat(response.currentUserEntry().bounty()).isEqualTo(2000L);
         assertThat(response.currentUserEntry().isCurrentUser()).isTrue();
     }
 
@@ -118,6 +122,8 @@ class LeaderboardServiceTest {
                 .filiation(filiation)
                 .rank("Rookie")
                 .wins(wins)
+                .losses(wins / 2)
+                .bounty(wins * 1000L)
                 .build();
         user.setId(UUID.randomUUID());
         return user;

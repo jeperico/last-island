@@ -8,6 +8,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -19,4 +21,10 @@ public interface GameRepository extends JpaRepository<Game, UUID> {
     Page<Game> findByPhaseAndIsActiveTrue(GamePhase phase, Pageable pageable);
 
     boolean existsByToken(String token);
+
+    @Query("SELECT g FROM Game g WHERE g.phase = 'IN_PROGRESS' AND g.isActive = true AND g.turnStartedAt < :turnDeadline")
+    List<Game> findGamesWithExpiredTurns(@Param("turnDeadline") LocalDateTime turnDeadline);
+
+    @Query("SELECT g FROM Game g WHERE g.phase = 'IN_PROGRESS' AND g.isActive = true AND g.startedAt < :gameDeadline")
+    List<Game> findExpiredGames(@Param("gameDeadline") LocalDateTime gameDeadline);
 }

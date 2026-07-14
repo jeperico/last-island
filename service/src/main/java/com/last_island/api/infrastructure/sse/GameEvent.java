@@ -12,6 +12,8 @@ public record GameEvent(
     public static final String SHIPS_PLACED = "SHIPS_PLACED";
     public static final String SHOT_RECEIVED = "SHOT_RECEIVED";
     public static final String GAME_OVER = "GAME_OVER";
+    public static final String TURN_EXPIRED = "TURN_EXPIRED";
+    public static final String GAME_EXPIRED = "GAME_EXPIRED";
 
     public static GameEvent of(long id, String type, Map<String, Object> data) {
         return new GameEvent(id, type, data);

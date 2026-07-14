@@ -51,4 +51,16 @@ public class GameEventEmitter {
         GameEvent event = GameEvent.of(id, GameEvent.GAME_OVER, Map.of("winnerName", winnerName));
         registry.sendToGame(gameToken, event);
     }
+
+    public void emitTurnExpired(String gameToken, String newTurnPlayerName) {
+        long id = registry.nextEventId(gameToken);
+        GameEvent event = GameEvent.of(id, GameEvent.TURN_EXPIRED, Map.of("newTurnPlayerName", newTurnPlayerName));
+        registry.sendToGame(gameToken, event);
+    }
+
+    public void emitGameExpired(String gameToken) {
+        long id = registry.nextEventId(gameToken);
+        GameEvent event = GameEvent.of(id, GameEvent.GAME_EXPIRED);
+        registry.sendToGame(gameToken, event);
+    }
 }

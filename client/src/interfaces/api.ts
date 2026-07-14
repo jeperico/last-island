@@ -123,6 +123,7 @@ export interface GameStateResponse {
   winnerName: string | null;
   startedAt: string | null;
   endedAt: string | null;
+  turnStartedAt: string | null;
   createdAt: string;
   myBoard: MyBoardResponse | null;
   opponentBoard: OpponentBoardResponse | null;
@@ -165,7 +166,9 @@ export interface LeaderboardEntryResponse {
   name: string;
   filiation: Filiation;
   wins: number;
+  winRate: number;
   rank: string;
+  bounty: number;
   isCurrentUser: boolean;
 }
 

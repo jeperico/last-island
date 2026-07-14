@@ -2,7 +2,7 @@
 
 ## Position
 
-Planning complete — Restructure Dashboard 60/40 Grid Layout
+Planning complete — Add Battle Expiration Timers (Turn 120s + Game 30min)
 
 ## Decisions
 
@@ -14,4 +14,4 @@ Planning complete — Restructure Dashboard 60/40 Grid Layout
 
 ## Last verification
 
-PASS at 2026-07-13T15:24 — client-build ✓, client-lint 3 pre-existing issues (none introduced), skull-icon.png referenced correctly
+PASS at 2026-07-14T10:34 — service-build ✓, service-test 55/55 ✓ (incl. GameExpirationServiceTest 4/4), client-build ✓, client-lint 5 pre-existing issues (none introduced)

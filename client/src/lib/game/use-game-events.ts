@@ -8,6 +8,8 @@ import type {
   ShipsPlacedEventData,
   ShotReceivedEventData,
   GameOverEventData,
+  TurnExpiredEventData,
+  GameExpiredEventData,
 } from "@/types/game-events";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
@@ -77,6 +79,18 @@ export function useGameEvents(
         handlersRef.current.onGameOver?.(data);
       }
 
+      function handleTurnExpired(event: MessageEvent) {
+        const data: TurnExpiredEventData = JSON.parse(event.data);
+        handlersRef.current.onTurnExpired?.(data);
+      }
+
+      function handleGameExpired(event: MessageEvent) {
+        const data: GameExpiredEventData = event.data
+          ? JSON.parse(event.data)
+          : {};
+        handlersRef.current.onGameExpired?.(data);
+      }
+
       function handleError(event: Event) {
         es.close();
         setConnected(false);
@@ -106,6 +120,8 @@ export function useGameEvents(
       es.addEventListener("SHIPS_PLACED", handleShipsPlaced);
       es.addEventListener("SHOT_RECEIVED", handleShotReceived);
       es.addEventListener("GAME_OVER", handleGameOver);
+      es.addEventListener("TURN_EXPIRED", handleTurnExpired);
+      es.addEventListener("GAME_EXPIRED", handleGameExpired);
       es.onerror = handleError;
     }
 

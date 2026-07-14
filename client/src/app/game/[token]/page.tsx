@@ -58,7 +58,7 @@ export default function GamePage() {
   }, [authLoading, user, token]);
 
   // SSE: subscribe to real-time game events
-  const sseEnabled = gameState !== null && gameState.phase !== "FINISHED";
+  const sseEnabled = gameState !== null && gameState.phase !== "FINISHED" && gameState.phase !== "CANCELLED";
 
   useGameEvents(
     token,
@@ -73,6 +73,12 @@ export default function GamePage() {
         refetchGame();
       },
       onGameOver: () => {
+        refetchGame();
+      },
+      onTurnExpired: () => {
+        refetchGame();
+      },
+      onGameExpired: () => {
         refetchGame();
       },
     },
@@ -236,6 +242,38 @@ export default function GamePage() {
           myBoard={gameState.myBoard}
           opponentBoard={gameState.opponentBoard}
         />
+      </div>
+    );
+  }
+
+  // Phase: CANCELLED
+  if (gameState.phase === "CANCELLED") {
+    const opponentName =
+      gameState.bluePlayerName === user.name
+        ? (gameState.redPlayerName ?? "Unknown")
+        : gameState.bluePlayerName;
+
+    return (
+      <div className="flex flex-1 flex-col items-center justify-center gap-6 px-4 py-6">
+        <div className="flex flex-col items-center gap-3 text-center">
+          <span className="text-5xl">⌛</span>
+          <h1 className="text-3xl font-bold text-warning">Battle Expired</h1>
+          <p className="text-sm text-text-muted max-w-sm">
+            The battle against{" "}
+            <span className="font-semibold text-text-primary">
+              {opponentName}
+            </span>{" "}
+            has expired due to inactivity. No winner this time, Captain.
+          </p>
+        </div>
+        <div className="print:hidden">
+          <a
+            href="/"
+            className="inline-flex items-center justify-center gap-2 rounded-md bg-primary px-6 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-primary-ring"
+          >
+            Back to Grand Line
+          </a>
+        </div>
       </div>
     );
   }

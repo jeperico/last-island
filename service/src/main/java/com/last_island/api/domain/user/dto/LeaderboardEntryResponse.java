@@ -5,7 +5,9 @@ public record LeaderboardEntryResponse(
         String name,
         String filiation,
         int wins,
+        double winRate,
         String rank,
+        long bounty,
         boolean isCurrentUser
 ) {
 }

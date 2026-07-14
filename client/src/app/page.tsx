@@ -5,11 +5,24 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRequireAuth, useAuth } from "@/lib/auth";
-import { createGame, joinGame, listGames, getBattleLog, getLeaderboard } from "@/lib/api";
+import {
+  createGame,
+  joinGame,
+  listGames,
+  getBattleLog,
+  getLeaderboard,
+} from "@/lib/api";
 import type { ApiError } from "@/lib/api/client";
-import type { BattleLogEntryResponse, GameSummaryResponse, LeaderboardResponse, PageResponse } from "@/lib/api/types";
-import { joinGameSchema, type JoinGameFormData } from "@/lib/validations/join-game";
-import Image from "next/image";
+import type {
+  BattleLogEntryResponse,
+  GameSummaryResponse,
+  LeaderboardResponse,
+  PageResponse,
+} from "@/lib/api/types";
+import {
+  joinGameSchema,
+  type JoinGameFormData,
+} from "@/lib/validations/join-game";
 import {
   PageHeader,
   Alert,
@@ -38,12 +51,17 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [creatingGame, setCreatingGame] = useState(false);
   const [joiningGame, setJoiningGame] = useState(false);
-  const [gamesPage, setGamesPage] = useState<PageResponse<GameSummaryResponse> | null>(null);
+  const [gamesPage, setGamesPage] =
+    useState<PageResponse<GameSummaryResponse> | null>(null);
   const [loadingGames, setLoadingGames] = useState(false);
   const [battleLog, setBattleLog] = useState<BattleLogEntryResponse[]>([]);
   const [loadingBattleLog, setLoadingBattleLog] = useState(false);
-  const [leaderboardTab, setLeaderboardTab] = useState<"ALL" | "PIRATE" | "MARINE">("ALL");
-  const [leaderboard, setLeaderboard] = useState<LeaderboardResponse | null>(null);
+  const [leaderboardTab, setLeaderboardTab] = useState<
+    "ALL" | "PIRATE" | "MARINE"
+  >("ALL");
+  const [leaderboard, setLeaderboard] = useState<LeaderboardResponse | null>(
+    null,
+  );
   const [loadingLeaderboard, setLoadingLeaderboard] = useState(false);
 
   useEffect(() => {
@@ -177,8 +195,11 @@ export default function Home() {
   }
 
   const podiumMedals = ["🥇", "🥈", "🥉"] as const;
-  const podiumRingColors = ["ring-gold", "ring-silver", "ring-bronze"] as const;
-  const podiumBorderColors = ["border-t-gold", "border-t-silver", "border-t-bronze"] as const;
+  const podiumBgColors = [
+    "bg-gold-bg",
+    "bg-silver-bg",
+    "bg-bronze-bg",
+  ] as const;
 
   return (
     <div className="flex flex-col flex-1 items-center px-4 py-8">
@@ -206,32 +227,32 @@ export default function Home() {
         )}
 
         {/* Two-column grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-[3fr_2fr] gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-[3fr_2fr] gap-[80px]">
           {/* Left column — Leaderboard + Battle Log */}
           <div>
             {/* Leaderboard section */}
             <section>
-              <h2 className="mb-3 text-lg font-semibold text-text-primary">
-                🏆 Leaderboard
-              </h2>
-
               <div className="flex gap-2 mb-4">
                 <Button
                   variant={leaderboardTab === "ALL" ? "primary" : "secondary"}
                   size="sm"
                   onClick={() => setLeaderboardTab("ALL")}
                 >
-                  All
+                  Leaderboard
                 </Button>
                 <Button
-                  variant={leaderboardTab === "PIRATE" ? "primary" : "secondary"}
+                  variant={
+                    leaderboardTab === "PIRATE" ? "primary" : "secondary"
+                  }
                   size="sm"
                   onClick={() => setLeaderboardTab("PIRATE")}
                 >
                   Pirates
                 </Button>
                 <Button
-                  variant={leaderboardTab === "MARINE" ? "primary" : "secondary"}
+                  variant={
+                    leaderboardTab === "MARINE" ? "primary" : "secondary"
+                  }
                   size="sm"
                   onClick={() => setLeaderboardTab("MARINE")}
                 >
@@ -247,136 +268,110 @@ export default function Home() {
                 </div>
               )}
 
-              {!loadingLeaderboard && leaderboard && leaderboard.entries.length === 0 && (
-                <EmptyState
-                  title="No rankings yet"
-                  description="Battle other captains to claim your spot!"
-                />
-              )}
+              {!loadingLeaderboard &&
+                leaderboard &&
+                leaderboard.entries.length === 0 && (
+                  <EmptyState
+                    title="No rankings yet"
+                    description="Battle other captains to claim your spot!"
+                  />
+                )}
 
-              {!loadingLeaderboard && leaderboard && leaderboard.entries.length > 0 && (
-                <div>
-                  {/* Top 3 Podium */}
-                  <div className="flex items-end justify-center gap-4 mb-6">
-                    {/* 2nd place */}
-                    {leaderboard.entries.length >= 2 && (
-                      <div className={`flex flex-col items-center p-3 rounded-lg bg-surface-elevated border-t-2 ${podiumBorderColors[1]} mt-6 w-28`}>
-                        <Image
-                          src="/skull-icon.png"
-                          alt="avatar"
-                          width={48}
-                          height={48}
-                          className={`rounded-full ring-2 ${podiumRingColors[1]}`}
-                        />
-                        <span className="mt-1 text-sm">{podiumMedals[1]}</span>
-                        <p className="text-sm font-semibold text-text-primary truncate w-full text-center">
-                          {leaderboard.entries[1].name}
-                        </p>
-                        <span className="text-xs">
-                          {leaderboard.entries[1].filiation === "PIRATE" ? "🏴‍☠️" : "⚓"}
-                        </span>
-                        <p className="text-xs text-text-muted">
-                          {leaderboard.entries[1].wins} wins
-                        </p>
-                      </div>
-                    )}
+              {!loadingLeaderboard &&
+                leaderboard &&
+                leaderboard.entries.length > 0 && (
+                  <div>
+                    <div className="max-h-60 overflow-y-auto overflow-x-auto custom-scrollbar">
+                      <table className="w-full text-sm">
+                        <thead className="sticky top-0 bg-surface z-10">
+                          <tr className="text-text-muted text-xs border-b border-border-light">
+                            <th className="py-2 px-2 text-left w-8">#</th>
+                            <th className="py-2 px-2 text-left">Bounty</th>
+                            <th className="py-2 px-2 text-left">Name</th>
+                            <th className="py-2 px-2 text-left">Wins</th>
+                            <th className="py-2 px-2 text-left">Win Rate</th>
+                          </tr>
+                        </thead>
+                        <tbody className="space-y-1">
+                          {leaderboard.entries.map((entry) => (
+                            <tr
+                              key={`${entry.position}-${entry.name}`}
+                              className={`hover:bg-surface-secondary ${
+                                entry.isCurrentUser
+                                  ? "bg-surface-secondary border-l-2 border-l-primary"
+                                  : entry.position <= 3
+                                    ? podiumBgColors[entry.position - 1]
+                                    : ""
+                              }`}
+                            >
+                              <td className="py-3 px-2 font-bold text-text-secondary">
+                                {entry.position <= 3
+                                  ? podiumMedals[entry.position - 1]
+                                  : entry.position}
+                              </td>
+                              <td className="py-3 px-2 text-left text-secondary font-medium">
+                                {Math.round(
+                                  entry.wins * entry.winRate * 10000,
+                                ).toLocaleString()}
+                              </td>
+                              <td className="py-3 px-2 text-left text-text-primary font-medium truncate max-w-[150px]">
+                                {entry.filiation === "PIRATE" ? "🏴‍☠️" : "⚓"}{" "}
+                                {entry.name}
+                              </td>
+                              <td className="py-3 px-2 text-left text-text-secondary">
+                                {entry.wins}
+                              </td>
+                              <td className="py-3 px-2 text-left text-text-secondary">
+                                {Math.round(entry.winRate * 100)}%
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
 
-                    {/* 1st place */}
-                    {leaderboard.entries.length >= 1 && (
-                      <div className={`flex flex-col items-center p-3 rounded-lg bg-surface-elevated border-t-2 ${podiumBorderColors[0]} mt-0 w-28`}>
-                        <Image
-                          src="/skull-icon.png"
-                          alt="avatar"
-                          width={48}
-                          height={48}
-                          className={`rounded-full ring-2 ${podiumRingColors[0]}`}
-                        />
-                        <span className="mt-1 text-sm">{podiumMedals[0]}</span>
-                        <p className="text-sm font-semibold text-text-primary truncate w-full text-center">
-                          {leaderboard.entries[0].name}
-                        </p>
-                        <span className="text-xs">
-                          {leaderboard.entries[0].filiation === "PIRATE" ? "🏴‍☠️" : "⚓"}
-                        </span>
-                        <p className="text-xs text-text-muted">
-                          {leaderboard.entries[0].wins} wins
-                        </p>
-                      </div>
-                    )}
-
-                    {/* 3rd place */}
-                    {leaderboard.entries.length >= 3 && (
-                      <div className={`flex flex-col items-center p-3 rounded-lg bg-surface-elevated border-t-2 ${podiumBorderColors[2]} mt-6 w-28`}>
-                        <Image
-                          src="/skull-icon.png"
-                          alt="avatar"
-                          width={48}
-                          height={48}
-                          className={`rounded-full ring-2 ${podiumRingColors[2]}`}
-                        />
-                        <span className="mt-1 text-sm">{podiumMedals[2]}</span>
-                        <p className="text-sm font-semibold text-text-primary truncate w-full text-center">
-                          {leaderboard.entries[2].name}
-                        </p>
-                        <span className="text-xs">
-                          {leaderboard.entries[2].filiation === "PIRATE" ? "🏴‍☠️" : "⚓"}
-                        </span>
-                        <p className="text-xs text-text-muted">
-                          {leaderboard.entries[2].wins} wins
-                        </p>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Entries 4-10 compact list */}
-                  {leaderboard.entries.length > 3 && (
-                    <div className="space-y-1">
-                      {leaderboard.entries.slice(3, 10).map((entry) => (
-                        <div
-                          key={`${entry.position}-${entry.name}`}
-                          className={`flex items-center gap-2 py-1.5 px-2 rounded-md hover:bg-surface-secondary ${
-                            entry.isCurrentUser ? "bg-surface-secondary ring-1 ring-primary" : ""
-                          }`}
-                        >
-                          <span className="text-sm font-bold text-text-secondary w-6 text-center">
-                            {entry.position}
-                          </span>
-                          <span className="text-xs">
-                            {entry.filiation === "PIRATE" ? "🏴‍☠️" : "⚓"}
-                          </span>
-                          <span className="text-sm text-text-primary flex-1 truncate">
-                            {entry.name}
-                          </span>
-                          <span className="text-sm text-text-secondary">
-                            {entry.wins} wins
-                          </span>
+                    {/* Your position — always shown */}
+                    {(() => {
+                      const userEntry =
+                        leaderboard.currentUserEntry ??
+                        leaderboard.entries.find((e) => e.isCurrentUser);
+                      if (!userEntry) return null;
+                      return (
+                        <div className="mt-4 pt-4 border-t border-border-light">
+                          <p className="text-xs text-text-muted mb-2">
+                            Your position
+                          </p>
+                          <table className="w-full text-sm">
+                            <tbody>
+                              <tr className="bg-surface-secondary border-l-2 border-l-primary">
+                                <td className="py-3 px-2 font-bold text-text-secondary w-8">
+                                  {userEntry.position}
+                                </td>
+                                <td className="py-3 px-2 text-left text-text-primary font-medium truncate max-w-[150px]">
+                                  {userEntry.filiation === "PIRATE"
+                                    ? "🏴‍☠️"
+                                    : "⚓"}{" "}
+                                  {userEntry.name}
+                                </td>
+                                <td className="py-3 px-2 text-left text-text-secondary">
+                                  {userEntry.wins}
+                                </td>
+                                <td className="py-3 px-2 text-left text-text-secondary">
+                                  {Math.round(userEntry.winRate * 100)}%
+                                </td>
+                                <td className="py-3 px-2 text-left text-secondary font-medium">
+                                  {Math.round(
+                                    userEntry.wins * userEntry.winRate * 10000,
+                                  ).toLocaleString()}
+                                </td>
+                              </tr>
+                            </tbody>
+                          </table>
                         </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Current user outside top 10 */}
-                  {leaderboard.currentUserEntry && (
-                    <div className="mt-4 pt-4 border-t border-border-light">
-                      <p className="text-xs text-text-muted mb-2">Your position</p>
-                      <div className="flex items-center gap-2 py-1.5 px-2 rounded-md bg-surface-secondary ring-1 ring-primary">
-                        <span className="text-sm font-bold text-text-secondary w-6 text-center">
-                          {leaderboard.currentUserEntry.position}
-                        </span>
-                        <span className="text-xs">
-                          {leaderboard.currentUserEntry.filiation === "PIRATE" ? "🏴‍☠️" : "⚓"}
-                        </span>
-                        <span className="text-sm text-text-primary flex-1 truncate">
-                          {leaderboard.currentUserEntry.name}
-                        </span>
-                        <span className="text-sm text-text-secondary">
-                          {leaderboard.currentUserEntry.wins} wins
-                        </span>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
+                      );
+                    })()}
+                  </div>
+                )}
             </section>
 
             {/* Battle Log section */}
@@ -408,7 +403,9 @@ export default function Home() {
                       className="flex items-center gap-2 py-2 border-b border-border-light cursor-pointer hover:bg-surface-secondary rounded"
                     >
                       <Badge
-                        variant={entry.result === "VICTORY" ? "success" : "danger"}
+                        variant={
+                          entry.result === "VICTORY" ? "success" : "danger"
+                        }
                       >
                         {entry.result}
                       </Badge>
@@ -454,15 +451,17 @@ export default function Home() {
                   </div>
                 )}
 
-                {!loadingGames && gamesPage && gamesPage.content.length === 0 && (
-                  <EmptyState
-                    title="No battles available"
-                    description="Create one to start!"
-                  />
-                )}
+                {!loadingGames &&
+                  gamesPage &&
+                  gamesPage.content.length === 0 && (
+                    <EmptyState
+                      title="No battles available"
+                      description="Create one to start!"
+                    />
+                  )}
 
                 {!loadingGames && gamesPage && gamesPage.content.length > 0 && (
-                  <div className="max-h-[320px] overflow-y-auto space-y-2">
+                  <div className="max-h-[320px] overflow-y-auto space-y-2 custom-scrollbar pr-3">
                     {gamesPage.content.map((game) => (
                       <Card key={game.id} padding="sm">
                         <div className="flex items-center justify-between">

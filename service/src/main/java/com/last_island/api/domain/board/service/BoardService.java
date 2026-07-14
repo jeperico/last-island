@@ -143,6 +143,7 @@ public class BoardService {
         if (opponentBoard != null && !opponentBoard.getShips().isEmpty()) {
             game.setPhase(GamePhase.IN_PROGRESS);
             game.setStartedAt(LocalDateTime.now());
+            game.setTurnStartedAt(LocalDateTime.now());
         }
 
         // 11. Save game (cascades board + ships)
@@ -200,6 +201,11 @@ public class BoardService {
         // 5. Validate turn
         if (!game.getCurrentTurn().getId().equals(userId)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "It's not your turn to fire, wait for your opponent");
+        }
+
+        // 5b. Race condition guard — reject shots after turn expired
+        if (game.getTurnStartedAt() != null && game.getTurnStartedAt().plusSeconds(120).isBefore(LocalDateTime.now())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Your turn has expired, Captain!");
         }
 
         // 6. Check duplicate shot on opponent's board
@@ -288,6 +294,7 @@ public class BoardService {
 
         // 11. Switch turn to opponent (game continues)
         game.setCurrentTurn(opponentBoard.getOwner());
+        game.setTurnStartedAt(LocalDateTime.now());
 
         // 12. Save game (cascades)
         gameRepository.save(game);

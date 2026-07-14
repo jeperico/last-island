@@ -45,6 +45,9 @@
   --color-gold: #fbbf24;
   --color-silver: #94a3b8;
   --color-bronze: #cd7f32;
+  --color-gold-bg: rgba(251, 191, 36, 0.15);
+  --color-silver-bg: rgba(148, 163, 184, 0.15);
+  --color-bronze-bg: rgba(205, 127, 50, 0.15);
 
   /* Accent */
   --color-ocean: #38bdf8;
@@ -86,6 +89,9 @@
   --color-gold: var(--color-gold);
   --color-silver: var(--color-silver);
   --color-bronze: var(--color-bronze);
+  --color-gold-bg: var(--color-gold-bg);
+  --color-silver-bg: var(--color-silver-bg);
+  --color-bronze-bg: var(--color-bronze-bg);
   --radius-sm: var(--radius-sm);
   --radius-md: var(--radius-md);
   --radius-lg: var(--radius-lg);
@@ -98,6 +104,29 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* ─── Custom scrollbar ──────────────────────────────────────────────────────── */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 12px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--color-primary);
+  border-radius: 9999px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--color-primary-hover);
+}
+
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-primary) transparent;
 }
 
 /* ─── Print styles ─────────────────────────────────────────────────────────── */

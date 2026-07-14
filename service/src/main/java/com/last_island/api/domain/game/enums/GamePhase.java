@@ -4,5 +4,6 @@ public enum GamePhase {
     WAITING_OPPONENT,
     PLACING_SHIPS,
     IN_PROGRESS,
-    FINISHED
+    FINISHED,
+    CANCELLED
 }
