@@ -25,14 +25,15 @@ const AVATAR_OPTIONS = [
   { key: "CHOPPER", name: "Chopper", image: "/avatars/chopper/profile.jpg" },
   { key: "NAMI", name: "Nami", image: "/avatars/nami/profile.jpg" },
   { key: "ACE", name: "Ace", image: "/avatars/ace/profile.jpg" },
+  { key: "DOFLAMINGO", name: "Doflamingo", image: "/avatars/doflamingo/profile.jpg" },
 ] as const;
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function getAvatarImage(avatar: string | null): string {
-  if (!avatar) return "/avatars/luffy/profile.jpg";
+  if (!avatar) return "/avatars/default/profile.jpg";
   const option = AVATAR_OPTIONS.find((o) => o.key === avatar);
-  return option?.image ?? "/avatars/luffy/profile.jpg";
+  return option?.image ?? "/avatars/default/profile.jpg";
 }
 
 function formatBounty(bounty: number): string {
@@ -143,7 +144,7 @@ export default function SettingsPage() {
               src={
                 user.avatar
                   ? getAvatarImage(user.avatar)
-                  : "/avatars/luffy/profile.jpg"
+                  : "/avatars/default/profile.jpg"
               }
               alt={`${user.name}'s avatar`}
               className="w-24 h-24 rounded-full border-2 border-border object-cover"

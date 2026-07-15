@@ -163,3 +163,10 @@ Implementer: Created 2 new source files, modified 4 existing source files, creat
 
 Reviewer: PASS — client-build ✓, client-lint 9 issues (all pre-existing, none introduced), all 21 MP3 placeholders exist, sound wiring confirmed in 6 source files
 Commit: uncommitted
+
+## 2026-07-15T11:55 — Fix Avatar Fallback + Add Doflamingo
+
+Implementer: Modified 4 existing files, created 4 new files. Modified `Avatar.java` (+1 enum value DOFLAMINGO). Rewrote `avatar-icon.tsx` (+47) — added "use client", useState for error state, onError handler with inline SVG data URI fallback. Modified `client/src/app/settings/page.tsx` (+2) — added DOFLAMINGO to AVATAR_OPTIONS, fixed getAvatarImage fallback and profile section fallback from `/avatars/luffy/profile.jpg` to `/avatars/default/profile.jpg`. Modified `client/src/app/(auth)/register/page.tsx` (+1) — added DOFLAMINGO to AVATAR_OPTIONS. Created `client/public/avatars/default/profile.jpg` (284 bytes, minimal valid JPEG). Created `client/public/avatars/doflamingo/laugh.mp3` (363 bytes, silent placeholder). Created `client/public/avatars/doflamingo/scream.mp3` (363 bytes, silent placeholder). Created `client/public/avatars/doflamingo/soundtrack.mp3` (363 bytes, silent placeholder).
+
+Reviewer: PASS — service-build ✓, service-test 79/79 ✓, client-build ✓, client-lint 9 issues (all pre-existing, none introduced), all files verified
+Commit: uncommitted

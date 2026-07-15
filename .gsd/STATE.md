@@ -2,7 +2,7 @@
 
 ## Position
 
-Plan written — Frontend: Audio system (sound manager, laugh/scream/soundtrack triggers, mute setting)
+Plan written — Fix avatar fallback + Add Doflamingo
 
 ## Decisions
 
@@ -18,4 +18,4 @@ Plan written — Frontend: Audio system (sound manager, laugh/scream/soundtrack 
 
 ## Last verification
 
-PASS at 2026-07-15T11:17 — client-build ✓, client-lint 9 issues (all pre-existing, none introduced), all 21 MP3 placeholders exist, sound wiring confirmed in 6 source files
+PASS at 2026-07-15T11:57 — service-build ✓, service-test 79/79 ✓, client-build ✓, client-lint 9 pre-existing issues (none introduced), all new files verified
