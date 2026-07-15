@@ -1,6 +1,4 @@
 package com.last_island.api.domain.user.dto;
 
-import com.last_island.api.domain.user.enums.Filiation;
-
-public record UpdateProfileRequest(Filiation filiation, String avatar) {
+public record UpdateProfileRequest(String avatar) {
 }

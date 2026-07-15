@@ -4,9 +4,7 @@ export { placeShips, fireShot } from "./board";
 export { getLeaderboard, updateProfile } from "./users";
 export { ApiError, attemptRefresh } from "./client";
 export type {
-  Filiation,
   PirateRank,
-  MarineRank,
   GamePhase,
   ShipType,
   Orientation,

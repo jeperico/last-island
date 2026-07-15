@@ -20,15 +20,11 @@ export default function RegisterPage() {
   const {
     register,
     handleSubmit,
-    setValue,
-    watch,
     getValues,
     formState: { errors },
   } = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
   });
-
-  const filiation = watch("filiation");
 
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -39,24 +35,9 @@ export default function RegisterPage() {
     return null;
   }
 
-  async function onValid(data: RegisterFormData) {
+  async function onValid(_data: RegisterFormData) {
     setError(null);
-
-    if (data.filiation === "PIRATE") {
-      setShowCharacterSelect(true);
-      return;
-    }
-
-    setLoading(true);
-    try {
-      await auth.register(data.name, data.email, data.password, data.filiation, null);
-    } catch (err) {
-      if (err instanceof ApiError) {
-        setError(err.message ?? "An unexpected error occurred");
-      }
-    } finally {
-      setLoading(false);
-    }
+    setShowCharacterSelect(true);
   }
 
   async function handleCharacterConfirm(avatar: string) {
@@ -64,7 +45,7 @@ export default function RegisterPage() {
     setError(null);
     try {
       const data = getValues();
-      await auth.register(data.name, data.email, data.password, data.filiation, avatar);
+      await auth.register(data.name, data.email, data.password, avatar);
     } catch (err) {
       setIsRegistering(false);
       if (err instanceof ApiError) {
@@ -143,98 +124,6 @@ export default function RegisterPage() {
             {...register("confirmPassword")}
           />
         </div>
-
-        <fieldset>
-          <legend className="text-sm font-medium text-text-secondary mb-2">
-            Choose your allegiance
-          </legend>
-          <div className="grid grid-cols-2 gap-3">
-            <button
-              type="button"
-              onClick={() =>
-                setValue(
-                  "filiation",
-                  filiation === "PIRATE"
-                    ? (undefined as unknown as "PIRATE")
-                    : "PIRATE",
-                  { shouldValidate: true },
-                )
-              }
-              className={`relative flex flex-col items-center gap-2 rounded-lg border-2 px-4 py-5 transition-all duration-200 cursor-pointer ${
-                filiation === "PIRATE"
-                  ? "border-secondary bg-secondary/10 shadow-[0_0_12px_rgba(245,158,11,0.3)] scale-[1.03] hover:bg-secondary/20"
-                  : "border-border hover:border-secondary/50 hover:bg-surface-secondary"
-              }`}
-              aria-pressed={filiation === "PIRATE"}
-            >
-              {filiation === "PIRATE" && (
-                <span className="absolute top-2 right-2 flex h-5 w-5 items-center justify-center rounded-full bg-secondary text-navy text-xs font-bold">
-                  ✓
-                </span>
-              )}
-              <span className="text-4xl">🏴‍☠️</span>
-              <span
-                className={`text-sm font-semibold ${
-                  filiation === "PIRATE"
-                    ? "text-secondary"
-                    : "text-text-primary"
-                }`}
-              >
-                Pirate
-              </span>
-              <span
-                className={`text-xs font-bold ${filiation === "PIRATE" ? "text-secondary/80" : "text-text-secondary"}`}
-              >
-                Freedom on the seas
-              </span>
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setValue(
-                  "filiation",
-                  filiation === "MARINE"
-                    ? (undefined as unknown as "MARINE")
-                    : "MARINE",
-                  { shouldValidate: true },
-                );
-                setValue("avatar", null);
-              }}
-              className={`relative flex flex-col items-center gap-2 rounded-lg border-2 px-4 py-5 transition-all duration-200 cursor-pointer ${
-                filiation === "MARINE"
-                  ? "border-secondary bg-secondary/10 shadow-[0_0_12px_rgba(245,158,11,0.3)] scale-[1.03] hover:bg-secondary/20"
-                  : "border-border hover:border-secondary/50 hover:bg-surface-secondary"
-              }`}
-              aria-pressed={filiation === "MARINE"}
-            >
-              {filiation === "MARINE" && (
-                <span className="absolute top-2 right-2 flex h-5 w-5 items-center justify-center rounded-full bg-secondary text-navy text-xs font-bold">
-                  ✓
-                </span>
-              )}
-              <span className="text-4xl">⚓</span>
-              <span
-                className={`text-sm font-semibold ${
-                  filiation === "MARINE"
-                    ? "text-secondary"
-                    : "text-text-primary"
-                }`}
-              >
-                Marine
-              </span>
-              <span
-                className={`text-xs font-bold ${filiation === "MARINE" ? "text-secondary/80" : "text-text-secondary"}`}
-              >
-                Justice above all
-              </span>
-            </button>
-          </div>
-          {errors.filiation && (
-            <p className="text-xs text-danger mt-1">
-              {errors.filiation.message}
-            </p>
-          )}
-        </fieldset>
 
         <Button variant="primary" fullWidth loading={loading} type="submit">
           Choose Your Captain ⚔️

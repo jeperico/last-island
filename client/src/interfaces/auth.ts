@@ -9,7 +9,6 @@ export interface AuthContextValue {
     name: string,
     email: string,
     password: string,
-    filiation: string,
     avatar?: string | null,
   ) => Promise<void>;
   logout: () => void;

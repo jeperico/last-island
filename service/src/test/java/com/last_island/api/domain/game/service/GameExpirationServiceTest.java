@@ -7,7 +7,6 @@ import com.last_island.api.domain.game.enums.GamePhase;
 import com.last_island.api.domain.game.repository.GameRepository;
 import com.last_island.api.domain.game.repository.GameResultRepository;
 import com.last_island.api.domain.user.entity.User;
-import com.last_island.api.domain.user.enums.Filiation;
 import com.last_island.api.domain.user.service.BountyService;
 import com.last_island.api.infrastructure.sse.GameEventEmitter;
 import org.junit.jupiter.api.BeforeEach;
@@ -51,8 +50,8 @@ class GameExpirationServiceTest {
 
     @BeforeEach
     void setUp() {
-        bluePlayer = buildUser("Luffy", Filiation.PIRATE);
-        redPlayer = buildUser("Akainu", Filiation.MARINE);
+        bluePlayer = buildUser("Luffy");
+        redPlayer = buildUser("Zoro");
     }
 
     @Test
@@ -141,12 +140,11 @@ class GameExpirationServiceTest {
 
     // ─── Helpers ─────────────────────────────────────────────────────────────
 
-    private User buildUser(String name, Filiation filiation) {
+    private User buildUser(String name) {
         User user = User.builder()
                 .name(name)
                 .email(name.toLowerCase() + "@test.com")
                 .passwordHash("hashed")
-                .filiation(filiation)
                 .wins(0)
                 .losses(0)
                 .totalShots(0)

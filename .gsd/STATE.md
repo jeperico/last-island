@@ -2,7 +2,7 @@
 
 ## Position
 
-Plan written — Frontend: Redesign game-over screen as VS-style results modal
+Plan written — Frontend: Remove Marine/filiation concept from client (Phase 2)
 
 ## Decisions
 
@@ -18,4 +18,4 @@ Plan written — Frontend: Redesign game-over screen as VS-style results modal
 
 ## Last verification
 
-PASS at 2026-07-15T15:23 — client-build ✓, client-lint 0 new errors (4 pre-existing warnings in changed files), createPortal used, all GameStateResponse fields consumed, formatBounty shared across 3 files
+PASS at 2026-07-15T16:10 — build ✓, lint 0 new errors (5 pre-existing), grep 0 filiation/marine matches, register has no allegiance fieldset, ShipPlacement uses PIRATE_FLEET directly, leaderboard has no tabs

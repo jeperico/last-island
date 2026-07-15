@@ -75,14 +75,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       name: string,
       email: string,
       password: string,
-      filiation: string,
       avatar?: string | null,
     ) => {
       const response = await registerApi({
         name,
         email,
         password,
-        filiation: filiation as "PIRATE" | "MARINE",
         avatar: avatar ?? null,
       });
       setUser(response.user);

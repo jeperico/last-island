@@ -12,7 +12,6 @@ import com.last_island.api.domain.game.enums.GamePhase;
 import com.last_island.api.domain.game.repository.GameRepository;
 import com.last_island.api.domain.game.repository.GameResultRepository;
 import com.last_island.api.domain.user.entity.User;
-import com.last_island.api.domain.user.enums.Filiation;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -48,18 +47,17 @@ class BoardServicePlaceShipsTest {
 
     @BeforeEach
     void setUp() {
-        bluePlayer = buildUser("Luffy", Filiation.PIRATE);
-        redPlayer = buildUser("Akainu", Filiation.MARINE);
+        bluePlayer = buildUser("Luffy");
+        redPlayer = buildUser("Zoro");
     }
 
     // --- Helper methods ---
 
-    private User buildUser(String name, Filiation filiation) {
+    private User buildUser(String name) {
         User user = User.builder()
                 .name(name)
                 .email(name.toLowerCase() + "@test.com")
                 .passwordHash("hashed")
-                .filiation(filiation)
                 .rank("Rookie")
                 .build();
         user.setId(UUID.randomUUID());
@@ -101,16 +99,6 @@ class BoardServicePlaceShipsTest {
         );
     }
 
-    private List<ShipPlacementDto> marinePlacement() {
-        return List.of(
-                new ShipPlacementDto(ShipType.BUSTER_CALL, Orientation.HORIZONTAL, 0, 0),
-                new ShipPlacementDto(ShipType.WARSHIP, Orientation.HORIZONTAL, 1, 0),
-                new ShipPlacementDto(ShipType.BATTLESHIP, Orientation.HORIZONTAL, 2, 0),
-                new ShipPlacementDto(ShipType.CRUISER, Orientation.HORIZONTAL, 3, 0),
-                new ShipPlacementDto(ShipType.CUTTER, Orientation.HORIZONTAL, 4, 0)
-        );
-    }
-
     // --- Tests ---
 
     @Test
@@ -145,7 +133,7 @@ class BoardServicePlaceShipsTest {
         Game game = buildGame(GamePhase.PLACING_SHIPS);
         when(gameRepository.findByTokenAndIsActiveTrue(TOKEN)).thenReturn(Optional.of(game));
 
-        User stranger = buildUser("Stranger", Filiation.PIRATE);
+        User stranger = buildUser("Stranger");
         PlaceShipsRequest request = new PlaceShipsRequest(piratePlacement());
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
@@ -197,18 +185,25 @@ class BoardServicePlaceShipsTest {
     }
 
     @Test
-    void placeShips_wrongFiliation_rejects() {
+    void placeShips_wrongFleet_rejects() {
         Game game = buildGame(GamePhase.PLACING_SHIPS);
         when(gameRepository.findByTokenAndIsActiveTrue(TOKEN)).thenReturn(Optional.of(game));
 
-        // bluePlayer is PIRATE but we send marine fleet
-        PlaceShipsRequest request = new PlaceShipsRequest(marinePlacement());
+        // Submit deprecated marine fleet — should be rejected
+        List<ShipPlacementDto> wrongFleet = List.of(
+                new ShipPlacementDto(ShipType.BUSTER_CALL, Orientation.HORIZONTAL, 0, 0),
+                new ShipPlacementDto(ShipType.WARSHIP, Orientation.HORIZONTAL, 1, 0),
+                new ShipPlacementDto(ShipType.BATTLESHIP, Orientation.HORIZONTAL, 2, 0),
+                new ShipPlacementDto(ShipType.CRUISER, Orientation.HORIZONTAL, 3, 0),
+                new ShipPlacementDto(ShipType.CUTTER, Orientation.HORIZONTAL, 4, 0)
+        );
+        PlaceShipsRequest request = new PlaceShipsRequest(wrongFleet);
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
                 () -> boardService.placeShips(TOKEN, bluePlayer.getId(), request));
 
         assertThat(ex.getStatusCode().value()).isEqualTo(400);
-        assertThat(ex.getReason()).contains("filiation fleet");
+        assertThat(ex.getReason()).contains("pirate fleet");
     }
 
     @Test
@@ -301,10 +296,10 @@ class BoardServicePlaceShipsTest {
     @Test
     void placeShips_bothPlaced_transitionsToInProgress() {
         Game game = buildGame(GamePhase.PLACING_SHIPS);
-        // Opponent (red/marine) has already placed ships
+        // Opponent (red) has already placed ships
         Ship opponentShip = Ship.builder()
                 .board(game.getRedBoard())
-                .type(ShipType.BUSTER_CALL)
+                .type(ShipType.THOUSAND_SUNNY)
                 .orientation(Orientation.HORIZONTAL)
                 .row(0).col(0).hits(0)
                 .build();

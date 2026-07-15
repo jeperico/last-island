@@ -15,3 +15,19 @@ Implementer: created `client/src/lib/format.ts` (+13), rewrote `client/src/app/g
 Reviewer: PASS — build ✓, lint 0 new errors (4 pre-existing warnings), createPortal used, all GameStateResponse fields consumed, formatBounty shared across 3 files
 
 Commit: uncommitted
+
+## 2026-07-15T15:53 — Backend: Remove Marine/filiation concept
+
+Implementer: deleted `Filiation.java`, `MarineRank.java`; created `V10__remove_filiation.sql` (+9); rewrote `ShipType.java` (+35/-22), `User.java` (+49/-55), `RegisterRequest.java` (+4/-5), `UpdateProfileRequest.java` (+4/-5), `UserResponse.java` (+6/-8), `LeaderboardEntryResponse.java` (+13/-12), `BountyService.java` (+88/-95), `AuthService.java` (+116/-120), `UserService.java` (+44/-62), `LeaderboardService.java` (+74/-82), `BoardService.java` (+6/-9), `UserMapper.java` (+23/-24), `UserRepository.java` (+25/-31), `UserController.java` (+38/-40), `BountyServiceTest.java` (+116/-132), `UserServiceTest.java` (+89/-127), `LeaderboardServiceTest.java` (+109/-123), `BoardServicePlaceShipsTest.java` (+316/-328), `BoardServiceFireShotTest.java` (+385/-398), `GameServiceTest.java` (+227/-234), `GameServiceSurrenderTest.java` (+240/-251), `GameExpirationServiceTest.java` (+185/-195), `BattleLogServiceTest.java` (+188/-196)
+
+Reviewer: PASS — 73/73 tests green, 0 Filiation/MarineRank imports remain, V10 migration valid SQL, ShipType has 5 @Deprecated marine values
+
+Commit: uncommitted
+
+## 2026-07-15T16:05 — Frontend: Remove Marine/filiation concept
+
+Implementer: modified `client/src/types/game.ts` (-16), `client/src/interfaces/api.ts` (-5), `client/src/interfaces/auth.ts` (-1), `client/src/lib/game/ship-config.ts` (-22), `client/src/lib/game/index.ts` (-2/+1), `client/src/lib/validations/register.ts` (-4), `client/src/lib/validations/auth.ts` (-3), `client/src/lib/auth/auth-context.tsx` (-4/+2), `client/src/lib/api/users.ts` (-4/+2), `client/src/lib/api/index.ts` (-2), `client/src/app/(auth)/register/page.tsx` (-81), `client/src/app/settings/page.tsx` (-73), `client/src/app/page.tsx` (-25), `client/src/app/game/[token]/page.tsx` (-1), `client/src/app/game/[token]/ship-placement.tsx` (-6/+4), `client/src/components/ui/avatar-icon.tsx` (-14)
+
+Reviewer: PASS — build ✓, lint 0 new errors (5 pre-existing), grep 0 filiation/marine matches, register no allegiance fieldset, ShipPlacement uses PIRATE_FLEET directly, leaderboard no tabs
+
+Commit: uncommitted

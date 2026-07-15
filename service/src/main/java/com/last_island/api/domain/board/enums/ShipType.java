@@ -1,28 +1,35 @@
 package com.last_island.api.domain.board.enums;
 
-import com.last_island.api.domain.user.enums.Filiation;
 import lombok.Getter;
 
 @Getter
 public enum ShipType {
 
-    THOUSAND_SUNNY(5, Filiation.PIRATE),
-    MOBY_DICK(4, Filiation.PIRATE),
-    RED_FORCE(3, Filiation.PIRATE),
-    POLAR_TANG(3, Filiation.PIRATE),
-    STRIKER(2, Filiation.PIRATE),
+    THOUSAND_SUNNY(5),
+    MOBY_DICK(4),
+    RED_FORCE(3),
+    POLAR_TANG(3),
+    STRIKER(2),
 
-    BUSTER_CALL(5, Filiation.MARINE),
-    WARSHIP(4, Filiation.MARINE),
-    BATTLESHIP(3, Filiation.MARINE),
-    CRUISER(3, Filiation.MARINE),
-    CUTTER(2, Filiation.MARINE);
+    /** Legacy — historical game data */
+    @Deprecated
+    BUSTER_CALL(5),
+    /** Legacy — historical game data */
+    @Deprecated
+    WARSHIP(4),
+    /** Legacy — historical game data */
+    @Deprecated
+    BATTLESHIP(3),
+    /** Legacy — historical game data */
+    @Deprecated
+    CRUISER(3),
+    /** Legacy — historical game data */
+    @Deprecated
+    CUTTER(2);
 
     private final int size;
-    private final Filiation filiation;
 
-    ShipType(int size, Filiation filiation) {
+    ShipType(int size) {
         this.size = size;
-        this.filiation = filiation;
     }
 }

@@ -4,7 +4,6 @@ import com.last_island.api.domain.user.dto.UpdateProfileRequest;
 import com.last_island.api.domain.user.dto.UserResponse;
 import com.last_island.api.domain.user.entity.User;
 import com.last_island.api.domain.user.enums.Avatar;
-import com.last_island.api.domain.user.enums.Filiation;
 import com.last_island.api.domain.user.mapper.UserMapper;
 import com.last_island.api.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -26,34 +25,18 @@ public class UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
 
-        Filiation newFiliation = request.filiation() != null ? request.filiation() : user.getFiliation();
-
         Avatar newAvatar;
-        if (newFiliation == Filiation.MARINE) {
-            if (request.avatar() != null) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Marines cannot select an avatar");
+        if (request.avatar() != null) {
+            try {
+                newAvatar = Avatar.valueOf(request.avatar());
+            } catch (IllegalArgumentException e) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid avatar value");
             }
-            newAvatar = null;
         } else {
-            if (request.avatar() != null) {
-                try {
-                    newAvatar = Avatar.valueOf(request.avatar());
-                } catch (IllegalArgumentException e) {
-                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid avatar value");
-                }
-            } else {
-                newAvatar = null;
-            }
+            newAvatar = null;
         }
 
-        if (newFiliation != user.getFiliation()) {
-            String newRank = BountyService.computeRank(user.getBounty(), newFiliation);
-            user.setRank(newRank);
-        }
-
-        user.setFiliation(newFiliation);
         user.setAvatar(newAvatar);
-
         userRepository.save(user);
 
         return UserMapper.toResponse(user);

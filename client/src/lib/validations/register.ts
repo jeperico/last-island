@@ -6,9 +6,6 @@ export const registerSchema = z
     email: z.string().email("That Den Den Mushi address doesn't look right"),
     password: z.string().min(8, "Secret code must be at least 8 characters, captain!"),
     confirmPassword: z.string().min(1, "Confirm your secret code, nakama!"),
-    filiation: z.enum(["PIRATE", "MARINE"], {
-      message: "Pick a side! Are you pirate or marine?",
-    }),
     avatar: z.string().nullable().optional(),
   })
   .refine((data) => data.password === data.confirmPassword, {

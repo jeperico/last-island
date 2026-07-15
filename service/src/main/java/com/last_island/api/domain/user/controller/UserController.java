@@ -25,9 +25,8 @@ public class UserController {
 
     @GetMapping("/leaderboard")
     public LeaderboardResponse getLeaderboard(
-            @RequestParam(defaultValue = "ALL") String filiation,
             @AuthenticationPrincipal AuthenticatedUser user) {
-        return leaderboardService.getLeaderboard(user.getId(), filiation);
+        return leaderboardService.getLeaderboard(user.getId());
     }
 
     @PutMapping("/me")

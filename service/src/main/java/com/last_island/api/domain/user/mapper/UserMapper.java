@@ -13,7 +13,6 @@ public final class UserMapper {
                 user.getId(),
                 user.getName(),
                 user.getEmail(),
-                user.getFiliation(),
                 user.getRank(),
                 user.getBounty(),
                 user.getWins(),

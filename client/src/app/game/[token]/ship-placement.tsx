@@ -3,14 +3,13 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { placeShips, surrender, getGame } from "@/lib/api";
 import type {
-  Filiation,
   GamePhase,
   Orientation,
   ShipType,
   PlaceShipsRequest,
 } from "@/lib/api/types";
 import {
-  getFleetForFiliation,
+  PIRATE_FLEET,
   SHIP_SIZES,
   SHIP_DISPLAY_NAMES,
   getShipCells,
@@ -26,7 +25,6 @@ const ROW_LABELS = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"];
 
 interface ShipPlacementProps {
   gameToken: string;
-  filiation: Filiation;
   onPlacementComplete: (gamePhase: GamePhase) => void;
 }
 
@@ -38,13 +36,12 @@ interface PlacementEntry {
 
 export function ShipPlacement({
   gameToken,
-  filiation,
   onPlacementComplete,
 }: ShipPlacementProps) {
-  const fleet = useMemo(() => getFleetForFiliation(filiation), [filiation]);
+  const fleet = useMemo(() => PIRATE_FLEET, []);
 
   const [selectedShipType, setSelectedShipType] = useState<ShipType | null>(
-    () => getFleetForFiliation(filiation)[0] ?? null,
+    () => PIRATE_FLEET[0] ?? null,
   );
   const [orientation, setOrientation] = useState<Orientation>("HORIZONTAL");
   const [placements, setPlacements] = useState<Map<ShipType, PlacementEntry>>(

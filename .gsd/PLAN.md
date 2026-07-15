@@ -1,122 +1,77 @@
-# Frontend: Redesign game-over screen as VS-style results modal
+# Frontend: Remove Marine/filiation concept
 
 ## Objective
 
-Replace the current card-based GameOverPanel with a dramatic VS-style fullscreen modal that showcases both players' full-body character art, stats, bounty changes, and boards in a cinematic three-column layout.
+Remove all traces of the Filiation/Marine concept from the frontend client to match the already-refactored backend that only accepts pirate fleets.
 
 ## Files to touch
 
-- `client/src/lib/format.ts` — **create** — shared `formatBounty` utility
-- `client/src/app/game/[token]/game-over-panel.tsx` — **modify** (full rewrite) — VS-style modal with portal, 3-column layout
-- `client/src/app/game/[token]/page.tsx` — **modify** — simplify FINISHED phase block: pass `gameState`, `user`, `onClose` instead of derived primitives; remove wrapping div with bg wallpaper (modal handles its own overlay)
-- `client/src/app/page.tsx` — **modify** — import shared `formatBounty` from `@/lib/format` instead of local definition
-- `client/src/app/settings/page.tsx` — **modify** — import shared `formatBounty` from `@/lib/format` instead of local definition
+- modify `client/src/types/game.ts` — delete `Filiation` type, `MarineRank` type, remove marine ShipType entries (BUSTER_CALL, WARSHIP, BATTLESHIP, CRUISER, CUTTER)
+- modify `client/src/interfaces/api.ts` — remove `Filiation` from imports and from RegisterRequest, UserResponse, LeaderboardEntryResponse
+- modify `client/src/interfaces/auth.ts` — remove `filiation` param from register signature
+- modify `client/src/lib/api/types.ts` — remove re-exports of Filiation/MarineRank (they'll no longer exist in @/types)
+- modify `client/src/lib/game/ship-config.ts` — delete MARINE_FLEET, delete getFleetForFiliation, remove marine entries from SHIP_SIZES and SHIP_DISPLAY_NAMES, rename PIRATE_FLEET to FLEET (keep PIRATE_FLEET as alias export for safety)
+- modify `client/src/lib/game/index.ts` — remove MARINE_FLEET and getFleetForFiliation exports, add FLEET export
+- modify `client/src/lib/validations/register.ts` — remove `filiation` field from Zod schema
+- modify `client/src/lib/auth/auth-context.tsx` — remove filiation param from register callback, hardcode filiation removal from registerApi call
+- modify `client/src/lib/api/users.ts` — remove Filiation import, remove filiation param from getLeaderboard, remove filiation from updateProfile
+- modify `client/src/lib/api/index.ts` — remove Filiation, MarineRank type re-exports
+- modify `client/src/app/(auth)/register/page.tsx` — remove allegiance fieldset, always show character select after form validation, remove filiation from register call
+- modify `client/src/app/settings/page.tsx` — remove filiation card section, remove filiation badge, remove Filiation import, always show avatar section
+- modify `client/src/app/page.tsx` — remove PIRATE/MARINE leaderboard tabs (keep single "Leaderboard" heading), remove leaderboardTab state, always fetch with no filiation filter, remove filiation prop from AvatarIcon calls
+- modify `client/src/app/game/[token]/page.tsx` — remove `filiation={user.filiation}` prop from ShipPlacement
+- modify `client/src/app/game/[token]/ship-placement.tsx` — remove filiation prop from interface, import PIRATE_FLEET (or FLEET) directly instead of getFleetForFiliation
+- modify `client/src/components/ui/avatar-icon.tsx` — remove filiation prop, remove MARINE_FALLBACK, always use pirate fallback
 
 ## Steps
 
-1. **Create `client/src/lib/format.ts`** — extract a shared `formatBounty(n: number): string` function:
-   - `>= 1_000_000_000` → `"${(n/1e9).toFixed(1)}B"`
-   - `>= 1_000_000` → `"${Math.round(n/1e6)}M"`
-   - else → `n.toLocaleString()`
-   - No ₿ suffix (callers add it contextually).
+1. **types/game.ts**: Delete `Filiation` type alias, delete `MarineRank` type alias, remove the five marine ship type entries from `ShipType` union (keep only THOUSAND_SUNNY, MOBY_DICK, RED_FORCE, POLAR_TANG, STRIKER).
 
-2. **Rewrite `game-over-panel.tsx`** with the following structure:
-   - **Props**: `{ gameState: GameStateResponse; user: UserResponse; onClose: () => void }`
-   - **Data derivation** (inside component):
-     - `isBlue = user.name === gameState.bluePlayerName`
-     - Map my/opponent name, avatar, rank, bounty, wins, accuracy from blue/red fields
-     - `isWinner = gameState.winnerName === user.name`
-     - `bountyDelta = gameState.bountyDelta ?? 0` — winner gets `+delta`, loser gets `-delta`
-     - `mySunkCount` = count of opponent board shots with result `"SUNK"` (unique ship kills)
-     - `oppSunkCount` = count of my board shots received with result `"SUNK"`
-     - Compute previous bounty: `myBounty - bountyDelta` (winner), `myBounty + bountyDelta` (loser)
-   - **Rendering** — use `createPortal(content, document.body)`:
-     - Fixed overlay: `fixed inset-0 z-50 flex items-center justify-center`
-     - Semi-transparent backdrop: `bg-black/70` (lets page bg wallpaper peek through)
-     - Modal panel: `w-[90vw] max-w-7xl h-[90vh] max-h-[900px]` with `rounded-xl overflow-hidden border border-border`
-     - Entry animation: reuse `character-select-in` keyframes (fade + scale)
-     - Escape key handler + body scroll lock (same pattern as character-select.tsx)
-   - **Three-column grid** (`grid grid-cols-[1fr_2fr_1fr] h-full`):
-     - **Left column (my player)**:
-       - Full-body background image: `backgroundImage: url(/avatars/${avatar}/full-body.jpg)`, `bg-cover bg-center`
-       - Dark gradient overlay at bottom for text readability
-       - Fallback for null avatar: solid dark panel (`bg-surface-elevated`) with centered name
-       - Bottom-aligned stats overlay: 👑 (if winner), name, rank (formatted with `replace(/_/g, " ")`), bounty, wins, accuracy
-       - Winner crown + green glow border at bottom; loser gets subtle red border
-     - **Right column (opponent)**:
-       - Mirror of left column with opponent data
-     - **Middle column**:
-       - **Top score card** (centered, `bg-surface-secondary/90 rounded-lg p-4`):
-         - Ships sunk comparison: `{mySunkCount} ⚔️ {oppSunkCount}` with label "Ships Sunk"
-         - Bounty change line: `₿ {prevBounty} → {currentBounty} (+/-delta)` — green for gain, red for loss
-       - **Bottom boards section** (`flex gap-4 justify-center items-center`):
-         - Reuse existing `BoardGrid` component with `title="My Fleet"` and `title="Enemy Waters"`
-         - Board cell building logic: keep `buildMyBoardCells` and `buildOpponentBoardCells` helpers inside the file (same as current)
-         - Boards may need CSS `scale(0.85)` or `transform: scale(0.8)` wrapper if they overflow the center column — use `overflow-hidden` with flex shrink
-       - **Close button** at bottom center: styled button "Return to Grand Line" → calls `onClose`
-   - **Close button (×)** in top-right corner of modal (absolute positioned)
+2. **interfaces/api.ts**: Remove `Filiation` from the import statement. Remove `filiation: Filiation` from `RegisterRequest`. Remove `filiation: Filiation` from `UserResponse`. Remove `filiation: Filiation` from `LeaderboardEntryResponse`.
 
-3. **Update `page.tsx` FINISHED phase block** (lines ~298–354):
-   - Replace the entire FINISHED rendering with:
-     ```tsx
-     if (gameState.phase === "FINISHED") {
-       return <GameOverPanel gameState={gameState} user={user} onClose={() => window.location.href = "/"} />;
-     }
-     ```
-   - The background wallpaper div stays in the page naturally (it's behind the portal), so the modal backdrop reveals it.
-   - Remove the `currentBounty` state and the `getProfile()` useEffect (lines 29, 70-72) — no longer needed since we use `gameState.bluePlayerBounty`/`redPlayerBounty` directly.
-   - Remove unused imports that were only needed for old GameOverPanel props derivation (myShots, myHits, etc. are now derived inside the component).
-   - Keep the `GameOverPanel` import (same file, new interface).
+3. **interfaces/auth.ts**: Remove `filiation: string` parameter from the `register` function signature in `AuthContextValue`.
 
-4. **Update `client/src/app/page.tsx`** (dashboard):
-   - Replace the local `formatBounty` function (lines ~264-275) with:
-     ```ts
-     import { formatBounty } from "@/lib/format";
-     ```
-   - Adjust call sites: the dashboard version appends ` ₿` — update to `${formatBounty(n)} ₿` or keep the suffix at the call site.
+4. **lib/api/types.ts**: The wildcard re-export from `@/types` will automatically stop exporting Filiation/MarineRank once they're deleted. No change needed unless explicit re-exports exist — verify and remove any explicit `Filiation` or `MarineRank` named re-exports.
 
-5. **Update `client/src/app/settings/page.tsx`**:
-   - Replace the local `formatBounty` function (lines ~38-48) with import from `@/lib/format`.
-   - The settings page doesn't use ₿ suffix — just use `formatBounty(n)` directly.
+5. **lib/game/ship-config.ts**: Remove Filiation from import. Delete MARINE_FLEET array. Delete marine entries from SHIP_SIZES (BUSTER_CALL, WARSHIP, BATTLESHIP, CRUISER, CUTTER). Delete marine entries from SHIP_DISPLAY_NAMES. Delete `getFleetForFiliation` function. Optionally export `PIRATE_FLEET` also as `FLEET`.
 
-6. **Compute sunk ship counts correctly**:
-   - `mySunkCount`: Count distinct ships sunk on opponent board. Since each cell of a sunk ship has result `"SUNK"`, count unique ship positions. Simplest: divide total SUNK cells by ship size? No — just count the number of SUNK results and divide by... Actually, simpler: count how many cells have `result === "SUNK"` on opponent board, then map to unique ships. OR: just show total SUNK cells as "hits that sunk" — but design says "ships sunk". Best approach: for opponent board, count SUNK cells and divide by the known ship sizes... OR better: look at myBoard.ships — ships whose ALL cells are hit are sunk. For opponent, we don't have ship positions, but SUNK results fire per-ship (all cells of a ship become SUNK simultaneously). So count distinct groups... Actually simplest: count number of unique "SUNK events" = number of shots with result "SUNK" that represent a new sink. The backend returns all cells of a sunk ship as SUNK when the killing blow lands. So total SUNK cells / ship-size-per-ship is complex. **Simplest correct approach**: for myBoard, count ships where all cells have been hit (use ships array + shotsReceived). For opponentBoard, count how many distinct ship sizes were sunk — actually we can count the number of distinct contiguous SUNK groups... This is getting complex.
-   
-   **Decision**: Use a simpler "ships lost" metric: for my board, iterate `myBoard.ships` and count those where all cells match a hit/sunk shot. For opponent board, count unique sunk ships by grouping SUNK cells (adjacent SUNK cells = 1 ship). Alternative: just count the total `SUNK`-result shots and note that each individual SUNK shot corresponds to all cells of ONE ship turning SUNK simultaneously (backend marks all). So `sunkCells / shipSize` works per-ship, but we don't know sizes from opponent board. **Final approach**: 
-   - My ships sunk (by opponent) = `myBoard.ships.filter(ship => isShipSunk(ship, myBoard.shotsReceived)).length`
-   - Opponent ships sunk (by me) = count distinct SUNK groups in `opponentBoard.shotsFired`. Since all cells of a sunk ship share the same turn/shot-sequence, and ships have known standard sizes [5,4,3,3,2], count: total SUNK cells divided into known ship sizes descending. OR simpler: the standard fleet is 5 ships, so `5 - remaining` but we don't know remaining.
-   
-   **Simplest reliable approach**: 
-   - My ships lost: iterate `myBoard.ships`, for each ship check if all its cells appear in `shotsReceived` with HIT or SUNK → count those.
-   - Opponent ships sunk by me: Since we don't have opponent ship positions, count the number of SUNK-result cells in `opponentBoard.shotsFired`. Each ship when sunk marks ALL its cells as SUNK in one response. The fleet has ships of size [5,4,3,3,2]. So greedily subtract known sizes from total SUNK cells: `totalSunkCells` → count ships. E.g., 17 SUNK cells = all 5 ships (5+4+3+3+2=17). 12 SUNK cells = 5+4+3 = 3 ships. Actually just: `[5,4,3,3,2]`, sort descending, accumulate until sum exceeds total → count how many fit. This is reliable for standard fleet.
+6. **lib/game/index.ts**: Remove `MARINE_FLEET` and `getFleetForFiliation` from the export statement of `./ship-config`.
 
-7. **Handle edge cases**:
-   - `bountyDelta === null` → show "—" for bounty change (CANCELLED games shouldn't reach this screen, but defensive)
-   - `avatar === null` → no background image, show solid `bg-surface-elevated` panel
-   - Ensure `onClose` navigates to dashboard (use Next.js `useRouter().push("/")` instead of `window.location.href`)
+7. **lib/validations/register.ts**: Remove the `filiation` field from `registerSchema`. Update `RegisterFormData` type accordingly (automatic via z.infer).
+
+8. **lib/auth/auth-context.tsx**: Change `register` callback signature from `(name, email, password, filiation, avatar?)` to `(name, email, password, avatar?)`. In the function body, call `registerApi` without `filiation` field.
+
+9. **lib/api/users.ts**: Remove `Filiation` from import. Change `getLeaderboard(filiation: string)` to `getLeaderboard()` — remove the query param. Change `updateProfile` to only accept `{ avatar?: string | null }` (drop filiation field).
+
+10. **lib/api/index.ts**: Remove `Filiation` and `MarineRank` from the type export list.
+
+11. **app/(auth)/register/page.tsx**: Remove `watch("filiation")`, remove the allegiance `<fieldset>` block entirely. Remove the conditional that only shows character select for pirates — always show character select on valid form submission. Remove filiation from the `auth.register(...)` call (just pass name, email, password, avatar).
+
+12. **app/settings/page.tsx**: Remove `Filiation` import. Remove `savingFiliation` state. Remove `showMarineWarning` state. Delete `handleFiliationChange` function. Delete the entire "Filiation" `<Card>` section. Remove the `user.filiation === "PIRATE"` condition around avatar section (always show). Remove filiation badge from profile card.
+
+13. **app/page.tsx**: Remove `leaderboardTab` state and its setter. Remove the three tab buttons (ALL/PIRATE/MARINE). Call `getLeaderboard()` with no argument. Remove `filiation` prop from all `<AvatarIcon>` usages. Remove the "Hide if viewing a filiation tab that doesn't match the user" logic in the user-position section.
+
+14. **app/game/[token]/page.tsx**: Remove `filiation={user.filiation}` prop from the `<ShipPlacement>` component call.
+
+15. **app/game/[token]/ship-placement.tsx**: Remove `Filiation` from imports. Remove `filiation` from `ShipPlacementProps` interface. Replace `getFleetForFiliation(filiation)` with direct import of `PIRATE_FLEET`. Update `useMemo` and `useState` initializers accordingly.
+
+16. **components/ui/avatar-icon.tsx**: Remove `filiation` prop from `AvatarIconProps`. Delete `MARINE_FALLBACK` constant. Rename `PIRATE_FALLBACK` to `FALLBACK` (or keep name). Always use pirate fallback in component logic.
+
+17. **Final grep**: Search the entire client/src for remaining references to `filiation`, `Filiation`, `MarineRank`, `MARINE_FLEET`, `getFleetForFiliation`, `BUSTER_CALL`, `WARSHIP`, `BATTLESHIP`, `CRUISER`, `CUTTER` and fix any stragglers.
 
 ## Verification
 
 ```bash
-cd client && npm run build
-cd client && npm run lint
-grep -r "GameOverPanel" client/src
-grep -r "formatBounty" client/src
+cd /home/perico/work/last-island/client && npm run build && npm run lint
 ```
 
-Manual checks:
-- Open a FINISHED game as winner → confirm VS modal appears with correct crown on winner side, green bounty delta
-- Open same game as loser (other account) → confirm crown on opponent, red bounty delta  
-- Verify full-body images render for all 6 avatars (luffy, zoro, robin, chopper, ace, doflamingo)
-- Verify null-avatar fallback shows dark panel with name/stats only
-- Press Escape → navigates back to dashboard
-- Click "Return to Grand Line" button → navigates back to dashboard
-- Verify boards render at readable size in center column (no overflow)
-- Verify page background wallpaper visible through modal backdrop
+- Build must pass with zero type errors.
+- Lint must report no new errors (pre-existing warnings acceptable).
+- `grep -ri "filiation\|MarineRank\|MARINE_FLEET\|getFleetForFiliation\|BUSTER_CALL\|WARSHIP\|BATTLESHIP\|CRUISER\|CUTTER" client/src/` must return zero matches (excluding comments if any).
 
 ## Rollback
 
 ```bash
-git checkout HEAD -- client/src/app/game/\[token\]/game-over-panel.tsx client/src/app/game/\[token\]/page.tsx client/src/app/page.tsx client/src/app/settings/page.tsx
-rm -f client/src/lib/format.ts
+cd /home/perico/work/last-island
+git checkout -- client/
 ```

@@ -12,7 +12,6 @@ import com.last_island.api.domain.game.entity.GameResult;
 import com.last_island.api.domain.game.enums.GamePhase;
 import com.last_island.api.domain.game.repository.GameResultRepository;
 import com.last_island.api.domain.user.entity.User;
-import com.last_island.api.domain.user.enums.Filiation;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -46,8 +45,8 @@ class BattleLogServiceTest {
 
     @BeforeEach
     void setUp() {
-        bluePlayer = buildUser("Luffy", Filiation.PIRATE);
-        redPlayer = buildUser("Akainu", Filiation.MARINE);
+        bluePlayer = buildUser("Luffy");
+        redPlayer = buildUser("Zoro");
     }
 
     @Test
@@ -69,7 +68,7 @@ class BattleLogServiceTest {
         assertThat(log).hasSize(1);
         BattleLogEntryResponse entry = log.get(0);
         assertThat(entry.gameId()).isEqualTo(game.getId());
-        assertThat(entry.opponentName()).isEqualTo("Akainu");
+        assertThat(entry.opponentName()).isEqualTo("Zoro");
         assertThat(entry.result()).isEqualTo("VICTORY");
         assertThat(entry.shotsFired()).isEqualTo(3); // shots on opponent's (red) board
         assertThat(entry.shipsSunk()).isEqualTo(1); // one sunk ship on opponent's board
@@ -114,12 +113,11 @@ class BattleLogServiceTest {
 
     // --- Helper methods ---
 
-    private User buildUser(String name, Filiation filiation) {
+    private User buildUser(String name) {
         User user = User.builder()
                 .name(name)
                 .email(name.toLowerCase() + "@test.com")
                 .passwordHash("hashed")
-                .filiation(filiation)
                 .rank("Rookie")
                 .build();
         user.setId(UUID.randomUUID());

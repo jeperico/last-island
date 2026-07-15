@@ -238,7 +238,6 @@ export default function GamePage() {
             )}
             <ShipPlacement
               gameToken={token}
-              filiation={user.filiation}
               onPlacementComplete={handlePlacementComplete}
             />
           </div>

@@ -64,9 +64,6 @@ export default function Home() {
   const [loadingGames, setLoadingGames] = useState(false);
   const [battleLog, setBattleLog] = useState<BattleLogEntryResponse[]>([]);
   const [loadingBattleLog, setLoadingBattleLog] = useState(false);
-  const [leaderboardTab, setLeaderboardTab] = useState<
-    "ALL" | "PIRATE" | "MARINE"
-  >("ALL");
   const [leaderboard, setLeaderboard] = useState<LeaderboardResponse | null>(
     null,
   );
@@ -126,7 +123,7 @@ export default function Home() {
     async function fetchLeaderboard() {
       if (!leaderboard) setLoadingLeaderboard(true);
       try {
-        const data = await getLeaderboard(leaderboardTab);
+        const data = await getLeaderboard();
         if (!cancelled) {
           setLeaderboard(data);
         }
@@ -144,7 +141,7 @@ export default function Home() {
     return () => {
       cancelled = true;
     };
-  }, [isLoading, user, leaderboardTab]);
+  }, [isLoading, user]);
 
   useLobbyEvents(
     {
@@ -277,7 +274,6 @@ export default function Home() {
           <div className="flex items-center gap-3">
             <AvatarIcon
               avatar={user?.avatar ?? null}
-              filiation={user?.filiation ?? null}
               rank={user?.rank ?? null}
               size="sm"
             />
@@ -317,33 +313,9 @@ export default function Home() {
           <div>
             {/* Leaderboard section */}
             <section>
-              <div className="flex gap-2 mb-4">
-                <Button
-                  variant={leaderboardTab === "ALL" ? "primary" : "secondary"}
-                  size="sm"
-                  onClick={() => setLeaderboardTab("ALL")}
-                >
-                  Leaderboard
-                </Button>
-                <Button
-                  variant={
-                    leaderboardTab === "PIRATE" ? "primary" : "secondary"
-                  }
-                  size="sm"
-                  onClick={() => setLeaderboardTab("PIRATE")}
-                >
-                  Pirates
-                </Button>
-                <Button
-                  variant={
-                    leaderboardTab === "MARINE" ? "primary" : "secondary"
-                  }
-                  size="sm"
-                  onClick={() => setLeaderboardTab("MARINE")}
-                >
-                  Marines
-                </Button>
-              </div>
+              <h2 className="mb-4 text-lg font-semibold text-text-primary">
+                Leaderboard
+              </h2>
 
               {loadingLeaderboard && (
                 <div className="space-y-2">
@@ -412,7 +384,6 @@ export default function Home() {
                                 <span className="inline-flex items-center gap-1.5">
                                   <AvatarIcon
                                     avatar={entry.avatar}
-                                    filiation={entry.filiation}
                                     rank={entry.rank}
                                     size="sm"
                                     className="inline-block"
@@ -441,12 +412,6 @@ export default function Home() {
                         leaderboard.currentUserEntry ??
                         leaderboard.entries.find((e) => e.isCurrentUser);
                       if (!userEntry) return null;
-                      // Hide if viewing a filiation tab that doesn't match the user
-                      if (
-                        leaderboardTab !== "ALL" &&
-                        userEntry.filiation !== leaderboardTab
-                      )
-                        return null;
                       return (
                         <div className="mt-4 pt-4 border-t border-border-light">
                           <p className="text-xs text-text-muted mb-2">
@@ -473,7 +438,6 @@ export default function Home() {
                                   <span className="inline-flex items-center gap-1.5">
                                     <AvatarIcon
                                       avatar={userEntry.avatar}
-                                      filiation={userEntry.filiation}
                                       rank={userEntry.rank}
                                       size="sm"
                                       className="inline-block"

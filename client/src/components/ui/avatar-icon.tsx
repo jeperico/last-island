@@ -4,7 +4,6 @@ import { useState } from "react";
 
 interface AvatarIconProps {
   avatar: string | null;
-  filiation?: "PIRATE" | "MARINE" | null;
   rank?: string | null;
   size?: "sm" | "md" | "lg";
   className?: string;
@@ -87,19 +86,15 @@ const tierStyles: Record<RankTier, { border: string; glow: string; animate: stri
   },
 };
 
-// ─── Fallback images ─────────────────────────────────────────────────────────
+// ─── Fallback image ──────────────────────────────────────────────────────────
 
-const MARINE_FALLBACK =
-  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='32' fill='%231a1a2e'/%3E%3Ctext x='32' y='40' text-anchor='middle' font-size='24' fill='%234a4a6a'%3E⚓%3C/text%3E%3C/svg%3E";
-
-const PIRATE_FALLBACK =
+const FALLBACK =
   "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='32' fill='%231a1a2e'/%3E%3Ctext x='32' y='40' text-anchor='middle' font-size='24' fill='%234a4a6a'%3E☠️%3C/text%3E%3C/svg%3E";
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
 export function AvatarIcon({
   avatar,
-  filiation,
   rank,
   size = "md",
   className = "",
@@ -107,10 +102,8 @@ export function AvatarIcon({
 }: AvatarIconProps) {
   const [hasError, setHasError] = useState(false);
 
-  const fallbackUri = filiation === "PIRATE" ? PIRATE_FALLBACK : MARINE_FALLBACK;
-
   const src = hasError
-    ? fallbackUri
+    ? FALLBACK
     : avatar
       ? `/avatars/${avatar.toLowerCase()}/profile.jpg`
       : "/avatars/default/profile.jpg";

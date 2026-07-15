@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useRequireAuth, useAuth } from "@/lib/auth";
 import { updateProfile } from "@/lib/api";
 import type { ApiError } from "@/lib/api/client";
-import type { Filiation } from "@/lib/api/types";
 import { useSound } from "@/lib/sound";
 import {
   PageHeader,
@@ -44,11 +43,7 @@ export default function SettingsPage() {
   const { isMuted, toggleMute, musicVolume, setMusicVolume, sfxVolume, setSfxVolume } = useSound();
 
   const [error, setError] = useState<string | null>(null);
-  const [savingFiliation, setSavingFiliation] = useState<Filiation | null>(
-    null,
-  );
   const [savingAvatar, setSavingAvatar] = useState<string | null>(null);
-  const [showMarineWarning, setShowMarineWarning] = useState(false);
 
   if (isLoading || !user) {
     return (
@@ -56,28 +51,6 @@ export default function SettingsPage() {
         <Spinner size="lg" />
       </div>
     );
-  }
-
-  async function handleFiliationChange(newFiliation: Filiation) {
-    if (newFiliation === user!.filiation) return;
-
-    // If switching to marine from pirate, show warning first
-    if (newFiliation === "MARINE" && user!.filiation === "PIRATE") {
-      setShowMarineWarning(true);
-    }
-
-    setError(null);
-    setSavingFiliation(newFiliation);
-    try {
-      await updateProfile({ filiation: newFiliation });
-      await refreshUser();
-      setShowMarineWarning(false);
-    } catch (err) {
-      const apiError = err as ApiError;
-      setError(apiError.message ?? "Failed to update filiation");
-    } finally {
-      setSavingFiliation(null);
-    }
   }
 
   async function handleAvatarChange(avatarKey: string) {
@@ -144,11 +117,7 @@ export default function SettingsPage() {
               </h2>
               <p className="text-sm text-text-muted truncate">{user.email}</p>
               <div className="flex flex-wrap items-center gap-2 mt-3">
-                <Badge
-                  variant={user.filiation === "PIRATE" ? "warning" : "neutral"}
-                >
-                  {user.filiation === "PIRATE" ? "🏴‍☠️ Pirate" : "⚓ Marine"}
-                </Badge>
+                <Badge variant="warning">🏴‍☠️ Pirate</Badge>
                 <span className="text-sm text-text-secondary">
                   {user.rank.replace(/_/g, " ")}
                 </span>
@@ -163,102 +132,43 @@ export default function SettingsPage() {
           </div>
         </Card>
 
-        {/* Filiation switch section */}
+        {/* Avatar selection section */}
         <Card className="mb-6">
           <h3 className="text-lg font-semibold text-text-primary mb-4">
-            Filiation
+            Choose Your Avatar
           </h3>
-
-          {showMarineWarning && (
-            <Alert variant="warning" className="mb-4">
-              Switching to Marine will clear your avatar and recalculate your
-              rank.
-            </Alert>
-          )}
-
-          <div className="flex gap-3">
-            <button
-              type="button"
-              onClick={() => handleFiliationChange("PIRATE")}
-              disabled={savingFiliation !== null}
-              className={[
-                "flex-1 py-3 px-4 rounded-lg border-2 text-center font-medium transition-all cursor-pointer",
-                user.filiation === "PIRATE"
-                  ? "border-primary ring-2 ring-primary bg-primary/10 text-text-primary"
-                  : "border-border text-text-secondary hover:border-primary/50",
-                savingFiliation !== null
-                  ? "opacity-50 pointer-events-none"
-                  : "",
-              ].join(" ")}
-            >
-              {savingFiliation === "PIRATE" ? (
-                <Spinner size="sm" />
-              ) : (
-                "🏴‍☠️ Pirate"
-              )}
-            </button>
-            <button
-              type="button"
-              onClick={() => handleFiliationChange("MARINE")}
-              disabled={savingFiliation !== null}
-              className={[
-                "flex-1 py-3 px-4 rounded-lg border-2 text-center font-medium transition-all cursor-pointer",
-                user.filiation === "MARINE"
-                  ? "border-primary ring-2 ring-primary bg-primary/10 text-text-primary"
-                  : "border-border text-text-secondary hover:border-primary/50",
-                savingFiliation !== null
-                  ? "opacity-50 pointer-events-none"
-                  : "",
-              ].join(" ")}
-            >
-              {savingFiliation === "MARINE" ? (
-                <Spinner size="sm" />
-              ) : (
-                "⚓ Marine"
-              )}
-            </button>
+          <div className="grid grid-cols-3 sm:grid-cols-3 gap-4">
+            {AVATAR_OPTIONS.map((option) => (
+              <button
+                key={option.key}
+                type="button"
+                onClick={() => handleAvatarChange(option.key)}
+                disabled={savingAvatar !== null}
+                className={[
+                  "relative flex flex-col items-center gap-2 p-3 rounded-lg border-2 transition-all cursor-pointer",
+                  user.avatar === option.key
+                    ? "border-primary ring-2 ring-primary bg-primary/10"
+                    : "border-border hover:border-primary/50",
+                  savingAvatar !== null ? "opacity-70" : "",
+                ].join(" ")}
+              >
+                {savingAvatar === option.key && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-surface/80 rounded-lg">
+                    <Spinner size="sm" />
+                  </div>
+                )}
+                <img
+                  src={option.image}
+                  alt={option.name}
+                  className="w-16 h-16 rounded-full object-cover"
+                />
+                <span className="text-sm font-medium text-text-secondary">
+                  {option.name}
+                </span>
+              </button>
+            ))}
           </div>
         </Card>
-
-        {/* Avatar selection section — only for pirates */}
-        {user.filiation === "PIRATE" && (
-          <Card className="mb-6">
-            <h3 className="text-lg font-semibold text-text-primary mb-4">
-              Choose Your Avatar
-            </h3>
-            <div className="grid grid-cols-3 sm:grid-cols-3 gap-4">
-              {AVATAR_OPTIONS.map((option) => (
-                <button
-                  key={option.key}
-                  type="button"
-                  onClick={() => handleAvatarChange(option.key)}
-                  disabled={savingAvatar !== null}
-                  className={[
-                    "relative flex flex-col items-center gap-2 p-3 rounded-lg border-2 transition-all cursor-pointer",
-                    user.avatar === option.key
-                      ? "border-primary ring-2 ring-primary bg-primary/10"
-                      : "border-border hover:border-primary/50",
-                    savingAvatar !== null ? "opacity-70" : "",
-                  ].join(" ")}
-                >
-                  {savingAvatar === option.key && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-surface/80 rounded-lg">
-                      <Spinner size="sm" />
-                    </div>
-                  )}
-                  <img
-                    src={option.image}
-                    alt={option.name}
-                    className="w-16 h-16 rounded-full object-cover"
-                  />
-                  <span className="text-sm font-medium text-text-secondary">
-                    {option.name}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </Card>
-        )}
 
         {/* Sound section */}
         <Card className="mb-6">

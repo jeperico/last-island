@@ -3,7 +3,6 @@ package com.last_island.api.domain.user.service;
 import com.last_island.api.domain.user.dto.LeaderboardEntryResponse;
 import com.last_island.api.domain.user.dto.LeaderboardResponse;
 import com.last_island.api.domain.user.entity.User;
-import com.last_island.api.domain.user.enums.Filiation;
 import com.last_island.api.domain.user.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,12 +20,8 @@ public class LeaderboardService {
     }
 
     @Transactional(readOnly = true)
-    public LeaderboardResponse getLeaderboard(UUID currentUserId, String filiationParam) {
-        Filiation filiation = parseFiliation(filiationParam);
-
-        List<User> top10 = (filiation == null)
-                ? userRepository.findTop10ByOrderByBountyDesc()
-                : userRepository.findTop10ByFiliationOrderByBountyDesc(filiation);
+    public LeaderboardResponse getLeaderboard(UUID currentUserId) {
+        List<User> top10 = userRepository.findTop10ByOrderByBountyDesc();
 
         boolean currentUserInTop10 = false;
         List<LeaderboardEntryResponse> entries = new java.util.ArrayList<>();
@@ -40,7 +35,6 @@ public class LeaderboardService {
             entries.add(new LeaderboardEntryResponse(
                     i + 1,
                     user.getName(),
-                    user.getFiliation().name(),
                     user.getWins(),
                     user.getWinRate(),
                     user.getRank(),
@@ -52,24 +46,21 @@ public class LeaderboardService {
 
         LeaderboardEntryResponse currentUserEntry = null;
         if (!currentUserInTop10) {
-            currentUserEntry = buildCurrentUserEntry(currentUserId, filiation);
+            currentUserEntry = buildCurrentUserEntry(currentUserId);
         }
 
         return new LeaderboardResponse(entries, currentUserEntry);
     }
 
-    private LeaderboardEntryResponse buildCurrentUserEntry(UUID currentUserId, Filiation filiation) {
+    private LeaderboardEntryResponse buildCurrentUserEntry(UUID currentUserId) {
         return userRepository.findById(currentUserId)
                 .map(user -> {
                     double userBounty = (double) user.getBounty();
-                    long ahead = (filiation == null)
-                            ? userRepository.countUsersAhead(userBounty, user.getName())
-                            : userRepository.countUsersAheadByFiliation(filiation, userBounty, user.getName());
+                    long ahead = userRepository.countUsersAhead(userBounty, user.getName());
                     int position = (int) (ahead + 1);
                     return new LeaderboardEntryResponse(
                             position,
                             user.getName(),
-                            user.getFiliation().name(),
                             user.getWins(),
                             user.getWinRate(),
                             user.getRank(),
@@ -79,12 +70,5 @@ public class LeaderboardService {
                     );
                 })
                 .orElse(null);
-    }
-
-    private Filiation parseFiliation(String filiationParam) {
-        if (filiationParam == null || filiationParam.equalsIgnoreCase("ALL")) {
-            return null;
-        }
-        return Filiation.valueOf(filiationParam.toUpperCase());
     }
 }

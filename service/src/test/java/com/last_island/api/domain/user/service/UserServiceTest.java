@@ -4,7 +4,6 @@ import com.last_island.api.domain.user.dto.UpdateProfileRequest;
 import com.last_island.api.domain.user.dto.UserResponse;
 import com.last_island.api.domain.user.entity.User;
 import com.last_island.api.domain.user.enums.Avatar;
-import com.last_island.api.domain.user.enums.Filiation;
 import com.last_island.api.domain.user.repository.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -32,12 +31,12 @@ class UserServiceTest {
     private UserService userService;
 
     @Test
-    void updateProfile_pirateSetAvatar_success() {
-        User user = buildUser(Filiation.PIRATE, null);
+    void updateProfile_setAvatar_success() {
+        User user = buildUser(null);
         when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
         when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        UpdateProfileRequest request = new UpdateProfileRequest(null, "LUFFY");
+        UpdateProfileRequest request = new UpdateProfileRequest("LUFFY");
         UserResponse response = userService.updateProfile(user.getId(), request);
 
         assertThat(response.avatar()).isEqualTo("LUFFY");
@@ -46,88 +45,38 @@ class UserServiceTest {
     }
 
     @Test
-    void updateProfile_marineSetAvatar_throwsBadRequest() {
-        User user = buildUser(Filiation.MARINE, null);
-        when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
-
-        UpdateProfileRequest request = new UpdateProfileRequest(null, "LUFFY");
-
-        assertThatThrownBy(() -> userService.updateProfile(user.getId(), request))
-                .isInstanceOf(ResponseStatusException.class)
-                .hasMessageContaining("Marines cannot select an avatar");
-    }
-
-    @Test
-    void updateProfile_switchToMarine_clearsAvatarAndUpdatesRank() {
-        User user = buildUser(Filiation.PIRATE, Avatar.ZORO);
+    void updateProfile_clearAvatar_success() {
+        User user = buildUser(Avatar.ZORO);
         when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
         when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
 
-        UpdateProfileRequest request = new UpdateProfileRequest(Filiation.MARINE, null);
+        UpdateProfileRequest request = new UpdateProfileRequest(null);
         UserResponse response = userService.updateProfile(user.getId(), request);
 
         assertThat(response.avatar()).isNull();
-        assertThat(response.filiation()).isEqualTo(Filiation.MARINE);
         assertThat(user.getAvatar()).isNull();
-        assertThat(user.getFiliation()).isEqualTo(Filiation.MARINE);
-        // Rank should be recalculated for MARINE at 100M bounty → CAPTAIN
-        assertThat(user.getRank()).isEqualTo("CAPTAIN");
-        verify(userRepository).save(user);
-    }
-
-    @Test
-    void updateProfile_switchToPirateWithoutAvatar_allowed() {
-        User user = buildUser(Filiation.MARINE, null);
-        when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
-        when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
-
-        UpdateProfileRequest request = new UpdateProfileRequest(Filiation.PIRATE, null);
-        UserResponse response = userService.updateProfile(user.getId(), request);
-
-        assertThat(response.avatar()).isNull();
-        assertThat(response.filiation()).isEqualTo(Filiation.PIRATE);
-        assertThat(user.getFiliation()).isEqualTo(Filiation.PIRATE);
-        // Rank should be recalculated for PIRATE at 100M bounty → SUPER_ROOKIE
-        assertThat(user.getRank()).isEqualTo("SUPER_ROOKIE");
-        verify(userRepository).save(user);
-    }
-
-    @Test
-    void updateProfile_switchToPirateWithAvatar_setsAvatarAndUpdatesRank() {
-        User user = buildUser(Filiation.MARINE, null);
-        when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
-        when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
-
-        UpdateProfileRequest request = new UpdateProfileRequest(Filiation.PIRATE, "ACE");
-        UserResponse response = userService.updateProfile(user.getId(), request);
-
-        assertThat(response.avatar()).isEqualTo("ACE");
-        assertThat(response.filiation()).isEqualTo(Filiation.PIRATE);
-        assertThat(user.getAvatar()).isEqualTo(Avatar.ACE);
-        assertThat(user.getRank()).isEqualTo("SUPER_ROOKIE");
         verify(userRepository).save(user);
     }
 
     @Test
     void updateProfile_invalidAvatarString_throwsBadRequest() {
-        User user = buildUser(Filiation.PIRATE, null);
+        User user = buildUser(null);
         when(userRepository.findById(user.getId())).thenReturn(Optional.of(user));
 
-        UpdateProfileRequest request = new UpdateProfileRequest(null, "INVALID");
+        UpdateProfileRequest request = new UpdateProfileRequest("INVALID");
 
         assertThatThrownBy(() -> userService.updateProfile(user.getId(), request))
                 .isInstanceOf(ResponseStatusException.class)
                 .hasMessageContaining("Invalid avatar value");
     }
 
-    private User buildUser(Filiation filiation, Avatar avatar) {
+    private User buildUser(Avatar avatar) {
         User user = User.builder()
                 .name("TestUser")
                 .email("test@example.com")
                 .passwordHash("hashedpassword")
-                .filiation(filiation)
                 .avatar(avatar)
-                .rank(BountyService.computeRank(BountyService.STARTING_BOUNTY, filiation))
+                .rank(BountyService.computeRank(BountyService.STARTING_BOUNTY))
                 .bounty(BountyService.STARTING_BOUNTY)
                 .wins(5)
                 .losses(3)

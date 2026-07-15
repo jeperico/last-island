@@ -1,5 +1,4 @@
 import type {
-  Filiation,
   ShipType,
   Orientation,
   ShotResult,
@@ -12,7 +11,6 @@ export interface RegisterRequest {
   name: string;
   email: string;
   password: string;
-  filiation: Filiation;
   avatar?: string | null;
 }
 
@@ -47,7 +45,6 @@ export interface UserResponse {
   id: string;
   name: string;
   email: string;
-  filiation: Filiation;
   rank: string;
   bounty: number;
   wins: number;
@@ -178,7 +175,6 @@ export interface BattleLogEntryResponse {
 export interface LeaderboardEntryResponse {
   position: number;
   name: string;
-  filiation: Filiation;
   wins: number;
   winRate: number;
   rank: string;
