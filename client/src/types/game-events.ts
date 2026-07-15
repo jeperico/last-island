@@ -66,6 +66,9 @@ export type LobbyEventType =
 export interface GameCreatedEventData {
   token: string;
   bluePlayerName: string;
+  bluePlayerAvatar: string;
+  bluePlayerBounty: number;
+  bluePlayerRank: string;
   createdAt: string;
 }
 

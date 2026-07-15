@@ -24,9 +24,9 @@ const wrapperSizeClasses = {
 
 // ─── Rank visual tiers ───────────────────────────────────────────────────────
 
-type RankTier = "default" | "rising" | "elite" | "legendary" | "mythical" | "king";
+export type RankTier = "default" | "rising" | "elite" | "legendary" | "mythical" | "king";
 
-function getRankTier(rank: string | null | undefined): RankTier {
+export function getRankTier(rank: string | null | undefined): RankTier {
   if (!rank) return "default";
   switch (rank) {
     case "ROOKIE":
@@ -53,7 +53,7 @@ function getRankTier(rank: string | null | undefined): RankTier {
 }
 
 // Border + glow styles per tier
-const tierStyles: Record<RankTier, { border: string; glow: string; animate: string }> = {
+export const tierStyles: Record<RankTier, { border: string; glow: string; animate: string }> = {
   default: {
     border: "border-2 border-border",
     glow: "",

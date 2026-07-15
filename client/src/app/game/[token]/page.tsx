@@ -11,7 +11,7 @@ import { useSound } from "@/lib/sound";
 import { ShipPlacement } from "./ship-placement";
 import { BattleScreen } from "./battle-screen";
 import { GameOverPanel } from "./game-over-panel";
-import { Spinner, Alert, Badge } from "@/components/ui";
+import { Spinner, Alert } from "@/components/ui";
 import { useWallpaper } from "@/lib/hooks";
 import { WallpaperModal } from "@/components/wallpaper-modal";
 
@@ -205,15 +205,8 @@ export default function GamePage() {
               Scanning the horizon…
             </h1>
             <p className="text-sm text-text-muted max-w-sm">
-              Your ship is anchored and ready. Share the token below so a
-              challenger can find you on the Grand Line.
+              Waiting for an opponent from the Grand Line…
             </p>
-          </div>
-          <div className="flex flex-col items-center gap-2">
-            <span className="text-xs uppercase tracking-wider text-text-muted font-medium">
-              Battle Token
-            </span>
-            <Badge variant="neutral">{token}</Badge>
           </div>
         </div>
       );

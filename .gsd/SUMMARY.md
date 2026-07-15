@@ -31,3 +31,11 @@ Implementer: modified `client/src/types/game.ts` (-16), `client/src/interfaces/a
 Reviewer: PASS — build ✓, lint 0 new errors (5 pre-existing), grep 0 filiation/marine matches, register no allegiance fieldset, ShipPlacement uses PIRATE_FLEET directly, leaderboard no tabs
 
 Commit: uncommitted
+
+## 2026-07-15T16:35 — Frontend: Remove 'Join by Token' functionality
+
+Implementer: deleted `client/src/lib/validations/join-game.ts` (-5); modified `client/src/app/page.tsx` (-38): removed useForm/zodResolver imports, joinGameSchema import, useForm call, onJoin handler, Join by Token form section, token display in game cards, Input import; modified `client/src/app/game/[token]/page.tsx` (-9/+2): replaced token-sharing prompt with simple waiting message, removed unused Badge import
+
+Reviewer: PASS — build ✓, lint 0 new errors (4 pre-existing errors same as before), grep 0 matches for joinGameSchema/JoinGameFormData/join-game/Battle Token/Enter game token/Share the token/Join by Token, handleJoinFromList+joinGame still present in lobby, WAITING_OPPONENT shows only "Waiting for an opponent from the Grand Line…"
+
+Commit: uncommitted

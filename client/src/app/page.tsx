@@ -2,8 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
+
 import Link from "next/link";
 import { useRequireAuth, useAuth } from "@/lib/auth";
 import { useLobbyEvents } from "@/lib/game";
@@ -27,20 +26,17 @@ import type {
   GameCreatedEventData,
   GameRemovedEventData,
 } from "@/types/game-events";
-import {
-  joinGameSchema,
-  type JoinGameFormData,
-} from "@/lib/validations/join-game";
+
 import {
   Alert,
   Button,
-  Input,
-  Card,
   Badge,
   EmptyState,
   Skeleton,
   Spinner,
   AvatarIcon,
+  getRankTier,
+  tierStyles,
 } from "@/components/ui";
 import { GameOverPanel } from "./game/[token]/game-over-panel";
 import { formatBounty } from "@/lib/format";
@@ -49,14 +45,6 @@ export default function Home() {
   const { user, isLoading } = useRequireAuth();
   const { logout } = useAuth();
   const router = useRouter();
-
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<JoinGameFormData>({
-    resolver: zodResolver(joinGameSchema),
-  });
 
   const [error, setError] = useState<string | null>(null);
   const [creatingGame, setCreatingGame] = useState(false);
@@ -154,6 +142,9 @@ export default function Home() {
             id: "",
             token: data.token,
             bluePlayerName: data.bluePlayerName,
+            bluePlayerAvatar: data.bluePlayerAvatar || null,
+            bluePlayerBounty: data.bluePlayerBounty,
+            bluePlayerRank: data.bluePlayerRank,
             createdAt: data.createdAt,
           };
           if (!prev) {
@@ -215,24 +206,6 @@ export default function Home() {
       setError(apiError.message ?? "Failed to create game");
     } finally {
       setCreatingGame(false);
-    }
-  }
-
-  async function onJoin(data: JoinGameFormData) {
-    setError(null);
-    setJoiningGame(true);
-    try {
-      const response = await joinGame(data.token.trim());
-      router.push(`/game/${response.token}`);
-    } catch (err) {
-      const apiError = err as ApiError;
-      if (apiError.status === 409 && apiError.message?.includes("own")) {
-        router.push(`/game/${data.token.trim()}`);
-      } else {
-        setError(apiError.message ?? "Failed to join game");
-      }
-    } finally {
-      setJoiningGame(false);
     }
   }
 
@@ -311,7 +284,7 @@ export default function Home() {
         )}
 
         {/* Two-column grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-[3fr_2fr] gap-8 lg:gap-[80px]">
+        <div className="grid grid-cols-1 lg:grid-cols-[3fr_2fr] gap-8 lg:gap-20">
           {/* Left column — Leaderboard + Battle Log */}
           <div>
             {/* Leaderboard section */}
@@ -343,7 +316,7 @@ export default function Home() {
                 leaderboard &&
                 leaderboard.entries.length > 0 && (
                   <div>
-                    <div className="h-60 overflow-y-auto overflow-x-auto custom-scrollbar">
+                    <div className="h-68 overflow-y-auto overflow-x-auto custom-scrollbar">
                       <table className="w-full text-sm table-fixed">
                         <colgroup>
                           <col className="w-10" />
@@ -431,13 +404,13 @@ export default function Home() {
                             </colgroup>
                             <tbody>
                               <tr className="bg-surface-secondary border-l-2 border-l-primary">
-                                <td className="py-3 px-2 font-bold text-text-secondary">
+                                <td className="py-2 px-2 font-bold text-text-secondary">
                                   {userEntry.position}
                                 </td>
-                                <td className="py-3 px-2 text-left text-secondary font-medium">
+                                <td className="py-2 px-2 text-left text-secondary font-medium">
                                   {formatBounty(userEntry.bounty)} ₿
                                 </td>
-                                <td className="py-3 px-2 text-left text-text-primary font-medium truncate">
+                                <td className="py-2 px-2 text-left text-text-primary font-medium truncate">
                                   <span className="inline-flex items-center gap-1.5">
                                     <AvatarIcon
                                       avatar={userEntry.avatar}
@@ -448,13 +421,13 @@ export default function Home() {
                                     {userEntry.name}
                                   </span>
                                 </td>
-                                <td className="py-3 px-2 text-left text-text-muted text-xs">
+                                <td className="py-2 px-2 text-left text-text-muted text-xs">
                                   {userEntry.rank.replace("_", " ")}
                                 </td>
-                                <td className="py-3 px-2 text-left text-text-secondary">
+                                <td className="py-2 px-2 text-left text-text-secondary">
                                   {userEntry.wins}
                                 </td>
-                                <td className="py-3 px-2 text-left text-text-secondary">
+                                <td className="py-2 px-2 text-left text-text-secondary">
                                   {Math.round(userEntry.winRate * 100)}%
                                 </td>
                               </tr>
@@ -532,7 +505,7 @@ export default function Home() {
           </div>
 
           {/* Right column — Games section (action-first on mobile) */}
-          <div className="order-first lg:order-none">
+          <div className="order-first lg:order-0">
             <section>
               <h2 className="mb-3 text-lg font-semibold text-text-primary">
                 ⚓ Battle Station
@@ -549,8 +522,11 @@ export default function Home() {
                 Start Battle
               </Button>
 
+              {/* Divider */}
+              <div className="my-4 border-t border-border" />
+
               {/* Active games list */}
-              <div className="mt-4">
+              <div>
                 {loadingGames && (
                   <div className="space-y-2">
                     <Skeleton height="3rem" className="w-full" />
@@ -569,56 +545,40 @@ export default function Home() {
                   )}
 
                 {!loadingGames && gamesPage && gamesPage.content.length > 0 && (
-                  <div className="max-h-[320px] overflow-y-auto space-y-2 custom-scrollbar pr-3">
-                    {gamesPage.content.map((game) => (
-                      <Card key={game.id} padding="sm">
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1">
-                            <p className="text-sm font-medium text-text-primary">
+                  <div className="max-h-80 overflow-y-auto space-y-2 custom-scrollbar rounded-lg">
+                    {gamesPage.content.map((game) => {
+                      const tier = getRankTier(game.bluePlayerRank);
+                      const style = tierStyles[tier];
+                      return (
+                        <button
+                          key={game.id || game.token}
+                          type="button"
+                          onClick={() => handleJoinFromList(game.token)}
+                          disabled={joiningGame}
+                          className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg ${style.border} ${style.glow} bg-surface hover:bg-surface-secondary transition-all duration-150 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed`}
+                        >
+                          <AvatarIcon
+                            avatar={game.bluePlayerAvatar}
+                            rank={game.bluePlayerRank}
+                            size="sm"
+                          />
+                          <div className="flex-1 text-left min-w-0">
+                            <p className="text-sm font-semibold text-text-primary truncate">
                               {game.bluePlayerName}
                             </p>
                             <p className="text-xs text-text-muted">
-                              Token: {game.token} · {formatDate(game.createdAt)}
+                              {game.bluePlayerRank?.replace("_", " ")} ·{" "}
+                              {formatDate(game.createdAt)}
                             </p>
                           </div>
-                          <Button
-                            variant="primary"
-                            size="sm"
-                            onClick={() => handleJoinFromList(game.token)}
-                            loading={joiningGame}
-                          >
-                            Join
-                          </Button>
-                        </div>
-                      </Card>
-                    ))}
+                          <span className="text-sm font-medium text-secondary whitespace-nowrap">
+                            {formatBounty(game.bluePlayerBounty)} ₿
+                          </span>
+                        </button>
+                      );
+                    })}
                   </div>
                 )}
-              </div>
-
-              {/* Join by token — compact form */}
-              <div className="mt-4 pt-4 border-t border-border-light">
-                <label className="text-sm text-text-secondary mb-1 block">
-                  Join by Token
-                </label>
-                <form onSubmit={handleSubmit(onJoin)} className="flex gap-2">
-                  <div className="flex-1">
-                    <Input
-                      id="join-token"
-                      placeholder="Enter game token"
-                      error={errors.token?.message}
-                      {...register("token")}
-                    />
-                  </div>
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    type="submit"
-                    loading={joiningGame}
-                  >
-                    Join
-                  </Button>
-                </form>
               </div>
             </section>
           </div>

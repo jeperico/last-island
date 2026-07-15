@@ -54,10 +54,14 @@ public final class GameMapper {
     }
 
     public static GameSummaryResponse toSummaryResponse(Game game) {
+        var owner = game.getBlueBoard().getOwner();
         return new GameSummaryResponse(
                 game.getId(),
                 game.getToken(),
-                game.getBlueBoard().getOwner().getName(),
+                owner.getName(),
+                owner.getAvatar() != null ? owner.getAvatar().name() : null,
+                owner.getBounty(),
+                owner.getRank(),
                 game.getCreatedAt()
         );
     }

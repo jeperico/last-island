@@ -63,6 +63,9 @@ export interface GameSummaryResponse {
   id: string;
   token: string;
   bluePlayerName: string;
+  bluePlayerAvatar: string | null;
+  bluePlayerBounty: number;
+  bluePlayerRank: string;
   createdAt: string;
 }
 
