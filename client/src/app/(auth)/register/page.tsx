@@ -17,7 +17,6 @@ const AVATAR_OPTIONS = [
   { key: "ZORO", name: "Zoro", image: "/avatars/zoro/profile.jpg" },
   { key: "ROBIN", name: "Robin", image: "/avatars/robin/profile.jpg" },
   { key: "CHOPPER", name: "Chopper", image: "/avatars/chopper/profile.jpg" },
-  { key: "NAMI", name: "Nami", image: "/avatars/nami/profile.jpg" },
   { key: "ACE", name: "Ace", image: "/avatars/ace/profile.jpg" },
   { key: "DOFLAMINGO", name: "Doflamingo", image: "/avatars/doflamingo/profile.jpg" },
 ] as const;
