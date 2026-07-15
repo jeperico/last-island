@@ -236,13 +236,6 @@ export default function Home() {
     }
   }
 
-  const podiumMedals = ["🥇", "🥈", "🥉"] as const;
-  const podiumBgColors = [
-    "bg-gold-bg",
-    "bg-silver-bg",
-    "bg-bronze-bg",
-  ] as const;
-
   return (
     <div className="flex flex-col flex-1 items-center px-4 py-8">
       <div className="w-full max-w-7xl">
@@ -291,14 +284,14 @@ export default function Home() {
             {/* Leaderboard section */}
             <section>
               <h2 className="mb-4 text-lg font-semibold text-text-primary">
-                Leaderboard
+                🏆 Leaderboard
               </h2>
 
               {loadingLeaderboard && (
                 <div className="space-y-2">
-                  <Skeleton height="3.5rem" className="w-full" />
-                  <Skeleton height="3.5rem" className="w-full" />
-                  <Skeleton height="3.5rem" className="w-full" />
+                  <Skeleton height="3.5rem" className="w-full rounded-lg" />
+                  <Skeleton height="3.5rem" className="w-full rounded-lg" />
+                  <Skeleton height="3.5rem" className="w-full rounded-lg" />
                 </div>
               )}
 
@@ -316,124 +309,109 @@ export default function Home() {
               {!loadingLeaderboard &&
                 leaderboard &&
                 leaderboard.entries.length > 0 && (
-                  <div>
-                    <div className="h-68 overflow-y-auto overflow-x-auto custom-scrollbar">
-                      <table className="w-full text-sm table-fixed">
-                        <colgroup>
-                          <col className="w-10" />
-                          <col className="w-20" />
-                          <col />
-                          <col className="w-48" />
-                          <col className="w-14" />
-                          <col className="w-18" />
-                        </colgroup>
-                        <thead className="sticky top-0 bg-surface z-20">
-                          <tr className="text-text-muted text-xs border-b border-border-light">
-                            <th className="py-2 px-2 text-left">#</th>
-                            <th className="py-2 px-2 text-left">Bounty</th>
-                            <th className="py-2 px-2 text-left">Name</th>
-                            <th className="py-2 px-2 text-left">Rank</th>
-                            <th className="py-2 px-2 text-left">Wins</th>
-                            <th className="py-2 px-2 text-left">Win Rate</th>
-                          </tr>
-                        </thead>
-                        <tbody className="space-y-1">
-                          {leaderboard.entries.map((entry) => (
-                            <tr
-                              key={`${entry.position}-${entry.name}`}
-                              className={`hover:bg-surface-secondary border-l-2 ${
-                                entry.isCurrentUser
-                                  ? "bg-surface-secondary border-l-primary"
-                                  : entry.position <= 3
-                                    ? `${podiumBgColors[entry.position - 1]} border-l-transparent`
-                                    : "border-l-transparent"
-                              }`}
+                  <div className="rounded-xl border border-border bg-surface overflow-hidden">
+                    {/* Top 3 podium */}
+                    {leaderboard.entries.filter(e => e.position <= 3).length > 0 && (
+                      <div className="grid grid-cols-3 gap-px bg-border-light">
+                        {[1, 2, 3].map((pos) => {
+                          const entry = leaderboard.entries.find(e => e.position === pos);
+                          if (!entry) return <div key={pos} className="bg-surface-secondary/30 p-3" />;
+                          const avatarBg = entry.avatar
+                            ? `/avatars/${entry.avatar.toLowerCase()}/${entry.avatar.toLowerCase()}-bg-02.jpg`
+                            : null;
+                          return (
+                            <div
+                              key={pos}
+                              className={`relative p-3 flex flex-col items-center gap-1.5 overflow-hidden ${entry.isCurrentUser ? "ring-2 ring-inset ring-primary/50" : ""}`}
                             >
-                              <td className="py-2 px-2 font-bold text-text-secondary">
-                                {entry.position <= 3
-                                  ? podiumMedals[entry.position - 1]
-                                  : entry.position}
-                              </td>
-                              <td className="py-2 px-2 text-left text-secondary font-medium">
-                                {formatBounty(entry.bounty)} ₿
-                              </td>
-                              <td className="py-2 px-2 text-left text-text-primary font-medium truncate">
-                                <span className="inline-flex items-center gap-1.5">
-                                  <AvatarIcon
-                                    avatar={entry.avatar}
-                                    rank={entry.rank}
-                                    size="sm"
-                                    className="inline-block"
+                              {/* Avatar background */}
+                              {avatarBg && (
+                                <div className="absolute inset-0 overflow-hidden">
+                                  <div
+                                    className="absolute top-1/2 left-1/2 w-[200%] h-[200%] -translate-x-1/2 -translate-y-1/2 -rotate-90 bg-contain bg-center bg-no-repeat"
+                                    style={{ backgroundImage: `url(${avatarBg})` }}
                                   />
-                                  {entry.name}
-                                </span>
-                              </td>
-                              <td className="py-2 px-2 text-left text-text-muted text-xs">
-                                {entry.rank.replace("_", " ")}
-                              </td>
-                              <td className="py-2 px-2 text-left text-text-secondary">
-                                {entry.wins}
-                              </td>
-                              <td className="py-2 px-2 text-left text-text-secondary">
-                                {Math.round(entry.winRate * 100)}%
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
+                                </div>
+                              )}
+                              {/* Color gradient overlay */}
+                              <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-black/30" />
+                              <AvatarIcon avatar={entry.avatar} rank={entry.rank} size="lg" className="relative z-10" />
+                              <p className="relative z-10 text-sm font-bold text-white truncate max-w-full text-center drop-shadow-md">
+                                {entry.name}
+                              </p>
+                              <p className="relative z-10 text-xs font-bold text-secondary drop-shadow-md">
+                                {formatBounty(entry.bounty)} ₿
+                              </p>
+                              <p className="relative z-10 text-[10px] text-white/70">
+                                {entry.wins}W · {Math.round(entry.winRate * 100)}%
+                              </p>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+
+                    {/* Rest of rankings */}
+                    <div className="max-h-52 overflow-y-auto custom-scrollbar divide-y divide-border-light">
+                      {leaderboard.entries.filter(e => e.position > 3).map((entry) => (
+                        <div
+                          key={`${entry.position}-${entry.name}`}
+                          className={`flex items-center gap-3 px-4 py-2.5 transition-colors hover:bg-surface-secondary ${
+                            entry.isCurrentUser ? "bg-primary/5 border-l-2 border-l-primary" : ""
+                          }`}
+                        >
+                          <span className="w-6 text-center text-xs font-bold text-text-muted">
+                            {entry.position}
+                          </span>
+                          <AvatarIcon avatar={entry.avatar} rank={entry.rank} size="sm" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-text-primary truncate">
+                              {entry.name}
+                            </p>
+                            <p className="text-xs text-text-muted">
+                              {entry.rank.replace("_", " ")}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm font-semibold text-secondary">
+                              {formatBounty(entry.bounty)} ₿
+                            </p>
+                            <p className="text-[10px] text-text-muted">
+                              {entry.wins}W · {Math.round(entry.winRate * 100)}%
+                            </p>
+                          </div>
+                        </div>
+                      ))}
                     </div>
 
-                    {/* Your position — shown when relevant */}
+                    {/* Your position — pinned footer */}
                     {(() => {
                       const userEntry =
                         leaderboard.currentUserEntry ??
                         leaderboard.entries.find((e) => e.isCurrentUser);
-                      if (!userEntry) return null;
+                      if (!userEntry || userEntry.position <= 3) return null;
                       return (
-                        <div className="mt-4 pt-4 border-t border-border-light">
-                          <p className="text-xs text-text-muted mb-2">
-                            Your position
-                          </p>
-                          <table className="w-full text-sm table-fixed">
-                            <colgroup>
-                              <col className="w-10" />
-                              <col className="w-20" />
-                              <col />
-                              <col className="w-48" />
-                              <col className="w-14" />
-                              <col className="w-18" />
-                            </colgroup>
-                            <tbody>
-                              <tr className="bg-surface-secondary border-l-2 border-l-primary">
-                                <td className="py-2 px-2 font-bold text-text-secondary">
-                                  {userEntry.position}
-                                </td>
-                                <td className="py-2 px-2 text-left text-secondary font-medium">
-                                  {formatBounty(userEntry.bounty)} ₿
-                                </td>
-                                <td className="py-2 px-2 text-left text-text-primary font-medium truncate">
-                                  <span className="inline-flex items-center gap-1.5">
-                                    <AvatarIcon
-                                      avatar={userEntry.avatar}
-                                      rank={userEntry.rank}
-                                      size="sm"
-                                      className="inline-block"
-                                    />
-                                    {userEntry.name}
-                                  </span>
-                                </td>
-                                <td className="py-2 px-2 text-left text-text-muted text-xs">
-                                  {userEntry.rank.replace("_", " ")}
-                                </td>
-                                <td className="py-2 px-2 text-left text-text-secondary">
-                                  {userEntry.wins}
-                                </td>
-                                <td className="py-2 px-2 text-left text-text-secondary">
-                                  {Math.round(userEntry.winRate * 100)}%
-                                </td>
-                              </tr>
-                            </tbody>
-                          </table>
+                        <div className="border-t border-border bg-surface-secondary/50 flex items-center gap-3 px-4 py-2.5">
+                          <span className="w-6 text-center text-xs font-bold text-primary">
+                            {userEntry.position}
+                          </span>
+                          <AvatarIcon avatar={userEntry.avatar} rank={userEntry.rank} size="sm" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-text-primary truncate">
+                              {userEntry.name} <span className="text-xs text-primary">(you)</span>
+                            </p>
+                            <p className="text-xs text-text-muted">
+                              {userEntry.rank.replace("_", " ")}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm font-semibold text-secondary">
+                              {formatBounty(userEntry.bounty)} ₿
+                            </p>
+                            <p className="text-[10px] text-text-muted">
+                              {userEntry.wins}W · {Math.round(userEntry.winRate * 100)}%
+                            </p>
+                          </div>
                         </div>
                       );
                     })()}
