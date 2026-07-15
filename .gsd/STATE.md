@@ -2,7 +2,7 @@
 
 ## Position
 
-Plan written — Frontend: Avatar display across screens (battle, game over, leaderboard, dashboard)
+Plan written — Frontend: Audio system (sound manager, laugh/scream/soundtrack triggers, mute setting)
 
 ## Decisions
 
@@ -18,4 +18,4 @@ Plan written — Frontend: Avatar display across screens (battle, game over, lea
 
 ## Last verification
 
-PASS at 2026-07-15T10:58 — client-build ✓, client-lint 9 issues (all pre-existing, none introduced), service-test ✓, all 9 files verified
+PASS at 2026-07-15T11:17 — client-build ✓, client-lint 9 issues (all pre-existing, none introduced), all 21 MP3 placeholders exist, sound wiring confirmed in 6 source files

@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { useRequireAuth, useAuth } from "@/lib/auth";
 import { getGame, getProfile } from "@/lib/api";
 import type { GamePhase, GameStateResponse } from "@/lib/api/types";
 import { useGameEvents } from "@/lib/game";
+import { useSound } from "@/lib/sound";
 import { ShipPlacement } from "./ship-placement";
 import { BattleScreen } from "./battle-screen";
 import { GameOverPanel } from "./game-over-panel";
@@ -22,6 +23,9 @@ export default function GamePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentBounty, setCurrentBounty] = useState<number>(0);
+
+  const { playSoundtrack, stopSoundtrack, playLaugh, playScream } = useSound();
+  const prevPhaseRef = useRef<GamePhase | null>(null);
 
   // Initial fetch on mount (after auth resolves)
   useEffect(() => {
@@ -66,6 +70,33 @@ export default function GamePage() {
     }
   }, [gameState?.phase]);
 
+  // Soundtrack lifecycle: start on IN_PROGRESS, stop on unmount
+  useEffect(() => {
+    if (gameState?.phase === "IN_PROGRESS") {
+      const myAvatar = gameState.bluePlayerName === user?.name
+        ? gameState.bluePlayerAvatar : gameState.redPlayerAvatar;
+      playSoundtrack(myAvatar);
+    }
+    return () => { stopSoundtrack(); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gameState?.phase === "IN_PROGRESS"]);
+
+  // Game-over audio: fire once on IN_PROGRESS → FINISHED transition
+  useEffect(() => {
+    if (prevPhaseRef.current === "IN_PROGRESS" && gameState?.phase === "FINISHED" && user) {
+      const myAvatar = gameState.bluePlayerName === user.name
+        ? gameState.bluePlayerAvatar : gameState.redPlayerAvatar;
+      stopSoundtrack();
+      if (gameState.winnerName === user.name) {
+        playLaugh(myAvatar);
+      } else {
+        playScream(myAvatar);
+      }
+    }
+    prevPhaseRef.current = gameState?.phase ?? null;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gameState?.phase]);
+
   useGameEvents(
     token,
     {
@@ -75,19 +106,34 @@ export default function GamePage() {
       onShipsPlaced: () => {
         refetchGame();
       },
-      onShotReceived: () => {
+      onShotReceived: (data) => {
+        if (data.result === "SUNK") {
+          const myAvatar = gameState?.bluePlayerName === user?.name
+            ? gameState?.bluePlayerAvatar : gameState?.redPlayerAvatar;
+          playScream(myAvatar ?? null);
+        }
         refetchGame();
       },
-      onGameOver: () => {
+      onGameOver: (data) => {
+        stopSoundtrack();
+        const myAvatar = gameState?.bluePlayerName === user?.name
+          ? gameState?.bluePlayerAvatar : gameState?.redPlayerAvatar;
+        if (data.winnerName === user?.name) {
+          playLaugh(myAvatar ?? null);
+        } else {
+          playScream(myAvatar ?? null);
+        }
         refetchGame();
       },
       onTurnExpired: () => {
         refetchGame();
       },
       onGameExpired: () => {
+        stopSoundtrack();
         refetchGame();
       },
       onSurrender: () => {
+        stopSoundtrack();
         refetchGame();
       },
     },

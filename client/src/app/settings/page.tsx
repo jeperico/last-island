@@ -6,6 +6,7 @@ import { useRequireAuth, useAuth } from "@/lib/auth";
 import { updateProfile } from "@/lib/api";
 import type { ApiError } from "@/lib/api/client";
 import type { Filiation } from "@/lib/api/types";
+import { useSound } from "@/lib/sound";
 import {
   PageHeader,
   Card,
@@ -18,20 +19,20 @@ import {
 // ─── Avatar options ──────────────────────────────────────────────────────────
 
 const AVATAR_OPTIONS = [
-  { key: "LUFFY", name: "Luffy", image: "/avatars/luffy/profile.svg" },
-  { key: "ZORO", name: "Zoro", image: "/avatars/zoro/profile.svg" },
-  { key: "ROBIN", name: "Robin", image: "/avatars/robin/profile.svg" },
-  { key: "CHOPPER", name: "Chopper", image: "/avatars/chopper/profile.svg" },
-  { key: "NAMI", name: "Nami", image: "/avatars/nami/profile.svg" },
-  { key: "ACE", name: "Ace", image: "/avatars/ace/profile.svg" },
+  { key: "LUFFY", name: "Luffy", image: "/avatars/luffy/profile.jpg" },
+  { key: "ZORO", name: "Zoro", image: "/avatars/zoro/profile.jpg" },
+  { key: "ROBIN", name: "Robin", image: "/avatars/robin/profile.jpg" },
+  { key: "CHOPPER", name: "Chopper", image: "/avatars/chopper/profile.jpg" },
+  { key: "NAMI", name: "Nami", image: "/avatars/nami/profile.jpg" },
+  { key: "ACE", name: "Ace", image: "/avatars/ace/profile.jpg" },
 ] as const;
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function getAvatarImage(avatar: string | null): string {
-  if (!avatar) return "/avatars/luffy/profile.svg";
+  if (!avatar) return "/avatars/luffy/profile.jpg";
   const option = AVATAR_OPTIONS.find((o) => o.key === avatar);
-  return option?.image ?? "/avatars/luffy/profile.svg";
+  return option?.image ?? "/avatars/luffy/profile.jpg";
 }
 
 function formatBounty(bounty: number): string {
@@ -51,9 +52,12 @@ function formatBounty(bounty: number): string {
 export default function SettingsPage() {
   const { user, isLoading } = useRequireAuth();
   const { logout, refreshUser } = useAuth();
+  const { isMuted, toggleMute } = useSound();
 
   const [error, setError] = useState<string | null>(null);
-  const [savingFiliation, setSavingFiliation] = useState<Filiation | null>(null);
+  const [savingFiliation, setSavingFiliation] = useState<Filiation | null>(
+    null,
+  );
   const [savingAvatar, setSavingAvatar] = useState<string | null>(null);
   const [showMarineWarning, setShowMarineWarning] = useState(false);
 
@@ -136,7 +140,11 @@ export default function SettingsPage() {
           <div className="flex items-center gap-6">
             {/* Avatar */}
             <img
-              src={user.avatar ? getAvatarImage(user.avatar) : "/avatars/luffy/profile.svg"}
+              src={
+                user.avatar
+                  ? getAvatarImage(user.avatar)
+                  : "/avatars/luffy/profile.jpg"
+              }
               alt={`${user.name}'s avatar`}
               className="w-24 h-24 rounded-full border-2 border-border object-cover"
             />
@@ -147,7 +155,9 @@ export default function SettingsPage() {
               </h2>
               <p className="text-sm text-text-muted truncate">{user.email}</p>
               <div className="flex flex-wrap items-center gap-2 mt-3">
-                <Badge variant={user.filiation === "PIRATE" ? "warning" : "neutral"}>
+                <Badge
+                  variant={user.filiation === "PIRATE" ? "warning" : "neutral"}
+                >
                   {user.filiation === "PIRATE" ? "🏴‍☠️ Pirate" : "⚓ Marine"}
                 </Badge>
                 <span className="text-sm text-text-secondary">
@@ -172,7 +182,8 @@ export default function SettingsPage() {
 
           {showMarineWarning && (
             <Alert variant="warning" className="mb-4">
-              Switching to Marine will clear your avatar and recalculate your rank.
+              Switching to Marine will clear your avatar and recalculate your
+              rank.
             </Alert>
           )}
 
@@ -186,7 +197,9 @@ export default function SettingsPage() {
                 user.filiation === "PIRATE"
                   ? "border-primary ring-2 ring-primary bg-primary/10 text-text-primary"
                   : "border-border text-text-secondary hover:border-primary/50",
-                savingFiliation !== null ? "opacity-50 pointer-events-none" : "",
+                savingFiliation !== null
+                  ? "opacity-50 pointer-events-none"
+                  : "",
               ].join(" ")}
             >
               {savingFiliation === "PIRATE" ? (
@@ -204,7 +217,9 @@ export default function SettingsPage() {
                 user.filiation === "MARINE"
                   ? "border-primary ring-2 ring-primary bg-primary/10 text-text-primary"
                   : "border-border text-text-secondary hover:border-primary/50",
-                savingFiliation !== null ? "opacity-50 pointer-events-none" : "",
+                savingFiliation !== null
+                  ? "opacity-50 pointer-events-none"
+                  : "",
               ].join(" ")}
             >
               {savingFiliation === "MARINE" ? (
@@ -255,6 +270,36 @@ export default function SettingsPage() {
             </div>
           </Card>
         )}
+
+        {/* Sound section */}
+        <Card className="mb-6">
+          <h3 className="text-lg font-semibold text-text-primary mb-4">
+            Sound
+          </h3>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-text-secondary">Sound effects & music</p>
+              <p className="text-xs text-text-muted">
+                Laughs, screams, and battle soundtrack
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={toggleMute}
+              className={[
+                "relative inline-flex h-7 w-12 items-center rounded-full transition-colors cursor-pointer",
+                isMuted ? "bg-surface-secondary" : "bg-primary",
+              ].join(" ")}
+            >
+              <span
+                className={[
+                  "inline-block h-5 w-5 transform rounded-full bg-white transition-transform",
+                  isMuted ? "translate-x-1" : "translate-x-6",
+                ].join(" ")}
+              />
+            </button>
+          </div>
+        </Card>
 
         {/* Logout section */}
         <div className="pt-4">

@@ -13,12 +13,12 @@ import {
 import { Alert, Input, Button } from "@/components/ui";
 
 const AVATAR_OPTIONS = [
-  { key: "LUFFY", name: "Luffy", image: "/avatars/luffy/profile.svg" },
-  { key: "ZORO", name: "Zoro", image: "/avatars/zoro/profile.svg" },
-  { key: "ROBIN", name: "Robin", image: "/avatars/robin/profile.svg" },
-  { key: "CHOPPER", name: "Chopper", image: "/avatars/chopper/profile.svg" },
-  { key: "NAMI", name: "Nami", image: "/avatars/nami/profile.svg" },
-  { key: "ACE", name: "Ace", image: "/avatars/ace/profile.svg" },
+  { key: "LUFFY", name: "Luffy", image: "/avatars/luffy/profile.jpg" },
+  { key: "ZORO", name: "Zoro", image: "/avatars/zoro/profile.jpg" },
+  { key: "ROBIN", name: "Robin", image: "/avatars/robin/profile.jpg" },
+  { key: "CHOPPER", name: "Chopper", image: "/avatars/chopper/profile.jpg" },
+  { key: "NAMI", name: "Nami", image: "/avatars/nami/profile.jpg" },
+  { key: "ACE", name: "Ace", image: "/avatars/ace/profile.jpg" },
 ] as const;
 
 export default function RegisterPage() {
@@ -50,7 +50,13 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      await auth.register(data.name, data.email, data.password, data.filiation, data.avatar ?? null);
+      await auth.register(
+        data.name,
+        data.email,
+        data.password,
+        data.filiation,
+        data.avatar ?? null,
+      );
       // Navigation handled by useRedirectIfAuthenticated once isAuthenticated flips
     } catch (err) {
       if (err instanceof ApiError) {
@@ -135,7 +141,13 @@ export default function RegisterPage() {
             <button
               type="button"
               onClick={() =>
-                setValue("filiation", filiation === "PIRATE" ? (undefined as unknown as "PIRATE") : "PIRATE", { shouldValidate: true })
+                setValue(
+                  "filiation",
+                  filiation === "PIRATE"
+                    ? (undefined as unknown as "PIRATE")
+                    : "PIRATE",
+                  { shouldValidate: true },
+                )
               }
               className={`relative flex flex-col items-center gap-2 rounded-lg border-2 px-4 py-5 transition-all duration-200 cursor-pointer ${
                 filiation === "PIRATE"
@@ -152,19 +164,29 @@ export default function RegisterPage() {
               <span className="text-4xl">🏴‍☠️</span>
               <span
                 className={`text-sm font-semibold ${
-                  filiation === "PIRATE" ? "text-secondary" : "text-text-primary"
+                  filiation === "PIRATE"
+                    ? "text-secondary"
+                    : "text-text-primary"
                 }`}
               >
                 Pirate
               </span>
-              <span className={`text-xs font-bold ${filiation === "PIRATE" ? "text-secondary/80" : "text-text-secondary"}`}>
+              <span
+                className={`text-xs font-bold ${filiation === "PIRATE" ? "text-secondary/80" : "text-text-secondary"}`}
+              >
                 Freedom on the seas
               </span>
             </button>
             <button
               type="button"
               onClick={() => {
-                setValue("filiation", filiation === "MARINE" ? (undefined as unknown as "MARINE") : "MARINE", { shouldValidate: true });
+                setValue(
+                  "filiation",
+                  filiation === "MARINE"
+                    ? (undefined as unknown as "MARINE")
+                    : "MARINE",
+                  { shouldValidate: true },
+                );
                 setValue("avatar", null);
               }}
               className={`relative flex flex-col items-center gap-2 rounded-lg border-2 px-4 py-5 transition-all duration-200 cursor-pointer ${
@@ -182,12 +204,18 @@ export default function RegisterPage() {
               <span className="text-4xl">⚓</span>
               <span
                 className={`text-sm font-semibold ${
-                  filiation === "MARINE" ? "text-secondary" : "text-text-primary"
+                  filiation === "MARINE"
+                    ? "text-secondary"
+                    : "text-text-primary"
                 }`}
               >
                 Marine
               </span>
-              <span className={`text-xs font-bold ${filiation === "MARINE" ? "text-secondary/80" : "text-text-secondary"}`}>Justice above all</span>
+              <span
+                className={`text-xs font-bold ${filiation === "MARINE" ? "text-secondary/80" : "text-text-secondary"}`}
+              >
+                Justice above all
+              </span>
             </button>
           </div>
           {errors.filiation && (
@@ -207,7 +235,9 @@ export default function RegisterPage() {
                 <button
                   key={opt.key}
                   type="button"
-                  onClick={() => setValue("avatar", avatar === opt.key ? null : opt.key)}
+                  onClick={() =>
+                    setValue("avatar", avatar === opt.key ? null : opt.key)
+                  }
                   className={`flex flex-col items-center gap-2 p-3 rounded-lg border-2 transition-all duration-200 cursor-pointer ${
                     avatar === opt.key
                       ? "border-primary ring-2 ring-primary bg-primary/10"

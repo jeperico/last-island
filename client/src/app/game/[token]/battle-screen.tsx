@@ -13,6 +13,7 @@ import { CountdownTimer } from "@/components/ui";
 import { AvatarIcon } from "@/components/ui";
 import { BoardGrid, type CellState } from "./board-grid";
 import { SurrenderModal } from "@/components/surrender-modal";
+import { useSound } from "@/lib/sound";
 
 interface BattleScreenProps {
   gameState: GameStateResponse;
@@ -36,6 +37,7 @@ export function BattleScreen({
   );
   const [surrenderOpen, setSurrenderOpen] = useState(false);
   const [surrendering, setSurrendering] = useState(false);
+  const { playLaugh } = useSound();
 
   const isMyTurn = gameState.currentTurnPlayerName === user.name;
 
@@ -91,6 +93,10 @@ export function BattleScreen({
         };
         setOptimisticShots((prev) => [...prev, newShot]);
 
+        if (response.result === "SUNK") {
+          playLaugh(myAvatar);
+        }
+
         if (response.gameOver) {
           // Refetch full game state to trigger FINISHED phase in parent
           const updatedState = await getGame(gameToken);
@@ -106,7 +112,7 @@ export function BattleScreen({
         setFiring(false);
       }
     },
-    [isMyTurn, firing, allShotsFired, gameToken, onGameStateUpdate],
+    [isMyTurn, firing, allShotsFired, gameToken, onGameStateUpdate, playLaugh, myAvatar],
   );
 
   const handleSurrender = useCallback(async () => {

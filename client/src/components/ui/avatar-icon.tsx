@@ -18,8 +18,8 @@ export function AvatarIcon({
   highlight = "none",
 }: AvatarIconProps) {
   const src = avatar
-    ? `/avatars/${avatar.toLowerCase()}/profile.svg`
-    : "/avatars/default/profile.svg";
+    ? `/avatars/${avatar.toLowerCase()}/profile.jpg`
+    : "/avatars/default/profile.jpg";
 
   const highlightClass = highlight === "gold" ? "ring-2 ring-gold" : "";
 
