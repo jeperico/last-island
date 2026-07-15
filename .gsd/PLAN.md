@@ -1,144 +1,125 @@
-# Backend: Avatar Data Model + API
+# Frontend: Settings/Profile Page
 
 ## Objective
 
-Add a nullable Avatar enum to the User entity with a Flyway migration, expose it in all relevant API responses (auth/me, game state, leaderboard), create a PUT /users/me endpoint for profile updates (avatar + filiation switching), and add unit tests for the update logic.
+Create a `/settings` page with read-only profile stats, avatar selection (pirates only), filiation switch, and logout — wiring up the existing backend PUT /users/me endpoint with auth context refresh.
 
 ## Files to touch
 
-- **create** `service/src/main/resources/db/migration/V8__add_avatar_column.sql`
-- **create** `service/src/main/java/com/last_island/api/domain/user/enums/Avatar.java`
-- **modify** `service/src/main/java/com/last_island/api/domain/user/entity/User.java` — add avatar field
-- **create** `service/src/main/java/com/last_island/api/domain/user/dto/UpdateProfileRequest.java`
-- **modify** `service/src/main/java/com/last_island/api/domain/user/dto/RegisterRequest.java` — add optional avatar field
-- **modify** `service/src/main/java/com/last_island/api/domain/user/dto/UserResponse.java` — add avatar field
-- **modify** `service/src/main/java/com/last_island/api/domain/user/dto/LeaderboardEntryResponse.java` — add avatar field
-- **modify** `service/src/main/java/com/last_island/api/domain/game/dto/GameStateResponse.java` — add bluePlayerAvatar, redPlayerAvatar fields
-- **modify** `service/src/main/java/com/last_island/api/domain/user/mapper/UserMapper.java` — map avatar to response
-- **modify** `service/src/main/java/com/last_island/api/domain/game/mapper/GameMapper.java` — map player avatars to GameStateResponse
-- **modify** `service/src/main/java/com/last_island/api/domain/user/service/LeaderboardService.java` — pass avatar to LeaderboardEntryResponse
-- **modify** `service/src/main/java/com/last_island/api/domain/user/service/AuthService.java` — handle avatar in register
-- **create** `service/src/main/java/com/last_island/api/domain/user/service/UserService.java` — updateProfile logic
-- **modify** `service/src/main/java/com/last_island/api/domain/user/controller/UserController.java` — add PUT /me endpoint
-- **create** `service/src/test/java/com/last_island/api/domain/user/service/UserServiceTest.java` — unit tests
+- `client/src/interfaces/api.ts` — modify (add `avatar` field to `UserResponse` and `LeaderboardEntryResponse`)
+- `client/src/interfaces/auth.ts` — modify (add `refreshUser` to `AuthContextValue`)
+- `client/src/lib/auth/auth-context.tsx` — modify (implement `refreshUser` callback, expose in context value)
+- `client/src/lib/api/client.ts` — modify (add `apiPut` function)
+- `client/src/lib/api/users.ts` — modify (add `updateProfile` function)
+- `client/src/lib/api/index.ts` — modify (re-export `updateProfile`)
+- `client/src/app/settings/page.tsx` — create (the settings page)
+- `client/src/app/page.tsx` — modify (add settings gear link in PageHeader actions)
+- `client/public/avatars/luffy/profile.svg` — create (placeholder)
+- `client/public/avatars/zoro/profile.svg` — create (placeholder)
+- `client/public/avatars/robin/profile.svg` — create (placeholder)
+- `client/public/avatars/chopper/profile.svg` — create (placeholder)
+- `client/public/avatars/nami/profile.svg` — create (placeholder)
+- `client/public/avatars/ace/profile.svg` — create (placeholder)
 
 ## Steps
 
-1. **Create Flyway migration V8__add_avatar_column.sql**
-   ```sql
-   ALTER TABLE users ADD COLUMN avatar VARCHAR(20);
-   ```
-   Nullable by default, no constraint needed (validation in app layer).
+1. **Add `avatar` field to frontend interfaces** (`client/src/interfaces/api.ts`)
+   - Add `avatar: string | null;` to `UserResponse` (after `losses`)
+   - Add `avatar: string | null;` to `LeaderboardEntryResponse` (after `bounty`, before `isCurrentUser`)
 
-2. **Create Avatar enum** in `com.last_island.api.domain.user.enums`:
-   ```java
-   public enum Avatar {
-       LUFFY, ZORO, ROBIN, CHOPPER, NAMI, ACE
-   }
-   ```
+2. **Add `apiPut` to API client** (`client/src/lib/api/client.ts`)
+   - Copy `apiPost` pattern, change method to `"PUT"`
+   - Export `apiPut<T>(path: string, body?: unknown): Promise<T>`
 
-3. **Add avatar field to User entity**:
-   ```java
-   @Enumerated(EnumType.STRING)
-   private Avatar avatar;
-   ```
-   No `@Column(nullable = false)` — nullable by default. Lombok @Builder will handle it.
+3. **Add `updateProfile` API function** (`client/src/lib/api/users.ts`)
+   - `export function updateProfile(data: { filiation?: Filiation | null; avatar?: string | null }): Promise<UserResponse>` 
+   - Calls `apiPut<UserResponse>("/api/users/me", data)`
+   - Import `apiPut` from `./client` and `UserResponse` + `Filiation` from `./types`
 
-4. **Add avatar to RegisterRequest**:
-   ```java
-   record RegisterRequest(String name, String email, String password, Filiation filiation, String avatar)
-   ```
-   Field is `String` to allow null and deferred enum parsing in service.
+4. **Re-export `updateProfile`** (`client/src/lib/api/index.ts`)
+   - Add `updateProfile` to the `users.ts` re-export line
 
-5. **Modify AuthService.register** — after building user, parse avatar if provided:
-   - If `request.avatar()` is non-null and filiation is PIRATE, parse to `Avatar.valueOf(request.avatar())` (wrap in try-catch, throw 400 on invalid value).
-   - If filiation is MARINE and avatar is non-null, throw 400 ("Marines cannot select an avatar").
-   - Set `.avatar(parsedAvatar)` on the user builder.
+5. **Add `refreshUser` to auth context interface** (`client/src/interfaces/auth.ts`)
+   - Add `refreshUser: () => Promise<void>;` to `AuthContextValue`
 
-6. **Add avatar to UserResponse**:
-   ```java
-   record UserResponse(UUID id, String name, String email, Filiation filiation, String rank, long bounty, int wins, int losses, String avatar)
-   ```
+6. **Implement `refreshUser` in auth context** (`client/src/lib/auth/auth-context.tsx`)
+   - Add a `refreshUser` callback that calls `getProfile()` and calls `setUser(profile)`
+   - Wrap in `useCallback` with no dependencies (like `login`)
+   - Pass `refreshUser` in the context provider value object
 
-7. **Update UserMapper.toResponse** — add `user.getAvatar() != null ? user.getAvatar().name() : null` as the avatar field.
+7. **Create avatar placeholder SVGs** (`client/public/avatars/{name}/profile.svg`)
+   - Create 6 minimal SVG files (one per character: luffy, zoro, robin, chopper, nami, ace)
+   - Each SVG: 200×200 colored circle with character initial(s) in white text
+   - Color palette per character:
+     - luffy: #DD2222 (red), initial "L"
+     - zoro: #228B22 (green), initial "Z"
+     - robin: #6B3FA0 (purple), initial "R"
+     - chopper: #FF69B4 (pink), initial "C"
+     - nami: #FF8C00 (orange), initial "N"
+     - ace: #FF4500 (red-orange), initial "A"
 
-8. **Add avatar to LeaderboardEntryResponse**:
-   ```java
-   record LeaderboardEntryResponse(int position, String name, String filiation, int wins, double winRate, String rank, long bounty, boolean isCurrentUser, String avatar)
-   ```
+8. **Create settings page** (`client/src/app/settings/page.tsx`)
+   - `"use client"` directive
+   - Use `useRequireAuth()` guard pattern with Spinner fallback
+   - Use `useAuth()` for `logout` and `refreshUser`
+   - Import UI components: `PageHeader`, `Card`, `Badge`, `Button`, `Alert`, `Spinner`
+   - Import `Link` from `next/link` for back navigation
+   - Import `updateProfile` from `@/lib/api`
+   - Define AVATAR_OPTIONS array: `[{ key: "LUFFY", name: "Luffy", image: "/avatars/luffy/profile.svg" }, ...]`
+   - Layout: centered flex col with `max-w-3xl` container
+   - PageHeader: title "⚙️ Settings", actions: back link `← Grand Line` pointing to `/`
+   - **Profile section** (Card):
+     - Avatar display: large (96px) circular `<img>` with current avatar image or generic placeholder
+     - Name (h2), email (muted text)
+     - Stats row: Badge for filiation, rank text, bounty formatted, W/L record
+   - **Filiation switch section** (Card, title "Filiation"):
+     - Two toggle buttons (Pirate 🏴‍☠️ / Marine ⚓) — selected has `border-primary ring-2 ring-primary`
+     - If user is pirate and clicks marine: show Alert warning "Switching to Marine will clear your avatar and recalculate your rank"
+     - On click: call `updateProfile({ filiation: newFiliation })`, then `refreshUser()`
+     - Show loading state on the button during request
+   - **Avatar selection section** (Card, title "Choose Your Avatar" — conditionally rendered only if `user.filiation === "PIRATE"`):
+     - 3×2 (or 2×3 mobile) grid of avatar cards
+     - Each card: circular `<img>` (64px), character name below, `cursor-pointer`
+     - Selected card: `ring-2 ring-primary border-primary` styling
+     - On click: call `updateProfile({ avatar: selectedKey })`, then `refreshUser()`
+     - Show Spinner overlay on clicked card while saving
+   - **Logout section** (bottom):
+     - `<Button variant="danger">` calling `logout`
+   - Error handling: catch API errors, display with `<Alert variant="error">`
 
-9. **Update LeaderboardService** — in both the main loop and `buildCurrentUserEntry`, pass `user.getAvatar() != null ? user.getAvatar().name() : null` to the new record field.
-
-10. **Add bluePlayerAvatar and redPlayerAvatar to GameStateResponse** — add two `String` fields after the existing player name fields.
-
-11. **Update GameMapper.toStateResponse** — extract avatar from `game.getBlueBoard().getOwner().getAvatar()` and `game.getRedBoard().getOwner().getAvatar()` (null-safe: `owner.getAvatar() != null ? owner.getAvatar().name() : null`). Handle case where redBoard owner may be null (game not yet joined).
-
-12. **Create UpdateProfileRequest DTO**:
-    ```java
-    record UpdateProfileRequest(Filiation filiation, String avatar)
-    ```
-    Both fields nullable in the record (String avatar for flexible parsing).
-
-13. **Create UserService** with `@Service @RequiredArgsConstructor`:
-    - Inject `UserRepository`.
-    - Method: `@Transactional public UserResponse updateProfile(UUID userId, UpdateProfileRequest request)`
-    - Logic:
-      1. Fetch user by ID (throw 404 if not found).
-      2. Determine new filiation: if `request.filiation()` is non-null, use it; otherwise keep current.
-      3. Determine new avatar:
-         - If new filiation is MARINE: avatar must be null. If `request.avatar()` is non-null, throw 400 ("Marines cannot select an avatar").
-         - If new filiation is PIRATE and `request.avatar()` is non-null: parse via `Avatar.valueOf()`, throw 400 on invalid.
-         - If new filiation is PIRATE and `request.avatar()` is null: set avatar to null (allowed — can set later).
-      4. If filiation changed from current: recalculate rank via `BountyService.computeRank(user.getBounty(), newFiliation)`, set new rank.
-      5. If switching to MARINE: force avatar to null regardless of request.
-      6. Set fields on user entity, save.
-      7. Return `UserMapper.toResponse(user)`.
-
-14. **Add PUT /me to UserController**:
-    ```java
-    @PutMapping("/me")
-    public UserResponse updateProfile(
-            @AuthenticationPrincipal AuthenticatedUser principal,
-            @RequestBody UpdateProfileRequest request) {
-        return userService.updateProfile(principal.getId(), request);
-    }
-    ```
-    Inject `UserService` alongside existing `LeaderboardService`.
-
-15. **Create UserServiceTest** with `@ExtendWith(MockitoExtension.class)`:
-    - `@Mock UserRepository userRepository`
-    - Test cases:
-      1. `updateProfile_pirateSetAvatar_success` — pirate user sets valid avatar → saved with new avatar.
-      2. `updateProfile_marineSetAvatar_throwsBadRequest` — marine user tries to set avatar → 400.
-      3. `updateProfile_switchToMarine_clearsAvatarAndUpdatesRank` — pirate→marine, avatar nulled, rank recalculated.
-      4. `updateProfile_switchToPirateWithoutAvatar_allowed` — marine→pirate, no avatar provided → success, avatar remains null.
-      5. `updateProfile_switchToPirateWithAvatar_setsAvatarAndUpdatesRank` — marine→pirate with avatar → avatar set, rank recalculated.
-      6. `updateProfile_invalidAvatarString_throwsBadRequest` — pirate with "INVALID" → 400.
-    - Helper: `buildUser(Filiation filiation, Avatar avatar)` returning a User with sensible defaults.
+9. **Add settings navigation to dashboard** (`client/src/app/page.tsx`)
+   - Import `Link` from `next/link`
+   - In PageHeader `actions` slot, add a gear/settings link before the Logout button
+   - Render as: `<Link href="/settings" className="...">⚙️</Link>` or use a Button ghost variant wrapping a Link
+   - Keep existing Logout button alongside it (wrapped in a flex gap container)
 
 ## Verification
 
 ```bash
-cd service && mvn clean compile
-cd service && mvn test
+cd client && npx next build
 ```
+- Must pass with zero TypeScript errors
 
-Expected: all existing 73+ tests pass, plus 6 new UserServiceTest tests (79+ total). No compilation errors.
+```bash
+cd client && npx next lint
+```
+- Must not introduce new lint errors (pre-existing are acceptable)
 
-Additionally confirm:
-- `V8__add_avatar_column.sql` is syntactically valid SQL.
-- `UserResponse` record has 9 fields (avatar added last).
-- `LeaderboardEntryResponse` record has 9 fields (avatar added last).
-- `GameStateResponse` has bluePlayerAvatar/redPlayerAvatar fields.
-- No frontend files modified (backend-only change).
+Manual checks:
+- Navigate to `/settings` while unauthenticated → redirects to `/login`
+- Navigate to `/settings` while authenticated → shows profile data with filiation, rank, bounty, W/L
+- As a pirate, avatar section visible with 6 options; clicking one calls PUT and updates display
+- Switch filiation to Marine → warning shown, avatar section hides, rank updates
+- Switch back to Pirate → avatar section reappears
+- Logout button works
+- Dashboard has gear icon linking to `/settings`
+- After profile update, returning to dashboard shows updated data
 
 ## Rollback
 
 ```bash
-git checkout -- service/
-rm -f service/src/main/resources/db/migration/V8__add_avatar_column.sql
-rm -f service/src/main/java/com/last_island/api/domain/user/enums/Avatar.java
-rm -f service/src/main/java/com/last_island/api/domain/user/dto/UpdateProfileRequest.java
-rm -f service/src/main/java/com/last_island/api/domain/user/service/UserService.java
-rm -f service/src/test/java/com/last_island/api/domain/user/service/UserServiceTest.java
+cd client
+rm -rf src/app/settings/
+rm -rf public/avatars/
+git checkout -- src/interfaces/api.ts src/interfaces/auth.ts src/lib/auth/auth-context.tsx src/lib/api/client.ts src/lib/api/users.ts src/lib/api/index.ts src/app/page.tsx
 ```

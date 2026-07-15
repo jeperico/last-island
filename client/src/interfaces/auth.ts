@@ -12,4 +12,5 @@ export interface AuthContextValue {
     filiation: string,
   ) => Promise<void>;
   logout: () => void;
+  refreshUser: () => Promise<void>;
 }

@@ -88,11 +88,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [],
   );
 
+  const refreshUser = useCallback(async () => {
+    const profile = await getProfile();
+    setUser(profile);
+  }, []);
+
   const isAuthenticated = user !== null;
 
   return (
     <AuthContext.Provider
-      value={{ user, isLoading, isAuthenticated, login, register, logout: performLogout }}
+      value={{ user, isLoading, isAuthenticated, login, register, logout: performLogout, refreshUser }}
     >
       {children}
     </AuthContext.Provider>

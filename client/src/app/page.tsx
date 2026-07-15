@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import Link from "next/link";
 import { useRequireAuth, useAuth } from "@/lib/auth";
 import { useLobbyEvents } from "@/lib/game";
 import {
@@ -286,9 +287,18 @@ export default function Home() {
         <PageHeader
           title={`Welcome${user ? `, ${user.name}` : ""}`}
           actions={
-            <Button variant="secondary" size="sm" onClick={logout}>
-              Logout
-            </Button>
+            <div className="flex items-center gap-2">
+              <Link
+                href="/settings"
+                className="inline-flex items-center justify-center w-8 h-8 rounded-md text-text-secondary hover:bg-surface-secondary hover:text-primary transition-colors"
+                aria-label="Settings"
+              >
+                ⚙️
+              </Link>
+              <Button variant="secondary" size="sm" onClick={logout}>
+                Logout
+              </Button>
+            </div>
           }
         />
 

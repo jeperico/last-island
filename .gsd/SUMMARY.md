@@ -132,3 +132,12 @@ Implementer: Created 5 new files, modified 10 existing files. Created `V8__add_a
 
 Reviewer: PASS — service-build ✓, service-test 79/79 ✓ (incl. UserServiceTest 6/6), no frontend files modified
 Commit: uncommitted
+
+## 2026-07-15T10:28 — Frontend: Settings/Profile Page
+
+Implementer: Created 7 new files, modified 7 existing files. Modified `client/src/interfaces/api.ts` (+2) — added `avatar: string | null` to `UserResponse` and `LeaderboardEntryResponse`. Modified `client/src/interfaces/auth.ts` (+1) — added `refreshUser: () => Promise<void>` to `AuthContextValue`. Modified `client/src/lib/auth/auth-context.tsx` (+5) — implemented `refreshUser` callback using `getProfile()` + `setUser()`, exposed in provider value. Modified `client/src/lib/api/client.ts` (+22) — added `apiPut<T>` function mirroring `apiPost` pattern with PUT method and 401 retry. Modified `client/src/lib/api/users.ts` (+5) — added `updateProfile` function calling `apiPut("/api/users/me", data)`. Modified `client/src/lib/api/index.ts` (+1) — re-exported `updateProfile`. Created `client/src/app/settings/page.tsx` (+268) — protected settings page with profile stats, filiation toggle with marine warning, avatar grid (pirates only), and logout. Modified `client/src/app/page.tsx` (+9) — added Link import and gear icon ⚙️ in PageHeader actions linking to /settings. Created 6 avatar placeholder SVGs in `client/public/avatars/{luffy,zoro,robin,chopper,nami,ace}/profile.svg` — 200×200 colored circles with character initials.
+
+Files changed: `client/src/interfaces/api.ts`, `client/src/interfaces/auth.ts`, `client/src/lib/auth/auth-context.tsx`, `client/src/lib/api/client.ts`, `client/src/lib/api/users.ts`, `client/src/lib/api/index.ts`, `client/src/app/settings/page.tsx` (created), `client/src/app/page.tsx`, `client/public/avatars/luffy/profile.svg` (created), `client/public/avatars/zoro/profile.svg` (created), `client/public/avatars/robin/profile.svg` (created), `client/public/avatars/chopper/profile.svg` (created), `client/public/avatars/nami/profile.svg` (created), `client/public/avatars/ace/profile.svg` (created)
+
+Reviewer: PASS — client-build ✓, client-lint 7 pre-existing issues (none introduced), all files verified
+Commit: uncommitted

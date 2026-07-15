@@ -51,6 +51,7 @@ export interface UserResponse {
   bounty: number;
   wins: number;
   losses: number;
+  avatar: string | null;
 }
 
 export interface CreateGameResponse {
@@ -170,6 +171,7 @@ export interface LeaderboardEntryResponse {
   winRate: number;
   rank: string;
   bounty: number;
+  avatar: string | null;
   isCurrentUser: boolean;
 }
 
