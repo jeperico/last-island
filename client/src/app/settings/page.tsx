@@ -7,12 +7,12 @@ import { updateProfile } from "@/lib/api";
 import type { ApiError } from "@/lib/api/client";
 import { useSound } from "@/lib/sound";
 import {
-  PageHeader,
-  Card,
-  Badge,
   Button,
   Alert,
   Spinner,
+  AvatarIcon,
+  getRankTier,
+  tierStyles,
 } from "@/components/ui";
 import { formatBounty } from "@/lib/format";
 
@@ -24,23 +24,26 @@ const AVATAR_OPTIONS = [
   { key: "ROBIN", name: "Robin", image: "/avatars/robin/profile.jpg" },
   { key: "CHOPPER", name: "Chopper", image: "/avatars/chopper/profile.jpg" },
   { key: "ACE", name: "Ace", image: "/avatars/ace/profile.jpg" },
-  { key: "DOFLAMINGO", name: "Doflamingo", image: "/avatars/doflamingo/profile.jpg" },
+  {
+    key: "DOFLAMINGO",
+    name: "Doflamingo",
+    image: "/avatars/doflamingo/profile.jpg",
+  },
 ] as const;
-
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-
-function getAvatarImage(avatar: string | null): string {
-  if (!avatar) return "/avatars/default/profile.jpg";
-  const option = AVATAR_OPTIONS.find((o) => o.key === avatar);
-  return option?.image ?? "/avatars/default/profile.jpg";
-}
 
 // ─── Page ────────────────────────────────────────────────────────────────────
 
 export default function SettingsPage() {
   const { user, isLoading } = useRequireAuth();
-  const { logout, refreshUser } = useAuth();
-  const { isMuted, toggleMute, musicVolume, setMusicVolume, sfxVolume, setSfxVolume } = useSound();
+  const { refreshUser, logout } = useAuth();
+  const {
+    isMuted,
+    toggleMute,
+    musicVolume,
+    setMusicVolume,
+    sfxVolume,
+    setSfxVolume,
+  } = useSound();
 
   const [error, setError] = useState<string | null>(null);
   const [savingAvatar, setSavingAvatar] = useState<string | null>(null);
@@ -69,118 +72,141 @@ export default function SettingsPage() {
     }
   }
 
+  const tier = getRankTier(user.rank);
+  const rankStyle = tierStyles[tier];
+
   return (
     <div className="flex flex-col flex-1 items-center px-4 py-8">
-      <div className="w-full max-w-3xl">
-        {/* Header */}
-        <PageHeader
-          title="⚙️ Settings"
-          actions={
-            <Link
-              href="/"
-              className="text-sm text-text-secondary hover:text-primary transition-colors"
-            >
-              ← Grand Line
-            </Link>
-          }
-        />
+      <div className="w-full max-w-7xl space-y-6">
+        {/* Back link */}
+        <Link
+          href="/"
+          className="inline-flex items-center gap-1.5 text-sm font-semibold text-text-secondary hover:text-primary bg-surface-secondary/80 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-border hover:border-primary transition-all"
+        >
+          <span>←</span>
+          <span>Grand Line</span>
+        </Link>
 
         {/* Error display */}
         {error && (
-          <Alert
-            variant="error"
-            dismissible
-            onDismiss={() => setError(null)}
-            className="mb-4"
-          >
+          <Alert variant="error" dismissible onDismiss={() => setError(null)}>
             {error}
           </Alert>
         )}
 
-        {/* Profile section */}
-        <Card className="mb-6">
-          <div className="flex items-center gap-6">
-            {/* Avatar */}
-            <img
-              src={
-                user.avatar
-                  ? getAvatarImage(user.avatar)
-                  : "/avatars/default/profile.jpg"
-              }
-              alt={`${user.name}'s avatar`}
-              className="w-24 h-24 rounded-full border-2 border-border object-cover"
-            />
-            {/* Info */}
+        {/* Profile Hero Card */}
+        <div
+          className={`relative overflow-hidden rounded-xl ${rankStyle.border} ${rankStyle.glow} bg-surface p-6`}
+        >
+          {/* Background wallpaper */}
+          {user.avatar && (
+            <div className="absolute inset-0 opacity-10 pointer-events-none overflow-hidden">
+              <div
+                className="absolute top-1/2 left-1/2 w-[100vh] h-[100vw] -translate-x-1/2 -translate-y-1/2 -rotate-90 bg-cover bg-center"
+                style={{
+                  backgroundImage: `url(/avatars/${user.avatar.toLowerCase()}/${user.avatar.toLowerCase()}-bg-01.jpg)`,
+                }}
+              />
+            </div>
+          )}
+
+          <div className="relative flex items-center gap-5">
+            <AvatarIcon avatar={user.avatar} rank={user.rank} size="lg" />
             <div className="flex-1 min-w-0">
-              <h2 className="text-xl font-bold text-text-primary truncate">
+              <h1 className="text-2xl font-bold text-text-primary truncate">
                 {user.name}
-              </h2>
-              <p className="text-sm text-text-muted truncate">{user.email}</p>
-              <div className="flex flex-wrap items-center gap-2 mt-3">
-                <Badge variant="warning">🏴‍☠️ Pirate</Badge>
-                <span className="text-sm text-text-secondary">
+              </h1>
+              <p className="text-sm text-text-muted mt-0.5">{user.email}</p>
+              <div className="flex flex-wrap items-center gap-3 mt-3">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-surface-secondary text-xs font-semibold text-text-secondary">
                   {user.rank.replace(/_/g, " ")}
                 </span>
-                <span className="text-sm text-secondary font-medium">
-                  ₿ {formatBounty(user.bounty)}
+                <span className="text-sm font-bold text-secondary">
+                  {formatBounty(user.bounty)} ₿
                 </span>
-                <span className="text-sm text-text-muted">
-                  {user.wins}W / {user.losses}L
+                <span className="text-xs text-text-muted">
+                  {user.wins}W · {user.losses}L
                 </span>
               </div>
             </div>
           </div>
-        </Card>
+        </div>
 
-        {/* Avatar selection section */}
-        <Card className="mb-6">
-          <h3 className="text-lg font-semibold text-text-primary mb-4">
-            Choose Your Avatar
-          </h3>
-          <div className="grid grid-cols-3 sm:grid-cols-3 gap-4">
-            {AVATAR_OPTIONS.map((option) => (
-              <button
-                key={option.key}
-                type="button"
-                onClick={() => handleAvatarChange(option.key)}
-                disabled={savingAvatar !== null}
-                className={[
-                  "relative flex flex-col items-center gap-2 p-3 rounded-lg border-2 transition-all cursor-pointer",
-                  user.avatar === option.key
-                    ? "border-primary ring-2 ring-primary bg-primary/10"
-                    : "border-border hover:border-primary/50",
-                  savingAvatar !== null ? "opacity-70" : "",
-                ].join(" ")}
-              >
-                {savingAvatar === option.key && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-surface/80 rounded-lg">
-                    <Spinner size="sm" />
+        {/* Avatar Selection */}
+        <div className="rounded-xl border border-border bg-surface p-5">
+          <div className="flex gap-1 h-48 sm:h-56">
+            {AVATAR_OPTIONS.map((option, index) => {
+              const isSelected = user.avatar === option.key;
+              const clipPath =
+                index === 0
+                  ? "polygon(0% 0%, 100% 0%, 85% 100%, 0% 100%)"
+                  : index === AVATAR_OPTIONS.length - 1
+                    ? "polygon(15% 0%, 100% 0%, 100% 100%, 0% 100%)"
+                    : "polygon(15% 0%, 100% 0%, 85% 100%, 0% 100%)";
+              return (
+                <button
+                  key={option.key}
+                  type="button"
+                  onClick={() => handleAvatarChange(option.key)}
+                  disabled={savingAvatar !== null}
+                  className={`group relative flex-1 overflow-hidden transition-all duration-300 cursor-pointer border-2 ${
+                    isSelected
+                      ? "border-primary shadow-[0_0_20px_rgba(59,130,246,0.5)]"
+                      : "border-transparent hover:border-primary/40"
+                  } ${savingAvatar !== null ? "opacity-60" : ""}`}
+                  style={{ clipPath }}
+                >
+                  {savingAvatar === option.key && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/60 z-20">
+                      <Spinner size="sm" />
+                    </div>
+                  )}
+                  {/* Avatar background image */}
+                  <div
+                    className={`absolute inset-0 bg-cover bg-top transition-all duration-300 ${
+                      isSelected
+                        ? "brightness-110 scale-105"
+                        : "brightness-75 grayscale-[20%] group-hover:scale-105 group-hover:brightness-100 group-hover:grayscale-0"
+                    }`}
+                    style={{ backgroundImage: `url(${option.image})` }}
+                  />
+                  {/* Bottom overlay */}
+                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent p-2 pt-10">
+                    <p
+                      className={`text-center font-bold uppercase text-xs tracking-wide ${
+                        isSelected ? "text-primary" : "text-text-primary"
+                      }`}
+                    >
+                      {option.name}
+                    </p>
                   </div>
-                )}
-                <img
-                  src={option.image}
-                  alt={option.name}
-                  className="w-16 h-16 rounded-full object-cover"
-                />
-                <span className="text-sm font-medium text-text-secondary">
-                  {option.name}
-                </span>
-              </button>
-            ))}
+                  {/* Selected indicator */}
+                  {isSelected && (
+                    <div className="absolute top-2 right-2 w-6 h-6 bg-primary rounded-full flex items-center justify-center z-10">
+                      <span className="text-white text-xs font-bold">✓</span>
+                    </div>
+                  )}
+                </button>
+              );
+            })}
           </div>
-        </Card>
+        </div>
 
-        {/* Sound section */}
-        <Card className="mb-6">
-          <h3 className="text-lg font-semibold text-text-primary mb-4">
-            Sound
+        {/* Sound Settings */}
+        <div className="rounded-xl border border-border bg-surface p-5">
+          <h3 className="text-base font-semibold text-text-primary mb-4">
+            🔊 Sound
           </h3>
 
           {/* Mute toggle */}
-          <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center justify-between mb-5 pb-4 border-b border-border-light">
             <div>
-              <p className="text-sm text-text-secondary">Master</p>
-              <p className="text-xs text-text-muted">Enable or disable all audio</p>
+              <p className="text-sm font-medium text-text-primary">
+                Master Audio
+              </p>
+              <p className="text-xs text-text-muted">
+                Enable or disable all sound
+              </p>
             </div>
             <button
               type="button"
@@ -192,7 +218,7 @@ export default function SettingsPage() {
             >
               <span
                 className={[
-                  "inline-block h-5 w-5 transform rounded-full bg-white transition-transform",
+                  "inline-block h-5 w-5 transform rounded-full bg-white transition-transform shadow-sm",
                   isMuted ? "translate-x-1" : "translate-x-6",
                 ].join(" ")}
               />
@@ -200,10 +226,12 @@ export default function SettingsPage() {
           </div>
 
           {/* Music volume */}
-          <div className="mb-5">
+          <div className="mb-4">
             <div className="flex items-center justify-between mb-2">
               <p className="text-sm text-text-secondary">🎵 Music</p>
-              <span className="text-xs text-text-muted">{Math.round(musicVolume * 100)}%</span>
+              <span className="text-xs font-medium text-text-muted tabular-nums">
+                {Math.round(musicVolume * 100)}%
+              </span>
             </div>
             <input
               type="range"
@@ -220,7 +248,9 @@ export default function SettingsPage() {
           <div>
             <div className="flex items-center justify-between mb-2">
               <p className="text-sm text-text-secondary">💥 Effects</p>
-              <span className="text-xs text-text-muted">{Math.round(sfxVolume * 100)}%</span>
+              <span className="text-xs font-medium text-text-muted tabular-nums">
+                {Math.round(sfxVolume * 100)}%
+              </span>
             </div>
             <input
               type="range"
@@ -232,12 +262,17 @@ export default function SettingsPage() {
               className="w-full h-2 bg-surface-secondary rounded-full appearance-none cursor-pointer accent-primary disabled:opacity-40"
             />
           </div>
-        </Card>
+        </div>
 
-        {/* Logout section */}
-        <div className="pt-4">
-          <Button variant="danger" fullWidth onClick={logout}>
-            Logout
+        {/* Logout */}
+        <div className="flex justify-center">
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={logout}
+            className="text-text-muted hover:text-danger"
+          >
+            Log out
           </Button>
         </div>
       </div>
