@@ -1,7 +1,6 @@
 package com.last_island.api.domain.user.service;
 
 import com.last_island.api.domain.user.entity.User;
-import com.last_island.api.domain.user.enums.Filiation;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -22,7 +21,7 @@ public class BountyService {
      *   ~15 wins:  1500M → PIRATE_KING
      *   1 loss from start: drops below 100M → ROOKIE
      */
-    public void updateBounties(User winner, User loser) {
+    public long updateBounties(User winner, User loser) {
         long baseGain = 50_000_000L; // 50M base per win
 
         // Underdog bonus: if winner has lower bounty, gain more
@@ -61,36 +60,29 @@ public class BountyService {
         winner.setBounty(newWinnerBounty);
         loser.setBounty(newLoserBounty);
 
-        winner.setRank(computeRank(newWinnerBounty, winner.getFiliation()));
-        loser.setRank(computeRank(newLoserBounty, loser.getFiliation()));
+        winner.setRank(computeRank(newWinnerBounty));
+        loser.setRank(computeRank(newLoserBounty));
+
+        return gain;
     }
 
     /**
-     * Derives rank from bounty and filiation.
+     * Derives rank from bounty (pirate ranks only).
      *
-     * Progression (pirates/marines):
-     *   0 - 99M:        ROOKIE / SEAMAN            (~1 loss from start)
-     *   100M - 199M:    SUPER_ROOKIE / CAPTAIN     (starting tier, 0-1 wins)
-     *   200M - 399M:    SUPERNOVA / COMMODORE      (~2 wins)
-     *   400M - 799M:    SHICHIBUKAI / VICE_ADMIRAL (~4 wins)
-     *   800M - 1499M:   YONKO / ADMIRAL            (~8 wins)
-     *   1500M+:         PIRATE_KING / FLEET_ADMIRAL (~15 wins)
+     * Progression:
+     *   0 - 99M:        ROOKIE
+     *   100M - 199M:    SUPER_ROOKIE  (starting tier, 0-1 wins)
+     *   200M - 399M:    SUPERNOVA     (~2 wins)
+     *   400M - 799M:    SHICHIBUKAI   (~4 wins)
+     *   800M - 1499M:   YONKO         (~8 wins)
+     *   1500M+:         PIRATE_KING   (~15 wins)
      */
-    public static String computeRank(long bounty, Filiation filiation) {
-        if (filiation == Filiation.PIRATE) {
-            if (bounty >= 1_500_000_000L) return "PIRATE_KING";
-            if (bounty >= 800_000_000L) return "YONKO";
-            if (bounty >= 400_000_000L) return "SHICHIBUKAI";
-            if (bounty >= 200_000_000L) return "SUPERNOVA";
-            if (bounty >= 100_000_000L) return "SUPER_ROOKIE";
-            return "ROOKIE";
-        } else {
-            if (bounty >= 1_500_000_000L) return "FLEET_ADMIRAL";
-            if (bounty >= 800_000_000L) return "ADMIRAL";
-            if (bounty >= 400_000_000L) return "VICE_ADMIRAL";
-            if (bounty >= 200_000_000L) return "COMMODORE";
-            if (bounty >= 100_000_000L) return "CAPTAIN";
-            return "SEAMAN";
-        }
+    public static String computeRank(long bounty) {
+        if (bounty >= 1_500_000_000L) return "PIRATE_KING";
+        if (bounty >= 800_000_000L) return "YONKO";
+        if (bounty >= 400_000_000L) return "SHICHIBUKAI";
+        if (bounty >= 200_000_000L) return "SUPERNOVA";
+        if (bounty >= 100_000_000L) return "SUPER_ROOKIE";
+        return "ROOKIE";
     }
 }

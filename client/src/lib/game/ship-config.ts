@@ -1,4 +1,4 @@
-import type { Filiation, ShipType } from "@/lib/api/types";
+import type { ShipType } from "@/lib/api/types";
 
 export const SHIP_SIZES: Record<ShipType, number> = {
   THOUSAND_SUNNY: 5,
@@ -6,11 +6,6 @@ export const SHIP_SIZES: Record<ShipType, number> = {
   RED_FORCE: 3,
   POLAR_TANG: 3,
   STRIKER: 2,
-  BUSTER_CALL: 5,
-  WARSHIP: 4,
-  BATTLESHIP: 3,
-  CRUISER: 3,
-  CUTTER: 2,
 };
 
 export const PIRATE_FLEET: ShipType[] = [
@@ -21,13 +16,8 @@ export const PIRATE_FLEET: ShipType[] = [
   "STRIKER",
 ];
 
-export const MARINE_FLEET: ShipType[] = [
-  "BUSTER_CALL",
-  "WARSHIP",
-  "BATTLESHIP",
-  "CRUISER",
-  "CUTTER",
-];
+/** Alias — use FLEET for new code */
+export const FLEET: ShipType[] = PIRATE_FLEET;
 
 export const SHIP_DISPLAY_NAMES: Record<ShipType, string> = {
   THOUSAND_SUNNY: "Thousand Sunny",
@@ -35,13 +25,4 @@ export const SHIP_DISPLAY_NAMES: Record<ShipType, string> = {
   RED_FORCE: "Red Force",
   POLAR_TANG: "Polar Tang",
   STRIKER: "Striker",
-  BUSTER_CALL: "Buster Call",
-  WARSHIP: "Warship",
-  BATTLESHIP: "Battleship",
-  CRUISER: "Cruiser",
-  CUTTER: "Cutter",
 };
-
-export function getFleetForFiliation(filiation: Filiation): ShipType[] {
-  return filiation === "PIRATE" ? PIRATE_FLEET : MARINE_FLEET;
-}

@@ -1,26 +1,28 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import type {
+  GameStateResponse,
+  UserResponse,
   MyBoardResponse,
-  OpponentBoardResponse,
   ShotCellResponse,
 } from "@/lib/api/types";
 import { getShipCells, cellKey } from "@/lib/game";
+import { formatBounty } from "@/lib/format";
 import { BoardGrid, type CellState } from "./board-grid";
 
+// ─── Props ───────────────────────────────────────────────────────────────────
+
 interface GameOverPanelProps {
-  isWinner: boolean;
-  winnerName: string;
-  opponentName: string;
-  myShots: number;
-  myHits: number;
-  opponentShots: number;
-  opponentHits: number;
-  durationSeconds: number | null;
-  myBoard: MyBoardResponse | null;
-  opponentBoard: OpponentBoardResponse | null;
-  myBounty: number;
+  gameState: GameStateResponse;
+  user: UserResponse;
+  onClose: () => void;
 }
+
+// ─── Ship sizes (standard fleet) ─────────────────────────────────────────────
+
+const FLEET_SHIP_SIZES = [5, 4, 3, 3, 2];
 
 // ─── Cell-building helpers ───────────────────────────────────────────────────
 
@@ -73,194 +75,348 @@ function buildOpponentBoardCells(
   return cells;
 }
 
-// ─── Component ───────────────────────────────────────────────────────────────
+// ─── Ships sunk calculation ──────────────────────────────────────────────────
 
-export function GameOverPanel({
-  isWinner,
-  winnerName,
-  opponentName,
-  myShots,
-  myHits,
-  opponentShots,
-  opponentHits,
-  durationSeconds,
-  myBoard,
-  opponentBoard,
-  myBounty,
-}: GameOverPanelProps) {
-  const myAccuracy = myShots > 0 ? Math.round((myHits / myShots) * 100) : 0;
-  const opponentAccuracy =
-    opponentShots > 0 ? Math.round((opponentHits / opponentShots) * 100) : 0;
-
-  const myBoardCells = myBoard
-    ? buildMyBoardCells(myBoard)
-    : new Map<string, CellState>();
-  const opponentBoardCells = opponentBoard
-    ? buildOpponentBoardCells(opponentBoard.shotsFired)
-    : new Map<string, CellState>();
-
-  function formatDuration(seconds: number | null): string {
-    if (seconds === null) return "—";
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.round(seconds % 60);
-    if (mins === 0) return `${secs}s`;
-    return `${mins}m ${secs}s`;
+function countMyShipsLost(myBoard: MyBoardResponse): number {
+  const hitPositions = new Set<string>();
+  for (const shot of myBoard.shotsReceived) {
+    if (shot.result === "HIT" || shot.result === "SUNK") {
+      hitPositions.add(cellKey(shot.row, shot.col));
+    }
   }
 
-  return (
-    <div className="flex flex-col items-center w-full max-w-5xl h-full print:h-auto">
-      {/* Header — result banner + opponent + duration */}
+  let sunkCount = 0;
+  for (const ship of myBoard.ships) {
+    const shipCells = getShipCells(
+      ship.row,
+      ship.col,
+      ship.size,
+      ship.orientation,
+    );
+    const allHit = shipCells.every((cell) =>
+      hitPositions.has(cellKey(cell.row, cell.col)),
+    );
+    if (allHit) sunkCount++;
+  }
+  return sunkCount;
+}
+
+function countOpponentShipsSunk(shotsFired: ShotCellResponse[]): number {
+  // Count cells with SUNK result. Each ship's cells all become SUNK when the ship sinks.
+  // However, some backends mark only the killing-blow cell as SUNK, leaving others as HIT.
+  // So count HIT + SUNK cells and greedily assign to ship sizes.
+  const hitOrSunkCells = shotsFired.filter(
+    (s) => s.result === "SUNK" || s.result === "HIT",
+  ).length;
+
+  // Greedily assign to ships from the standard fleet
+  let remaining = hitOrSunkCells;
+  let count = 0;
+  for (const size of FLEET_SHIP_SIZES) {
+    if (remaining >= size) {
+      remaining -= size;
+      count++;
+    } else {
+      break;
+    }
+  }
+  return count;
+}
+
+// ─── Component ───────────────────────────────────────────────────────────────
+
+export function GameOverPanel({ gameState, user, onClose }: GameOverPanelProps) {
+  // Data derivation
+  const isBlue = user.name === gameState.bluePlayerName;
+  const [closing, setClosing] = useState(false);
+
+  const myName = isBlue ? gameState.bluePlayerName : (gameState.redPlayerName ?? "Unknown");
+  const myAvatar = isBlue ? gameState.bluePlayerAvatar : gameState.redPlayerAvatar;
+  const myRank = isBlue ? gameState.bluePlayerRank : gameState.redPlayerRank;
+  const myBounty = (isBlue ? gameState.bluePlayerBounty : gameState.redPlayerBounty) ?? 0;
+  const myWins = (isBlue ? gameState.bluePlayerWins : gameState.redPlayerWins) ?? 0;
+  const myAccuracy = (isBlue ? gameState.bluePlayerAccuracy : gameState.redPlayerAccuracy) ?? 0;
+
+  const oppName = isBlue ? (gameState.redPlayerName ?? "Unknown") : gameState.bluePlayerName;
+  const oppAvatar = isBlue ? gameState.redPlayerAvatar : gameState.bluePlayerAvatar;
+  const oppRank = isBlue ? gameState.redPlayerRank : gameState.bluePlayerRank;
+  const oppBounty = (isBlue ? gameState.redPlayerBounty : gameState.bluePlayerBounty) ?? 0;
+  const oppWins = (isBlue ? gameState.redPlayerWins : gameState.bluePlayerWins) ?? 0;
+  const oppAccuracy = (isBlue ? gameState.redPlayerAccuracy : gameState.bluePlayerAccuracy) ?? 0;
+
+  const isWinner = gameState.winnerName === user.name;
+  const bountyDelta = gameState.bountyDelta ?? 0;
+
+  // Compute previous bounty
+  const prevBounty = isWinner ? myBounty - bountyDelta : myBounty + bountyDelta;
+
+  // Ships sunk
+  const mySunkCount = gameState.opponentBoard
+    ? countOpponentShipsSunk(gameState.opponentBoard.shotsFired)
+    : 0;
+  const oppSunkCount = gameState.myBoard
+    ? countMyShipsLost(gameState.myBoard)
+    : 0;
+
+  // Board cells
+  const myBoardCells = gameState.myBoard
+    ? buildMyBoardCells(gameState.myBoard)
+    : new Map<string, CellState>();
+  const opponentBoardCells = gameState.opponentBoard
+    ? buildOpponentBoardCells(gameState.opponentBoard.shotsFired)
+    : new Map<string, CellState>();
+
+  // Escape key handler
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        handleClose();
+      }
+    }
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Body scroll lock
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, []);
+
+  function handleClose() {
+    if (closing) return;
+    setClosing(true);
+    setTimeout(() => onClose(), 250);
+  }
+
+  // Format rank for display
+  function displayRank(rank: string | null): string {
+    if (!rank) return "Unknown";
+    return rank.replace(/_/g, " ");
+  }
+
+  // Bounty delta display
+  const deltaSign = isWinner ? "+" : "-";
+  const deltaColor = isWinner ? "text-success" : "text-danger";
+
+  const content = (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70"
+      onClick={handleClose}
+      style={{
+        animation: closing ? "character-select-out 250ms ease-in forwards" : undefined,
+      }}
+    >
       <div
-        className={`w-full flex items-center justify-between px-6 py-3 rounded-t-xl border border-b-0 ${
-          isWinner
-            ? "bg-gradient-to-r from-success/20 via-success/10 to-transparent border-success/30"
-            : "bg-gradient-to-r from-danger/20 via-danger/10 to-transparent border-danger/30"
-        } print:border-black print:bg-white`}
+        className="relative w-[90vw] max-w-7xl h-[90vh] max-h-[900px] rounded-xl overflow-hidden border border-border bg-surface"
+        style={{ animation: closing ? "character-select-out 250ms ease-in forwards" : "character-select-in 300ms ease-out forwards" }}
+        onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center gap-3">
-          <span className="text-3xl print:text-2xl">
-            {isWinner ? "🏴‍☠️" : "💀"}
-          </span>
-          <div>
-            <h1
-              className={`text-xl font-bold ${isWinner ? "text-success" : "text-danger"} print:text-black`}
+        {/* Close button (×) */}
+        <button
+          type="button"
+          onClick={handleClose}
+          className="absolute top-3 right-3 z-10 w-8 h-8 flex items-center justify-center rounded-full bg-surface-secondary/80 text-text-secondary hover:text-text-primary hover:bg-surface-secondary transition-colors cursor-pointer"
+          aria-label="Close"
+        >
+          ✕
+        </button>
+
+        {/* Three-column grid */}
+        <div className="grid grid-cols-[1fr_2fr_1fr] h-full">
+          {/* Left column — My player */}
+          <PlayerColumn
+            name={myName}
+            avatar={myAvatar}
+            rank={displayRank(myRank)}
+            bounty={myBounty}
+            wins={myWins}
+            accuracy={myAccuracy}
+            isWinner={isWinner}
+          />
+
+          {/* Middle column */}
+          <div className="flex flex-col items-center justify-between py-6 px-4 bg-surface-elevated overflow-hidden">
+            {/* Top score card */}
+            <div className={`w-full max-w-sm rounded-lg p-4 text-center ${isWinner ? "bg-success/10 border border-success/20" : "bg-danger/10 border border-danger/20"}`}>
+              {/* Ships sunk comparison */}
+              <div className="flex items-center justify-center gap-3 mb-2">
+                <span className="text-2xl font-black text-text-primary">
+                  {mySunkCount}
+                </span>
+                <span className="text-xl">⚔️</span>
+                <span className="text-2xl font-black text-text-primary">
+                  {oppSunkCount}
+                </span>
+              </div>
+              <p className="text-xs text-text-muted uppercase tracking-wider font-semibold mb-3">
+                Ships Sunk
+              </p>
+
+              {/* Bounty change */}
+              {bountyDelta > 0 ? (
+                <div className="flex items-center justify-center gap-2 text-sm">
+                  <span className="text-text-secondary">₿</span>
+                  <span className="text-text-secondary">
+                    {formatBounty(prevBounty)}
+                  </span>
+                  <span className="text-text-muted">→</span>
+                  <span className="text-text-primary font-bold">
+                    {formatBounty(myBounty)}
+                  </span>
+                  <span className={`font-bold ${deltaColor}`}>
+                    ({deltaSign}{formatBounty(bountyDelta)})
+                  </span>
+                </div>
+              ) : (
+                <p className="text-sm text-text-muted">—</p>
+              )}
+            </div>
+
+            {/* Boards section */}
+            <div className="flex-1 flex items-center justify-center w-full overflow-hidden">
+              <div className="flex gap-4 justify-center items-center" style={{ transform: "scale(0.85)" }}>
+                {gameState.myBoard && (
+                  <BoardGrid title="My Fleet" cells={myBoardCells} />
+                )}
+                {gameState.opponentBoard && (
+                  <BoardGrid title="Enemy Waters" cells={opponentBoardCells} />
+                )}
+              </div>
+            </div>
+
+            {/* Close button */}
+            <button
+              type="button"
+              onClick={handleClose}
+              className="mt-4 px-6 py-3 bg-primary hover:bg-primary-hover text-white font-bold rounded-lg transition-colors cursor-pointer"
             >
-              {isWinner ? "Victory!" : "Defeat"}
-            </h1>
-            <p className="text-xs text-text-muted print:text-black">
-              vs{" "}
-              <span className="font-semibold text-text-primary print:text-black">
-                {opponentName}
-              </span>
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-4 text-sm">
-          <span className="text-text-muted print:text-black">
-            ⏱️ {formatDuration(durationSeconds)}
-          </span>
-          <span className={`font-bold ${isWinner ? "text-success" : "text-danger"}`}>
-            🏴‍☠️ {myBounty >= 1_000_000_000 ? `${(myBounty / 1_000_000_000).toFixed(1)}B` : myBounty >= 1_000_000 ? `${Math.round(myBounty / 1_000_000)}M` : myBounty.toLocaleString()}
-          </span>
-        </div>
-      </div>
-
-      {/* Main content — boards + stats side by side */}
-      <div className="w-full flex-1 flex flex-col lg:flex-row border border-border rounded-b-xl bg-surface-elevated overflow-hidden print:border-black">
-        {/* Boards section */}
-        <div className="flex-1 flex flex-wrap items-center justify-center gap-4 p-4 print:p-2">
-          {myBoard && <BoardGrid title="My Fleet" cells={myBoardCells} />}
-          {opponentBoard && (
-            <BoardGrid title="Enemy Waters" cells={opponentBoardCells} />
-          )}
-        </div>
-
-        {/* Stats sidebar */}
-        <div className="lg:w-56 border-t lg:border-t-0 lg:border-l border-border-light bg-surface-secondary/50 flex flex-col print:border-black">
-          {/* Player vs Player */}
-          <div className="grid grid-cols-3 px-3 py-2 border-b border-border-light">
-            <div className="text-left">
-              <p className="text-[10px] text-text-muted uppercase">You</p>
-            </div>
-            <div className="flex items-center justify-center">
-              <span className="text-[10px] font-bold text-text-muted">VS</span>
-            </div>
-            <div className="text-right">
-              <p className="text-[10px] text-text-muted uppercase">Enemy</p>
-            </div>
+              Return to Grand Line
+            </button>
           </div>
 
-          {/* Stat rows */}
-          <div className="flex-1 flex flex-col justify-center divide-y divide-border-light">
-            <CompactStatRow
-              icon="💣"
-              label="Shots"
-              myValue={myShots}
-              opponentValue={opponentShots}
-            />
-            <CompactStatRow
-              icon="🎯"
-              label="Hits"
-              myValue={myHits}
-              opponentValue={opponentHits}
-              highlightBetter
-            />
-            <CompactStatRow
-              icon="🧭"
-              label="Accuracy"
-              myValue={`${myAccuracy}%`}
-              opponentValue={`${opponentAccuracy}%`}
-              myRaw={myAccuracy}
-              opponentRaw={opponentAccuracy}
-              highlightBetter
-            />
-          </div>
-
-          {/* Winner banner */}
-          <div
-            className={`flex items-center justify-center gap-2 px-3 py-2 ${
-              isWinner
-                ? "bg-success-bg border-t border-success-border"
-                : "bg-danger-bg border-t border-danger-border"
-            } print:bg-white print:border-black`}
-          >
-            <span className="text-sm">{isWinner ? "👑" : "⚔️"}</span>
-            <span
-              className={`text-xs font-bold ${
-                isWinner ? "text-success" : "text-danger"
-              } print:text-black`}
-            >
-              {winnerName} wins!
-            </span>
-          </div>
+          {/* Right column — Opponent */}
+          <PlayerColumn
+            name={oppName}
+            avatar={oppAvatar}
+            rank={displayRank(oppRank)}
+            bounty={oppBounty}
+            wins={oppWins}
+            accuracy={oppAccuracy}
+            isWinner={!isWinner}
+          />
         </div>
       </div>
     </div>
   );
+
+  return createPortal(content, document.body);
 }
 
-// ─── CompactStatRow sub-component ────────────────────────────────────────────
+// ─── Player Column sub-component ─────────────────────────────────────────────
 
-function CompactStatRow({
-  icon,
-  label,
-  myValue,
-  opponentValue,
-  myRaw,
-  opponentRaw,
-  highlightBetter = false,
+function PlayerColumn({
+  name,
+  avatar,
+  rank,
+  bounty,
+  wins,
+  accuracy,
+  isWinner,
 }: {
-  icon: string;
-  label: string;
-  myValue: number | string;
-  opponentValue: number | string;
-  myRaw?: number;
-  opponentRaw?: number;
-  highlightBetter?: boolean;
+  name: string;
+  avatar: string | null;
+  rank: string;
+  bounty: number;
+  wins: number;
+  accuracy: number;
+  isWinner: boolean;
 }) {
-  const myNum = myRaw ?? (typeof myValue === "number" ? myValue : 0);
-  const oppNum =
-    opponentRaw ?? (typeof opponentValue === "number" ? opponentValue : 0);
-  const myBetter = highlightBetter && myNum > oppNum;
-  const oppBetter = highlightBetter && oppNum > myNum;
+  const hasAvatar = avatar !== null;
+  const avatarPath = hasAvatar
+    ? `/avatars/${avatar.toLowerCase()}/full-body.jpg`
+    : null;
+
+  // Rank-based panel glow (same tier system as avatar-icon)
+  function getRankPanelStyle(rank: string): string {
+    switch (rank) {
+      case "SUPER ROOKIE":
+      case "CAPTAIN":
+        return "ring-4 ring-inset ring-blue-500/60";
+      case "SUPERNOVA":
+      case "COMMODORE":
+        return "ring-4 ring-inset ring-yellow-500/60 shadow-[inset_0_0_50px_rgba(234,179,8,0.25)]";
+      case "SHICHIBUKAI":
+      case "VICE ADMIRAL":
+        return "ring-[5px] ring-inset ring-purple-500/70 shadow-[inset_0_0_60px_rgba(168,85,247,0.3)]";
+      case "YONKO":
+      case "ADMIRAL":
+        return "ring-[6px] ring-inset ring-red-500/80 shadow-[inset_0_0_80px_rgba(239,68,68,0.35)]";
+      case "PIRATE KING":
+      case "FLEET ADMIRAL":
+        return "ring-[6px] ring-inset ring-white/90 shadow-[inset_0_0_100px_rgba(255,255,255,0.4)]";
+      default:
+        return "";
+    }
+  }
+
+  const rankGlow = getRankPanelStyle(rank);
+
+  const borderColor = isWinner
+    ? "border-b-[16px] border-b-success shadow-[0_4px_20px_rgba(34,197,94,0.3)]"
+    : "border-b-[16px] border-b-danger/50";
 
   return (
-    <div className="grid grid-cols-3 items-center px-3 py-2">
-      <div
-        className={`text-left text-sm font-bold ${myBetter ? "text-success" : "text-text-primary"} print:text-black`}
-      >
-        {myValue}
-      </div>
-      <div className="flex flex-col items-center gap-0">
-        <span className="text-sm">{icon}</span>
-        <span className="text-[9px] uppercase tracking-wider text-text-muted font-medium print:text-black">
-          {label}
-        </span>
-      </div>
-      <div
-        className={`text-right text-sm font-bold ${oppBetter ? "text-danger" : "text-text-primary"} print:text-black`}
-      >
-        {opponentValue}
+    <div
+      className={`relative flex flex-col justify-end overflow-hidden ${borderColor} ${rankGlow}`}
+      style={
+        avatarPath
+          ? {
+              backgroundImage: `url(${avatarPath})`,
+              backgroundSize: "cover",
+              backgroundPosition: "center bottom",
+            }
+          : undefined
+      }
+    >
+      {/* Fallback background for null avatar */}
+      {!hasAvatar && (
+        <div className="absolute inset-0 bg-surface-elevated" />
+      )}
+
+      {/* Dark gradient overlay at bottom */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent" />
+
+      {/* Stats overlay — bottom aligned */}
+      <div className="relative z-10 p-4 flex flex-col gap-1">
+        {/* Crown for winner */}
+        {isWinner && (
+          <span className="text-2xl mb-1">👑</span>
+        )}
+
+        {/* Name */}
+        <p className="text-lg font-bold text-white truncate">{name}</p>
+
+        {/* Rank */}
+        <p className="text-xs text-gray-300 uppercase tracking-wider">
+          {rank}
+        </p>
+
+        {/* Bounty */}
+        <p className="text-sm text-secondary font-semibold">
+          ₿ {formatBounty(bounty)}
+        </p>
+
+        {/* Wins + Accuracy */}
+        <div className="flex items-center gap-3 text-xs text-gray-400 mt-1">
+          <span>{wins}W</span>
+          <span>•</span>
+          <span>{accuracy}%</span>
+        </div>
       </div>
     </div>
   );

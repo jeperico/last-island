@@ -14,7 +14,6 @@ import com.last_island.api.domain.game.enums.GamePhase;
 import com.last_island.api.domain.game.repository.GameRepository;
 import com.last_island.api.domain.game.repository.GameResultRepository;
 import com.last_island.api.domain.user.entity.User;
-import com.last_island.api.domain.user.enums.Filiation;
 import com.last_island.api.domain.user.service.BountyService;
 import com.last_island.api.infrastructure.sse.GameEventEmitter;
 import org.junit.jupiter.api.BeforeEach;
@@ -58,18 +57,17 @@ class BoardServiceFireShotTest {
 
     @BeforeEach
     void setUp() {
-        bluePlayer = buildUser("Luffy", Filiation.PIRATE);
-        redPlayer = buildUser("Akainu", Filiation.MARINE);
+        bluePlayer = buildUser("Luffy");
+        redPlayer = buildUser("Zoro");
     }
 
     // --- Helper methods ---
 
-    private User buildUser(String name, Filiation filiation) {
+    private User buildUser(String name) {
         User user = User.builder()
                 .name(name)
                 .email(name.toLowerCase() + "@test.com")
                 .passwordHash("hashed")
-                .filiation(filiation)
                 .rank("Rookie")
                 .build();
         user.setId(UUID.randomUUID());
@@ -156,7 +154,7 @@ class BoardServiceFireShotTest {
         // Add another ship that is NOT sunk so game doesn't end
         Ship redForce = Ship.builder()
                 .board(game.getRedBoard())
-                .type(ShipType.CUTTER)
+                .type(ShipType.RED_FORCE)
                 .orientation(Orientation.HORIZONTAL)
                 .row(5).col(5).hits(0)
                 .build();
@@ -201,7 +199,7 @@ class BoardServiceFireShotTest {
         Game game = buildInProgressGame();
         when(gameRepository.findByTokenAndIsActiveTrue(TOKEN)).thenReturn(Optional.of(game));
 
-        User stranger = buildUser("Stranger", Filiation.PIRATE);
+        User stranger = buildUser("Stranger");
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
                 () -> boardService.fireShot(TOKEN, stranger.getId(), new ShotRequest(5, 5)));
@@ -271,14 +269,14 @@ class BoardServiceFireShotTest {
         game.getRedBoard().getShips().get(0).setHits(1);
 
         // Add another ship so game doesn't end
-        Ship cutter = Ship.builder()
+        Ship redForce = Ship.builder()
                 .board(game.getRedBoard())
-                .type(ShipType.CUTTER)
+                .type(ShipType.RED_FORCE)
                 .orientation(Orientation.HORIZONTAL)
                 .row(5).col(5).hits(0)
                 .build();
-        cutter.setId(UUID.randomUUID());
-        game.getRedBoard().getShips().add(cutter);
+        redForce.setId(UUID.randomUUID());
+        game.getRedBoard().getShips().add(redForce);
 
         when(gameRepository.findByTokenAndIsActiveTrue(TOKEN)).thenReturn(Optional.of(game));
 

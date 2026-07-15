@@ -1,5 +1,6 @@
 package com.last_island.api.domain.game.service;
 
+import com.last_island.api.common.dto.PageResponse;
 import com.last_island.api.domain.board.entity.Board;
 import com.last_island.api.domain.board.entity.Ship;
 import com.last_island.api.domain.board.entity.Shot;
@@ -12,14 +13,15 @@ import com.last_island.api.domain.game.entity.GameResult;
 import com.last_island.api.domain.game.enums.GamePhase;
 import com.last_island.api.domain.game.repository.GameResultRepository;
 import com.last_island.api.domain.user.entity.User;
-import com.last_island.api.domain.user.enums.Filiation;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -46,8 +48,8 @@ class BattleLogServiceTest {
 
     @BeforeEach
     void setUp() {
-        bluePlayer = buildUser("Luffy", Filiation.PIRATE);
-        redPlayer = buildUser("Akainu", Filiation.MARINE);
+        bluePlayer = buildUser("Luffy");
+        redPlayer = buildUser("Zoro");
     }
 
     @Test
@@ -61,15 +63,16 @@ class BattleLogServiceTest {
                 .build();
         result.setId(UUID.randomUUID());
 
-        when(gameResultRepository.findTop10ByUserIdOrderByEndedAtDesc(eq(bluePlayer.getId()), any(PageRequest.class)))
-                .thenReturn(List.of(result));
+        Pageable pageable = PageRequest.of(0, 10);
+        when(gameResultRepository.findByUserIdOrderByEndedAtDesc(eq(bluePlayer.getId()), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(result), pageable, 1));
 
-        List<BattleLogEntryResponse> log = battleLogService.getBattleLog(bluePlayer.getId());
+        PageResponse<BattleLogEntryResponse> log = battleLogService.getBattleLog(bluePlayer.getId(), pageable);
 
-        assertThat(log).hasSize(1);
-        BattleLogEntryResponse entry = log.get(0);
+        assertThat(log.content()).hasSize(1);
+        BattleLogEntryResponse entry = log.content().get(0);
         assertThat(entry.gameId()).isEqualTo(game.getId());
-        assertThat(entry.opponentName()).isEqualTo("Akainu");
+        assertThat(entry.opponentName()).isEqualTo("Zoro");
         assertThat(entry.result()).isEqualTo("VICTORY");
         assertThat(entry.shotsFired()).isEqualTo(3); // shots on opponent's (red) board
         assertThat(entry.shipsSunk()).isEqualTo(1); // one sunk ship on opponent's board
@@ -88,13 +91,14 @@ class BattleLogServiceTest {
                 .build();
         result.setId(UUID.randomUUID());
 
-        when(gameResultRepository.findTop10ByUserIdOrderByEndedAtDesc(eq(redPlayer.getId()), any(PageRequest.class)))
-                .thenReturn(List.of(result));
+        Pageable pageable = PageRequest.of(0, 10);
+        when(gameResultRepository.findByUserIdOrderByEndedAtDesc(eq(redPlayer.getId()), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(result), pageable, 1));
 
-        List<BattleLogEntryResponse> log = battleLogService.getBattleLog(redPlayer.getId());
+        PageResponse<BattleLogEntryResponse> log = battleLogService.getBattleLog(redPlayer.getId(), pageable);
 
-        assertThat(log).hasSize(1);
-        BattleLogEntryResponse entry = log.get(0);
+        assertThat(log.content()).hasSize(1);
+        BattleLogEntryResponse entry = log.content().get(0);
         assertThat(entry.opponentName()).isEqualTo("Luffy");
         assertThat(entry.result()).isEqualTo("DEFEAT");
         assertThat(entry.shotsFired()).isEqualTo(2); // shots on blue board (opponent's board when user is red)
@@ -104,22 +108,23 @@ class BattleLogServiceTest {
     @Test
     void getBattleLog_emptyList_returnsEmpty() {
         UUID userId = UUID.randomUUID();
-        when(gameResultRepository.findTop10ByUserIdOrderByEndedAtDesc(eq(userId), any(PageRequest.class)))
-                .thenReturn(Collections.emptyList());
+        Pageable pageable = PageRequest.of(0, 10);
+        when(gameResultRepository.findByUserIdOrderByEndedAtDesc(eq(userId), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(Collections.emptyList(), pageable, 0));
 
-        List<BattleLogEntryResponse> log = battleLogService.getBattleLog(userId);
+        PageResponse<BattleLogEntryResponse> log = battleLogService.getBattleLog(userId, pageable);
 
-        assertThat(log).isEmpty();
+        assertThat(log.content()).isEmpty();
+        assertThat(log.totalElements()).isEqualTo(0);
     }
 
     // --- Helper methods ---
 
-    private User buildUser(String name, Filiation filiation) {
+    private User buildUser(String name) {
         User user = User.builder()
                 .name(name)
                 .email(name.toLowerCase() + "@test.com")
                 .passwordHash("hashed")
-                .filiation(filiation)
                 .rank("Rookie")
                 .build();
         user.setId(UUID.randomUUID());

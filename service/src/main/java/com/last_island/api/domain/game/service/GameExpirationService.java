@@ -107,7 +107,8 @@ public class GameExpirationService {
         winner.setWins(winner.getWins() + 1);
         loser.setLosses(loser.getLosses() + 1);
 
-        bountyService.updateBounties(winner, loser);
+        long bountyDelta = bountyService.updateBounties(winner, loser);
+        game.setBountyDelta(bountyDelta);
 
         gameRepository.save(game);
 

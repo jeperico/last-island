@@ -2,7 +2,7 @@
 
 ## Position
 
-Planning complete — K-factor Elo-style Bounty System with One Piece Themed Ranks
+Plan written — Frontend: Remove 'Join by Token' functionality
 
 ## Decisions
 
@@ -18,4 +18,4 @@ Planning complete — K-factor Elo-style Bounty System with One Piece Themed Ran
 
 ## Last verification
 
-PASS at 2026-07-14T15:38 — service-build ✓, service-test 73/73 ✓ (incl. BountyServiceTest 9/9), client-build ✓, client-lint 7 pre-existing issues (none introduced)
+PASS at 2026-07-15T16:38 — build ✓, lint 0 new errors (4 pre-existing errors same as before), grep 0 matches for joinGameSchema/JoinGameFormData/join-game/Battle Token/Enter game token/Share the token/Join by Token, handleJoinFromList+joinGame still present in lobby, WAITING_OPPONENT shows only "Waiting for an opponent from the Grand Line…"

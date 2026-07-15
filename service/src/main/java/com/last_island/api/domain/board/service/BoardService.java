@@ -18,7 +18,6 @@ import com.last_island.api.domain.game.enums.GamePhase;
 import com.last_island.api.domain.game.repository.GameRepository;
 import com.last_island.api.domain.game.repository.GameResultRepository;
 import com.last_island.api.domain.user.entity.User;
-import com.last_island.api.domain.user.enums.Filiation;
 import com.last_island.api.domain.user.service.BountyService;
 import com.last_island.api.infrastructure.sse.GameEventEmitter;
 import org.springframework.http.HttpStatus;
@@ -81,18 +80,17 @@ public class BoardService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "A fleet requires exactly 5 vessels");
         }
 
-        // 6. Validate filiation match
-        Filiation filiation = board.getOwner().getFiliation();
-        Set<ShipType> requiredTypes = Arrays.stream(ShipType.values())
-                .filter(t -> t.getFiliation() == filiation)
-                .collect(Collectors.toSet());
+        // 6. Validate fleet matches pirate fleet
+        Set<ShipType> requiredTypes = Set.of(
+                ShipType.THOUSAND_SUNNY, ShipType.MOBY_DICK, ShipType.RED_FORCE,
+                ShipType.POLAR_TANG, ShipType.STRIKER);
 
         Set<ShipType> submittedTypes = request.ships().stream()
                 .map(ShipPlacementDto::type)
                 .collect(Collectors.toSet());
 
         if (!submittedTypes.equals(requiredTypes) || request.ships().size() != submittedTypes.size()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Vessels must match your filiation fleet (no duplicates)");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Vessels must match the pirate fleet (no duplicates)");
         }
 
         // 7. Validate bounds
@@ -279,7 +277,8 @@ public class BoardService {
             attacker.setWins(attacker.getWins() + 1);
             loser.setLosses(loser.getLosses() + 1);
 
-            bountyService.updateBounties(attacker, loser);
+            long bountyDelta = bountyService.updateBounties(attacker, loser);
+            game.setBountyDelta(bountyDelta);
 
             // Do NOT switch turn — game is over
             gameRepository.save(game);

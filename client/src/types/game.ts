@@ -1,7 +1,5 @@
 // ─── Union-type enums ────────────────────────────────────────────────────────
 
-export type Filiation = "PIRATE" | "MARINE";
-
 export type PirateRank =
   | "CAPTAIN"
   | "FIRST_MATE"
@@ -12,17 +10,6 @@ export type PirateRank =
   | "SHIPWRIGHT"
   | "MUSICIAN"
   | "HELMSMAN";
-
-export type MarineRank =
-  | "FLEET_ADMIRAL"
-  | "ADMIRAL"
-  | "VICE_ADMIRAL"
-  | "REAR_ADMIRAL"
-  | "CAPTAIN"
-  | "COMMANDER"
-  | "LIEUTENANT_COMMANDER"
-  | "LIEUTENANT"
-  | "ENSIGN";
 
 export type GamePhase =
   | "WAITING_OPPONENT"
@@ -36,12 +23,7 @@ export type ShipType =
   | "MOBY_DICK"
   | "RED_FORCE"
   | "POLAR_TANG"
-  | "STRIKER"
-  | "BUSTER_CALL"
-  | "WARSHIP"
-  | "BATTLESHIP"
-  | "CRUISER"
-  | "CUTTER";
+  | "STRIKER";
 
 export type Orientation = "HORIZONTAL" | "VERTICAL";
 

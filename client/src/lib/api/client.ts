@@ -186,3 +186,33 @@ export async function apiPost<T>(
     throw error;
   }
 }
+
+export async function apiPut<T>(
+  path: string,
+  body?: unknown,
+): Promise<T> {
+  const url = buildUrl(path);
+
+  try {
+    const response = await fetch(url, {
+      method: "PUT",
+      headers: getHeaders(),
+      credentials: "include",
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+    });
+    return await handleResponse<T>(response);
+  } catch (error) {
+    if (error instanceof ApiError && error.isUnauthorized) {
+      await attemptRefresh();
+      // Retry once with new cookie
+      const retryResponse = await fetch(url, {
+        method: "PUT",
+        headers: getHeaders(),
+        credentials: "include",
+        body: body !== undefined ? JSON.stringify(body) : undefined,
+      });
+      return await handleResponse<T>(retryResponse);
+    }
+    throw error;
+  }
+}

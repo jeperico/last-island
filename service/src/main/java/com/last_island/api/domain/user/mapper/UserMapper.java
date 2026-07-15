@@ -13,11 +13,11 @@ public final class UserMapper {
                 user.getId(),
                 user.getName(),
                 user.getEmail(),
-                user.getFiliation(),
                 user.getRank(),
                 user.getBounty(),
                 user.getWins(),
-                user.getLosses()
+                user.getLosses(),
+                user.getAvatar() != null ? user.getAvatar().name() : null
         );
     }
 }

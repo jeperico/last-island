@@ -7,7 +7,6 @@ import com.last_island.api.domain.game.enums.GamePhase;
 import com.last_island.api.domain.game.repository.GameRepository;
 import com.last_island.api.domain.game.repository.GameResultRepository;
 import com.last_island.api.domain.user.entity.User;
-import com.last_island.api.domain.user.enums.Filiation;
 import com.last_island.api.domain.user.repository.UserRepository;
 import com.last_island.api.domain.user.service.BountyService;
 import com.last_island.api.infrastructure.sse.GameEventEmitter;
@@ -59,18 +58,17 @@ class GameServiceSurrenderTest {
 
     @BeforeEach
     void setUp() {
-        bluePlayer = buildUser("Luffy", Filiation.PIRATE);
-        redPlayer = buildUser("Akainu", Filiation.MARINE);
+        bluePlayer = buildUser("Luffy");
+        redPlayer = buildUser("Zoro");
     }
 
     // --- Helper methods ---
 
-    private User buildUser(String name, Filiation filiation) {
+    private User buildUser(String name) {
         User user = User.builder()
                 .name(name)
                 .email(name.toLowerCase() + "@test.com")
                 .passwordHash("hashed")
-                .filiation(filiation)
                 .rank("Rookie")
                 .wins(0)
                 .losses(0)
@@ -217,7 +215,7 @@ class GameServiceSurrenderTest {
         Game game = buildInProgressGame();
         when(gameRepository.findByTokenAndIsActiveTrue("654321")).thenReturn(Optional.of(game));
 
-        User stranger = buildUser("Stranger", Filiation.PIRATE);
+        User stranger = buildUser("Stranger");
 
         assertThatThrownBy(() -> gameService.surrender("654321", stranger.getId()))
                 .isInstanceOf(ResponseStatusException.class)

@@ -61,8 +61,8 @@ public class GameController {
     }
 
     @GetMapping("/history")
-    public List<BattleLogEntryResponse> getBattleLog(@AuthenticationPrincipal AuthenticatedUser principal) {
-        return battleLogService.getBattleLog(principal.getId());
+    public PageResponse<BattleLogEntryResponse> getBattleLog(@AuthenticationPrincipal AuthenticatedUser principal, Pageable pageable) {
+        return battleLogService.getBattleLog(principal.getId(), pageable);
     }
 
     @GetMapping("/{token}")

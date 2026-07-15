@@ -51,6 +51,8 @@ public class Game extends BaseEntity {
     @Column(unique = true, length = 6)
     private String token;
 
+    private Long bountyDelta;
+
     public Duration getDuration() {
         if (startedAt == null || endedAt == null) {
             return null;

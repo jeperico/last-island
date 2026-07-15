@@ -73,12 +73,15 @@ public class GameService {
         gameRepository.save(game);
 
         String bluePlayerName = user.getName();
+        String bluePlayerAvatar = user.getAvatar() != null ? user.getAvatar().name() : null;
+        long bluePlayerBounty = user.getBounty();
+        String bluePlayerRank = user.getRank();
         LocalDateTime createdAt = game.getCreatedAt();
         if (TransactionSynchronizationManager.isSynchronizationActive()) {
             TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
                 @Override
                 public void afterCommit() {
-                    lobbyEventEmitter.emitGameCreated(token, bluePlayerName, createdAt);
+                    lobbyEventEmitter.emitGameCreated(token, bluePlayerName, bluePlayerAvatar, bluePlayerBounty, bluePlayerRank, createdAt);
                 }
             });
         }
@@ -235,7 +238,8 @@ public class GameService {
         winner.setWins(winner.getWins() + 1);
         loser.setLosses(loser.getLosses() + 1);
 
-        bountyService.updateBounties(winner, loser);
+        long bountyDelta = bountyService.updateBounties(winner, loser);
+        game.setBountyDelta(bountyDelta);
 
         gameRepository.save(game);
 

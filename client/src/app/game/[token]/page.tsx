@@ -1,27 +1,36 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { useParams } from "next/navigation";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useRequireAuth, useAuth } from "@/lib/auth";
-import { getGame, getProfile } from "@/lib/api";
+import { getGame } from "@/lib/api";
 import type { GamePhase, GameStateResponse } from "@/lib/api/types";
 import { useGameEvents } from "@/lib/game";
+import { useSound } from "@/lib/sound";
 import { ShipPlacement } from "./ship-placement";
 import { BattleScreen } from "./battle-screen";
 import { GameOverPanel } from "./game-over-panel";
-import { Spinner, Alert, Badge } from "@/components/ui";
+import { Spinner, Alert } from "@/components/ui";
+import { useWallpaper } from "@/lib/hooks";
+import { WallpaperModal } from "@/components/wallpaper-modal";
 
 export default function GamePage() {
   const { user, isLoading: authLoading } = useRequireAuth();
   useAuth();
   const params = useParams();
   const token = params.token as string;
+  const router = useRouter();
 
   const [gameState, setGameState] = useState<GameStateResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [currentBounty, setCurrentBounty] = useState<number>(0);
+
+
+  const { swapSoundtrack, resumeGlobalSoundtrack, playLaugh } = useSound();
+  const prevPhaseRef = useRef<GamePhase | null>(null);
+  const { wallpaper, setWallpaper, getWallpaperPath } = useWallpaper();
+  const [wallpaperModalOpen, setWallpaperModalOpen] = useState(false);
 
   // Initial fetch on mount (after auth resolves)
   useEffect(() => {
@@ -59,11 +68,31 @@ export default function GamePage() {
   // SSE: subscribe to real-time game events
   const sseEnabled = gameState !== null && gameState.phase !== "FINISHED" && gameState.phase !== "CANCELLED";
 
-  // Refresh user bounty when game ends
+
+
+  // Soundtrack lifecycle: swap to battle music on IN_PROGRESS, resume global on unmount
   useEffect(() => {
-    if (gameState?.phase === "FINISHED") {
-      getProfile().then((profile) => setCurrentBounty(profile.bounty)).catch(() => {});
+    if (gameState?.phase === "IN_PROGRESS") {
+      const myAvatar = gameState.bluePlayerName === user?.name
+        ? gameState.bluePlayerAvatar : gameState.redPlayerAvatar;
+      swapSoundtrack(myAvatar);
     }
+    return () => { resumeGlobalSoundtrack(); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gameState?.phase === "IN_PROGRESS"]);
+
+  // Game-over audio: fire once on IN_PROGRESS → FINISHED transition
+  useEffect(() => {
+    if (prevPhaseRef.current === "IN_PROGRESS" && gameState?.phase === "FINISHED" && user) {
+      const myAvatar = gameState.bluePlayerName === user.name
+        ? gameState.bluePlayerAvatar : gameState.redPlayerAvatar;
+      resumeGlobalSoundtrack();
+      if (gameState.winnerName === user.name) {
+        playLaugh(myAvatar);
+      }
+    }
+    prevPhaseRef.current = gameState?.phase ?? null;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gameState?.phase]);
 
   useGameEvents(
@@ -75,19 +104,27 @@ export default function GamePage() {
       onShipsPlaced: () => {
         refetchGame();
       },
-      onShotReceived: () => {
+      onShotReceived: (data) => {
         refetchGame();
       },
-      onGameOver: () => {
+      onGameOver: (data) => {
+        resumeGlobalSoundtrack();
+        const myAvatar = gameState?.bluePlayerName === user?.name
+          ? gameState?.bluePlayerAvatar : gameState?.redPlayerAvatar;
+        if (data.winnerName === user?.name) {
+          playLaugh(myAvatar ?? null);
+        }
         refetchGame();
       },
       onTurnExpired: () => {
         refetchGame();
       },
       onGameExpired: () => {
+        resumeGlobalSoundtrack();
         refetchGame();
       },
       onSurrender: () => {
+        resumeGlobalSoundtrack();
         refetchGame();
       },
     },
@@ -138,14 +175,28 @@ export default function GamePage() {
     );
   }
 
+  // Derive the user's avatar from game state
+  const myAvatar = gameState.bluePlayerName === user.name
+    ? gameState.bluePlayerAvatar
+    : gameState.redPlayerAvatar;
+
   // Render phase content
   function renderPhaseContent() {
     if (!gameState || !user) return null;
 
     // Phase: WAITING_OPPONENT
     if (gameState.phase === "WAITING_OPPONENT") {
+      const bgImage = getWallpaperPath(myAvatar);
       return (
-        <div className="flex flex-1 flex-col items-center justify-center px-4 gap-6">
+        <div className="relative flex flex-1 flex-col items-center justify-center px-4 gap-6">
+          {bgImage && (
+            <div className="absolute inset-0 opacity-15 pointer-events-none overflow-hidden">
+              <div
+                className="absolute top-1/2 left-1/2 w-[100vh] h-[100vw] -translate-x-1/2 -translate-y-1/2 -rotate-90 bg-cover bg-center"
+                style={{ backgroundImage: `url(${bgImage})` }}
+              />
+            </div>
+          )}
           <div className="flex flex-col items-center gap-3 text-center">
             <span className="text-6xl animate-[bounce_3s_ease-in-out_infinite]">
               ⛵
@@ -154,15 +205,8 @@ export default function GamePage() {
               Scanning the horizon…
             </h1>
             <p className="text-sm text-text-muted max-w-sm">
-              Your ship is anchored and ready. Share the token below so a
-              challenger can find you on the Grand Line.
+              Waiting for an opponent from the Grand Line…
             </p>
-          </div>
-          <div className="flex flex-col items-center gap-2">
-            <span className="text-xs uppercase tracking-wider text-text-muted font-medium">
-              Battle Token
-            </span>
-            <Badge variant="neutral">{token}</Badge>
           </div>
         </div>
       );
@@ -174,17 +218,36 @@ export default function GamePage() {
         gameState.myBoard !== null && gameState.myBoard.ships.length > 0;
 
       if (!hasPlacedShips) {
+        const bgImage = getWallpaperPath(myAvatar);
         return (
-          <ShipPlacement
-            gameToken={token}
-            filiation={user.filiation}
-            onPlacementComplete={handlePlacementComplete}
-          />
+          <div className="relative flex flex-1 flex-col h-full">
+            {bgImage && (
+              <div className="absolute inset-0 opacity-15 pointer-events-none overflow-hidden">
+                <div
+                  className="absolute top-1/2 left-1/2 w-[100vh] h-[100vw] -translate-x-1/2 -translate-y-1/2 -rotate-90 bg-cover bg-center"
+                  style={{ backgroundImage: `url(${bgImage})` }}
+                />
+              </div>
+            )}
+            <ShipPlacement
+              gameToken={token}
+              onPlacementComplete={handlePlacementComplete}
+            />
+          </div>
         );
       }
 
+      const bgImage = getWallpaperPath(myAvatar);
       return (
-        <div className="flex flex-1 flex-col items-center justify-center px-4 gap-6">
+        <div className="relative flex flex-1 flex-col items-center justify-center px-4 gap-6">
+          {bgImage && (
+            <div className="absolute inset-0 opacity-15 pointer-events-none overflow-hidden">
+              <div
+                className="absolute top-1/2 left-1/2 w-[100vh] h-[100vw] -translate-x-1/2 -translate-y-1/2 -rotate-90 bg-cover bg-center"
+                style={{ backgroundImage: `url(${bgImage})` }}
+              />
+            </div>
+          )}
           <div className="flex flex-col items-center gap-3 text-center">
             <span className="text-6xl animate-pulse">🧭</span>
             <h1 className="text-xl font-bold text-text-primary">
@@ -213,51 +276,14 @@ export default function GamePage() {
           user={user}
           gameToken={token}
           onGameStateUpdate={setGameState}
+          bgImage={getWallpaperPath(myAvatar)}
         />
       );
     }
 
     // Phase: FINISHED
     if (gameState.phase === "FINISHED") {
-      const isWinner = gameState.winnerName === user.name;
-      const opponentName =
-        gameState.bluePlayerName === user.name
-          ? (gameState.redPlayerName ?? "Unknown")
-          : gameState.bluePlayerName;
-      const myShots = gameState.opponentBoard?.shotsFired.length ?? 0;
-      const myHits =
-        gameState.opponentBoard?.shotsFired.filter(
-          (s) => s.result === "HIT" || s.result === "SUNK",
-        ).length ?? 0;
-      const opponentShots = gameState.myBoard?.shotsReceived.length ?? 0;
-      const opponentHits =
-        gameState.myBoard?.shotsReceived.filter(
-          (s) => s.result === "HIT" || s.result === "SUNK",
-        ).length ?? 0;
-      const durationSeconds =
-        gameState.startedAt && gameState.endedAt
-          ? (new Date(gameState.endedAt).getTime() -
-              new Date(gameState.startedAt).getTime()) /
-            1000
-          : null;
-
-      return (
-        <div className="flex flex-1 flex-col items-center justify-center px-4 py-4 h-full overflow-hidden print:overflow-visible print:h-auto">
-          <GameOverPanel
-            isWinner={isWinner}
-            winnerName={gameState.winnerName ?? "Unknown"}
-            opponentName={opponentName}
-            myShots={myShots}
-            myHits={myHits}
-            opponentShots={opponentShots}
-            opponentHits={opponentHits}
-            durationSeconds={durationSeconds}
-            myBoard={gameState.myBoard}
-            opponentBoard={gameState.opponentBoard}
-            myBounty={currentBounty}
-          />
-        </div>
-      );
+      return <GameOverPanel gameState={gameState} user={user} onClose={() => router.push("/")} />;
     }
 
     // Phase: CANCELLED
@@ -292,13 +318,33 @@ export default function GamePage() {
       {/* Persistent back link — top-left */}
       <Link
         href="/"
-        className="print:hidden absolute top-4 left-4 z-10 inline-flex items-center gap-1.5 text-xs font-medium text-text-muted hover:text-primary transition-colors"
+        className="print:hidden absolute top-4 left-4 z-10 inline-flex items-center gap-1.5 text-sm font-semibold text-text-secondary hover:text-primary bg-surface-secondary/80 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-border hover:border-primary transition-all"
       >
         <span>←</span>
         <span>Grand Line</span>
       </Link>
 
+      {/* Wallpaper picker — top-right */}
+      {myAvatar && (
+        <button
+          type="button"
+          onClick={() => setWallpaperModalOpen(true)}
+          className="print:hidden absolute top-4 right-4 z-10 inline-flex items-center gap-1.5 text-sm font-semibold text-text-secondary hover:text-primary bg-surface-secondary/80 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-border hover:border-primary transition-all cursor-pointer"
+        >
+          <span>🎨</span>
+          <span>Wallpaper</span>
+        </button>
+      )}
+
       {renderPhaseContent()}
+
+      <WallpaperModal
+        open={wallpaperModalOpen}
+        onClose={() => setWallpaperModalOpen(false)}
+        avatar={myAvatar}
+        current={wallpaper}
+        onSelect={setWallpaper}
+      />
     </div>
   );
 }

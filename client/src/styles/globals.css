@@ -171,3 +171,85 @@ body {
     break-inside: avoid;
   }
 }
+
+/* ─── Character select entry animation ───────────────────────────────────────── */
+
+@keyframes character-select-in {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes character-select-out {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+}
+
+/* ─── Rank badge animations ─────────────────────────────────────────────────── */
+
+@keyframes shadow-rotate {
+  0% {
+    box-shadow:
+      4px 0 14px rgba(239, 68, 68, 0.8),
+      -4px 0 14px rgba(239, 68, 68, 0.2);
+  }
+  25% {
+    box-shadow:
+      0 4px 14px rgba(239, 68, 68, 0.8),
+      0 -4px 14px rgba(239, 68, 68, 0.2);
+  }
+  50% {
+    box-shadow:
+      -4px 0 14px rgba(239, 68, 68, 0.8),
+      4px 0 14px rgba(239, 68, 68, 0.2);
+  }
+  75% {
+    box-shadow:
+      0 -4px 14px rgba(239, 68, 68, 0.8),
+      0 4px 14px rgba(239, 68, 68, 0.2);
+  }
+  100% {
+    box-shadow:
+      4px 0 14px rgba(239, 68, 68, 0.8),
+      -4px 0 14px rgba(239, 68, 68, 0.2);
+  }
+}
+
+@keyframes shadow-rotate-king {
+  0% {
+    box-shadow:
+      4px 0 12px rgba(255, 255, 255, 0.6),
+      -4px 0 12px rgba(255, 255, 255, 0.15);
+  }
+  25% {
+    box-shadow:
+      0 4px 12px rgba(255, 255, 255, 0.6),
+      0 -4px 12px rgba(255, 255, 255, 0.15);
+  }
+  50% {
+    box-shadow:
+      -4px 0 12px rgba(255, 255, 255, 0.6),
+      4px 0 12px rgba(255, 255, 255, 0.15);
+  }
+  75% {
+    box-shadow:
+      0 -4px 12px rgba(255, 255, 255, 0.6),
+      0 4px 12px rgba(255, 255, 255, 0.15);
+  }
+  100% {
+    box-shadow:
+      4px 0 12px rgba(255, 255, 255, 0.6),
+      -4px 0 12px rgba(255, 255, 255, 0.15);
+  }
+}

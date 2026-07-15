@@ -35,8 +35,11 @@ export function getGame(token: string): Promise<GameStateResponse> {
   return apiGet<GameStateResponse>(`/api/games/${token}`);
 }
 
-export function getBattleLog(): Promise<BattleLogEntryResponse[]> {
-  return apiGet<BattleLogEntryResponse[]>("/api/games/history");
+export function getBattleLog(params?: { page?: number; size?: number }): Promise<PageResponse<BattleLogEntryResponse>> {
+  const query: Record<string, string> = {};
+  if (params?.page !== undefined) query.page = String(params.page);
+  if (params?.size !== undefined) query.size = String(params.size);
+  return apiGet<PageResponse<BattleLogEntryResponse>>("/api/games/history", query);
 }
 
 export function surrender(token: string): Promise<void> {

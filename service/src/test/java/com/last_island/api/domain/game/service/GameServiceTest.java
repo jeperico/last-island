@@ -13,7 +13,6 @@ import com.last_island.api.domain.game.entity.Game;
 import com.last_island.api.domain.game.enums.GamePhase;
 import com.last_island.api.domain.game.repository.GameRepository;
 import com.last_island.api.domain.user.entity.User;
-import com.last_island.api.domain.user.enums.Filiation;
 import com.last_island.api.domain.user.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -49,18 +48,17 @@ class GameServiceTest {
 
     @BeforeEach
     void setUp() {
-        bluePlayer = buildUser("Luffy", Filiation.PIRATE);
-        redPlayer = buildUser("Akainu", Filiation.MARINE);
+        bluePlayer = buildUser("Luffy");
+        redPlayer = buildUser("Zoro");
     }
 
     // --- Helper methods ---
 
-    private User buildUser(String name, Filiation filiation) {
+    private User buildUser(String name) {
         User user = User.builder()
                 .name(name)
                 .email(name.toLowerCase() + "@test.com")
                 .passwordHash("hashed")
-                .filiation(filiation)
                 .rank("Rookie")
                 .build();
         user.setId(UUID.randomUUID());
@@ -154,9 +152,9 @@ class GameServiceTest {
         GameResponse response = gameService.joinGame("123456", redPlayer.getId());
 
         assertThat(response.phase()).isEqualTo("PLACING_SHIPS");
-        assertThat(response.redPlayerName()).isEqualTo("Akainu");
+        assertThat(response.redPlayerName()).isEqualTo("Zoro");
         // currentTurn must be one of the two players
-        assertThat(response.currentTurnPlayerName()).isIn("Luffy", "Akainu");
+        assertThat(response.currentTurnPlayerName()).isIn("Luffy", "Zoro");
         verify(gameRepository).save(game);
     }
 
@@ -218,7 +216,7 @@ class GameServiceTest {
         Game game = buildInProgressGameWithBoards();
         when(gameRepository.findByTokenAndIsActiveTrue("654321")).thenReturn(Optional.of(game));
 
-        User stranger = buildUser("Stranger", Filiation.PIRATE);
+        User stranger = buildUser("Stranger");
 
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
                 () -> gameService.getGame("654321", stranger.getId()));

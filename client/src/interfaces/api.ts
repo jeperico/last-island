@@ -1,5 +1,4 @@
 import type {
-  Filiation,
   ShipType,
   Orientation,
   ShotResult,
@@ -12,7 +11,7 @@ export interface RegisterRequest {
   name: string;
   email: string;
   password: string;
-  filiation: Filiation;
+  avatar?: string | null;
 }
 
 export interface LoginRequest {
@@ -46,11 +45,11 @@ export interface UserResponse {
   id: string;
   name: string;
   email: string;
-  filiation: Filiation;
   rank: string;
   bounty: number;
   wins: number;
   losses: number;
+  avatar: string | null;
 }
 
 export interface CreateGameResponse {
@@ -64,6 +63,9 @@ export interface GameSummaryResponse {
   id: string;
   token: string;
   bluePlayerName: string;
+  bluePlayerAvatar: string | null;
+  bluePlayerBounty: number;
+  bluePlayerRank: string;
   createdAt: string;
 }
 
@@ -119,6 +121,17 @@ export interface GameStateResponse {
   phase: GamePhase;
   bluePlayerName: string;
   redPlayerName: string | null;
+  bluePlayerAvatar: string | null;
+  redPlayerAvatar: string | null;
+  bluePlayerRank: string | null;
+  redPlayerRank: string | null;
+  bluePlayerBounty: number | null;
+  redPlayerBounty: number | null;
+  bluePlayerWins: number | null;
+  redPlayerWins: number | null;
+  bluePlayerAccuracy: number | null;
+  redPlayerAccuracy: number | null;
+  bountyDelta: number | null;
   currentTurnPlayerName: string | null;
   winnerName: string | null;
   startedAt: string | null;
@@ -165,11 +178,11 @@ export interface BattleLogEntryResponse {
 export interface LeaderboardEntryResponse {
   position: number;
   name: string;
-  filiation: Filiation;
   wins: number;
   winRate: number;
   rank: string;
   bounty: number;
+  avatar: string | null;
   isCurrentUser: boolean;
 }
 

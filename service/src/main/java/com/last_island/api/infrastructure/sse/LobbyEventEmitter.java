@@ -14,10 +14,13 @@ public class LobbyEventEmitter {
         this.registry = registry;
     }
 
-    public void emitGameCreated(String token, String bluePlayerName, LocalDateTime createdAt) {
+    public void emitGameCreated(String token, String bluePlayerName, String bluePlayerAvatar, long bluePlayerBounty, String bluePlayerRank, LocalDateTime createdAt) {
         LobbyEvent event = LobbyEvent.of(LobbyEvent.GAME_CREATED, Map.of(
                 "token", token,
                 "bluePlayerName", bluePlayerName,
+                "bluePlayerAvatar", bluePlayerAvatar != null ? bluePlayerAvatar : "",
+                "bluePlayerBounty", bluePlayerBounty,
+                "bluePlayerRank", bluePlayerRank != null ? bluePlayerRank : "",
                 "createdAt", createdAt.toString()
         ));
         registry.broadcast(event);

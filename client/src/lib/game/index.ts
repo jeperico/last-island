@@ -1,9 +1,8 @@
 export {
   SHIP_SIZES,
   PIRATE_FLEET,
-  MARINE_FLEET,
+  FLEET,
   SHIP_DISPLAY_NAMES,
-  getFleetForFiliation,
 } from "./ship-config";
 
 export {

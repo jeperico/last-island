@@ -7,6 +7,9 @@ public record GameSummaryResponse(
         UUID id,
         String token,
         String bluePlayerName,
+        String bluePlayerAvatar,
+        long bluePlayerBounty,
+        String bluePlayerRank,
         LocalDateTime createdAt
 ) {
 }

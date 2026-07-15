@@ -75,24 +75,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       name: string,
       email: string,
       password: string,
-      filiation: string,
+      avatar?: string | null,
     ) => {
       const response = await registerApi({
         name,
         email,
         password,
-        filiation: filiation as "PIRATE" | "MARINE",
+        avatar: avatar ?? null,
       });
       setUser(response.user);
     },
     [],
   );
 
+  const refreshUser = useCallback(async () => {
+    const profile = await getProfile();
+    setUser(profile);
+  }, []);
+
   const isAuthenticated = user !== null;
 
   return (
     <AuthContext.Provider
-      value={{ user, isLoading, isAuthenticated, login, register, logout: performLogout }}
+      value={{ user, isLoading, isAuthenticated, login, register, logout: performLogout, refreshUser }}
     >
       {children}
     </AuthContext.Provider>

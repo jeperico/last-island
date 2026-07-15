@@ -10,8 +10,10 @@ import type {
 import { getShipCells, cellKey } from "@/lib/game";
 import { Badge, Alert, Spinner, Button } from "@/components/ui";
 import { CountdownTimer } from "@/components/ui";
+import { AvatarIcon } from "@/components/ui";
 import { BoardGrid, type CellState } from "./board-grid";
 import { SurrenderModal } from "@/components/surrender-modal";
+import { useSound } from "@/lib/sound";
 
 interface BattleScreenProps {
   gameState: GameStateResponse;
@@ -19,6 +21,7 @@ interface BattleScreenProps {
   gameToken: string;
   onGameStateUpdate: (state: GameStateResponse) => void;
   readOnly?: boolean;
+  bgImage?: string | null;
 }
 
 export function BattleScreen({
@@ -27,6 +30,7 @@ export function BattleScreen({
   gameToken,
   onGameStateUpdate,
   readOnly,
+  bgImage: bgImageProp,
 }: BattleScreenProps) {
   const [firing, setFiring] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -35,8 +39,18 @@ export function BattleScreen({
   );
   const [surrenderOpen, setSurrenderOpen] = useState(false);
   const [surrendering, setSurrendering] = useState(false);
+  const { playLaugh } = useSound();
 
   const isMyTurn = gameState.currentTurnPlayerName === user.name;
+
+  const myAvatar =
+    gameState.bluePlayerName === user.name
+      ? gameState.bluePlayerAvatar
+      : gameState.redPlayerAvatar;
+  const opponentAvatar =
+    gameState.bluePlayerName === user.name
+      ? gameState.redPlayerAvatar
+      : gameState.bluePlayerAvatar;
 
   // Merge server shots with optimistic shots
   const allShotsFired = useMemo(() => {
@@ -81,6 +95,10 @@ export function BattleScreen({
         };
         setOptimisticShots((prev) => [...prev, newShot]);
 
+        if (response.result === "SUNK") {
+          playLaugh(myAvatar);
+        }
+
         if (response.gameOver) {
           // Refetch full game state to trigger FINISHED phase in parent
           const updatedState = await getGame(gameToken);
@@ -96,7 +114,7 @@ export function BattleScreen({
         setFiring(false);
       }
     },
-    [isMyTurn, firing, allShotsFired, gameToken, onGameStateUpdate],
+    [isMyTurn, firing, allShotsFired, gameToken, onGameStateUpdate, playLaugh, myAvatar],
   );
 
   const handleSurrender = useCallback(async () => {
@@ -113,12 +131,29 @@ export function BattleScreen({
     }
   }, [gameToken, onGameStateUpdate]);
 
+  const bgImage = bgImageProp ?? (myAvatar
+    ? `/avatars/${myAvatar.toLowerCase()}/${myAvatar.toLowerCase()}-bg-01.jpg`
+    : null);
+
   return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-6 px-4 py-6">
+    <div className="relative flex flex-1 flex-col items-center justify-center gap-6 px-4 py-6">
+      {/* Background image */}
+      {bgImage && (
+        <div
+          className="absolute inset-0 opacity-15 pointer-events-none overflow-hidden"
+        >
+          <div
+            className="absolute top-1/2 left-1/2 w-[100vh] h-[100vw] -translate-x-1/2 -translate-y-1/2 -rotate-90 bg-cover bg-center"
+            style={{ backgroundImage: `url(${bgImage})` }}
+          />
+        </div>
+      )}
       {/* Turn indicator (hidden when readOnly) */}
+      <div className="relative z-10 flex flex-col items-center gap-6 bg-surface/80 backdrop-blur-sm rounded-2xl px-6 py-5">
       {!readOnly && (
         <div className="flex flex-col items-center justify-center gap-2">
-          <div className="flex items-center justify-center">
+          <div className="flex items-center justify-center gap-2">
+            <AvatarIcon avatar={isMyTurn ? myAvatar : opponentAvatar} size="sm" />
             {isMyTurn ? (
               <Badge variant="success">Your Turn — Fire!</Badge>
             ) : (
@@ -172,6 +207,7 @@ export function BattleScreen({
           🏳️ Surrender
         </Button>
       )}
+      </div>
 
       <SurrenderModal
         open={surrenderOpen}

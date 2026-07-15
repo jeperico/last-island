@@ -1,7 +1,6 @@
 package com.last_island.api.domain.user.repository;
 
 import com.last_island.api.domain.user.entity.User;
-import com.last_island.api.domain.user.enums.Filiation;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -21,12 +20,6 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     @Query("SELECT u FROM User u ORDER BY u.bounty DESC, u.name ASC LIMIT 10")
     List<User> findTop10ByOrderByBountyDesc();
 
-    @Query("SELECT u FROM User u WHERE u.filiation = :filiation ORDER BY u.bounty DESC, u.name ASC LIMIT 10")
-    List<User> findTop10ByFiliationOrderByBountyDesc(@Param("filiation") Filiation filiation);
-
     @Query("SELECT COUNT(u) FROM User u WHERE u.bounty > :bounty OR (u.bounty = :bounty AND u.name < :name)")
     long countUsersAhead(@Param("bounty") double bounty, @Param("name") String name);
-
-    @Query("SELECT COUNT(u) FROM User u WHERE u.filiation = :filiation AND (u.bounty > :bounty OR (u.bounty = :bounty AND u.name < :name))")
-    long countUsersAheadByFiliation(@Param("filiation") Filiation filiation, @Param("bounty") double bounty, @Param("name") String name);
 }
