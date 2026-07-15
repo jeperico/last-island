@@ -7,3 +7,11 @@ Implementer: created `service/src/main/resources/db/migration/V9__add_bounty_del
 Reviewer: PASS — 79/79 tests green, client build+lint clean, all 3 call sites verified, 24-field record matches constructor args
 
 Commit: uncommitted
+
+## 2026-07-15T15:18 — Frontend: Redesign game-over screen as VS-style results modal
+
+Implementer: created `client/src/lib/format.ts` (+13), rewrote `client/src/app/game/[token]/game-over-panel.tsx` (+285/-186), modified `client/src/app/game/[token]/page.tsx` (+5/-45), modified `client/src/app/page.tsx` (+2/-12), modified `client/src/app/settings/page.tsx` (+2/-11)
+
+Reviewer: PASS — build ✓, lint 0 new errors (4 pre-existing warnings), createPortal used, all GameStateResponse fields consumed, formatBounty shared across 3 files
+
+Commit: uncommitted

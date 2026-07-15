@@ -15,6 +15,7 @@ import {
   Alert,
   Spinner,
 } from "@/components/ui";
+import { formatBounty } from "@/lib/format";
 
 // ─── Avatar options ──────────────────────────────────────────────────────────
 
@@ -33,18 +34,6 @@ function getAvatarImage(avatar: string | null): string {
   if (!avatar) return "/avatars/default/profile.jpg";
   const option = AVATAR_OPTIONS.find((o) => o.key === avatar);
   return option?.image ?? "/avatars/default/profile.jpg";
-}
-
-function formatBounty(bounty: number): string {
-  if (bounty >= 1_000_000_000) {
-    const b = bounty / 1_000_000_000;
-    return `${b % 1 === 0 ? b.toFixed(0) : b.toFixed(1)}B`;
-  }
-  if (bounty >= 1_000_000) {
-    const m = bounty / 1_000_000;
-    return `${m % 1 === 0 ? m.toFixed(0) : m.toFixed(0)}M`;
-  }
-  return bounty.toLocaleString();
 }
 
 // ─── Page ────────────────────────────────────────────────────────────────────

@@ -2,7 +2,7 @@
 
 ## Position
 
-Plan written — Backend: Add player stats and bounty delta to GameStateResponse
+Plan written — Frontend: Redesign game-over screen as VS-style results modal
 
 ## Decisions
 
@@ -18,4 +18,4 @@ Plan written — Backend: Add player stats and bounty delta to GameStateResponse
 
 ## Last verification
 
-PASS at 2026-07-15T15:10 — service-build ✓, service-test 79/79 ✓, client-build ✓, client-lint 10 issues (all pre-existing), grep confirms 3/3 call sites set bountyDelta, manual checks ✓ (24 fields, migration valid)
+PASS at 2026-07-15T15:23 — client-build ✓, client-lint 0 new errors (4 pre-existing warnings in changed files), createPortal used, all GameStateResponse fields consumed, formatBounty shared across 3 files
