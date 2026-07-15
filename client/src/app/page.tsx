@@ -11,12 +11,14 @@ import {
   createGame,
   joinGame,
   listGames,
+  getGame,
   getBattleLog,
   getLeaderboard,
 } from "@/lib/api";
 import type { ApiError } from "@/lib/api/client";
 import type {
   BattleLogEntryResponse,
+  GameStateResponse,
   GameSummaryResponse,
   LeaderboardResponse,
   PageResponse,
@@ -40,7 +42,7 @@ import {
   Spinner,
   AvatarIcon,
 } from "@/components/ui";
-import { BattleDetailModal } from "@/components/battle-detail-modal";
+import { GameOverPanel } from "./game/[token]/game-over-panel";
 import { formatBounty } from "@/lib/format";
 
 export default function Home() {
@@ -69,7 +71,8 @@ export default function Home() {
   );
   const [loadingLeaderboard, setLoadingLeaderboard] = useState(false);
   const [selectedBattle, setSelectedBattle] =
-    useState<BattleLogEntryResponse | null>(null);
+    useState<GameStateResponse | null>(null);
+  const [loadingBattle, setLoadingBattle] = useState(false);
 
   useEffect(() => {
     if (isLoading || !user) return;
@@ -491,7 +494,17 @@ export default function Home() {
                     <div
                       key={entry.gameId}
                       className="group flex items-center gap-3 px-3 py-3 rounded-lg border border-border-light cursor-pointer hover:border-primary/50 hover:bg-surface-secondary transition-all duration-150"
-                      onClick={() => setSelectedBattle(entry)}
+                      onClick={async () => {
+                        setLoadingBattle(true);
+                        try {
+                          const state = await getGame(entry.token);
+                          setSelectedBattle(state);
+                        } catch {
+                          // silently ignore
+                        } finally {
+                          setLoadingBattle(false);
+                        }
+                      }}
                     >
                       <Badge
                         variant={
@@ -612,11 +625,13 @@ export default function Home() {
         </div>
       </div>
 
-      <BattleDetailModal
-        entry={selectedBattle}
-        open={!!selectedBattle}
-        onClose={() => setSelectedBattle(null)}
-      />
+      {selectedBattle && user && (
+        <GameOverPanel
+          gameState={selectedBattle}
+          user={user}
+          onClose={() => setSelectedBattle(null)}
+        />
+      )}
     </div>
   );
 }

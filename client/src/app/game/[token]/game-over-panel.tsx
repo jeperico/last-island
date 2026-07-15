@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import type {
   GameStateResponse,
@@ -128,6 +128,7 @@ function countOpponentShipsSunk(shotsFired: ShotCellResponse[]): number {
 export function GameOverPanel({ gameState, user, onClose }: GameOverPanelProps) {
   // Data derivation
   const isBlue = user.name === gameState.bluePlayerName;
+  const [closing, setClosing] = useState(false);
 
   const myName = isBlue ? gameState.bluePlayerName : (gameState.redPlayerName ?? "Unknown");
   const myAvatar = isBlue ? gameState.bluePlayerAvatar : gameState.redPlayerAvatar;
@@ -187,7 +188,9 @@ export function GameOverPanel({ gameState, user, onClose }: GameOverPanelProps) 
   }, []);
 
   function handleClose() {
-    onClose();
+    if (closing) return;
+    setClosing(true);
+    setTimeout(() => onClose(), 250);
   }
 
   // Format rank for display
@@ -201,10 +204,17 @@ export function GameOverPanel({ gameState, user, onClose }: GameOverPanelProps) 
   const deltaColor = isWinner ? "text-success" : "text-danger";
 
   const content = (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/70"
+      onClick={handleClose}
+      style={{
+        animation: closing ? "character-select-out 250ms ease-in forwards" : undefined,
+      }}
+    >
       <div
         className="relative w-[90vw] max-w-7xl h-[90vh] max-h-[900px] rounded-xl overflow-hidden border border-border bg-surface"
-        style={{ animation: "character-select-in 300ms ease-out forwards" }}
+        style={{ animation: closing ? "character-select-out 250ms ease-in forwards" : "character-select-in 300ms ease-out forwards" }}
+        onClick={(e) => e.stopPropagation()}
       >
         {/* Close button (×) */}
         <button
