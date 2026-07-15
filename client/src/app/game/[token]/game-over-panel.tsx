@@ -232,7 +232,7 @@ export function GameOverPanel({ gameState, user, onClose }: GameOverPanelProps) 
           {/* Middle column */}
           <div className="flex flex-col items-center justify-between py-6 px-4 bg-surface-elevated overflow-hidden">
             {/* Top score card */}
-            <div className="w-full max-w-sm bg-surface-secondary/90 rounded-lg p-4 text-center">
+            <div className={`w-full max-w-sm rounded-lg p-4 text-center ${isWinner ? "bg-success/10 border border-success/20" : "bg-danger/10 border border-danger/20"}`}>
               {/* Ships sunk comparison */}
               <div className="flex items-center justify-center gap-3 mb-2">
                 <span className="text-2xl font-black text-text-primary">
