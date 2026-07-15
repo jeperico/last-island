@@ -138,7 +138,7 @@ export function CharacterSelect({
               key={char.key}
               type="button"
               onClick={() => handleCharacterClick(char.key)}
-              className={`flex-1 relative overflow-hidden transition-all duration-300 cursor-pointer border-2 ${
+              className={`group flex-1 relative overflow-hidden transition-all duration-300 cursor-pointer border-2 ${
                 isSelected
                   ? "border-secondary shadow-[0_0_30px_rgba(245,158,11,0.6)]"
                   : "border-transparent"
@@ -151,10 +151,10 @@ export function CharacterSelect({
               <div
                 className={`absolute inset-0 bg-cover bg-top transition-all duration-300 ${
                   isSelected
-                    ? "brightness-110"
+                    ? "brightness-110 scale-105"
                     : hasSelection
                       ? "brightness-50 grayscale-[30%]"
-                      : ""
+                      : "group-hover:scale-105"
                 }`}
                 style={{ backgroundImage: `url(${char.image})` }}
               />
