@@ -49,7 +49,7 @@ export function WallpaperModal({
                 }`}
               >
                 <div
-                  className="absolute top-1/2 left-1/2 w-[200%] h-[200%] -translate-x-1/2 -translate-y-1/2 -rotate-90 bg-cover bg-center"
+                  className="absolute top-1/2 left-1/2 w-[200%] h-[200%] -translate-x-1/2 -translate-y-1/2 -rotate-90 bg-contain bg-center bg-no-repeat"
                   style={{ backgroundImage: `url(${path})` }}
                 />
                 {isSelected && (

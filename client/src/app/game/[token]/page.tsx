@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useRequireAuth, useAuth } from "@/lib/auth";
-import { getGame, getProfile } from "@/lib/api";
+import { getGame } from "@/lib/api";
 import type { GamePhase, GameStateResponse } from "@/lib/api/types";
 import { useGameEvents } from "@/lib/game";
 import { useSound } from "@/lib/sound";
@@ -20,11 +20,12 @@ export default function GamePage() {
   useAuth();
   const params = useParams();
   const token = params.token as string;
+  const router = useRouter();
 
   const [gameState, setGameState] = useState<GameStateResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [currentBounty, setCurrentBounty] = useState<number>(0);
+
 
   const { swapSoundtrack, resumeGlobalSoundtrack, playLaugh } = useSound();
   const prevPhaseRef = useRef<GamePhase | null>(null);
@@ -67,12 +68,7 @@ export default function GamePage() {
   // SSE: subscribe to real-time game events
   const sseEnabled = gameState !== null && gameState.phase !== "FINISHED" && gameState.phase !== "CANCELLED";
 
-  // Refresh user bounty when game ends
-  useEffect(() => {
-    if (gameState?.phase === "FINISHED") {
-      getProfile().then((profile) => setCurrentBounty(profile.bounty)).catch(() => {});
-    }
-  }, [gameState?.phase]);
+
 
   // Soundtrack lifecycle: swap to battle music on IN_PROGRESS, resume global on unmount
   useEffect(() => {
@@ -190,8 +186,17 @@ export default function GamePage() {
 
     // Phase: WAITING_OPPONENT
     if (gameState.phase === "WAITING_OPPONENT") {
+      const bgImage = getWallpaperPath(myAvatar);
       return (
-        <div className="flex flex-1 flex-col items-center justify-center px-4 gap-6">
+        <div className="relative flex flex-1 flex-col items-center justify-center px-4 gap-6">
+          {bgImage && (
+            <div className="absolute inset-0 opacity-15 pointer-events-none overflow-hidden">
+              <div
+                className="absolute top-1/2 left-1/2 w-[100vh] h-[100vw] -translate-x-1/2 -translate-y-1/2 -rotate-90 bg-cover bg-center"
+                style={{ backgroundImage: `url(${bgImage})` }}
+              />
+            </div>
+          )}
           <div className="flex flex-col items-center gap-3 text-center">
             <span className="text-6xl animate-[bounce_3s_ease-in-out_infinite]">
               ⛵
@@ -220,17 +225,37 @@ export default function GamePage() {
         gameState.myBoard !== null && gameState.myBoard.ships.length > 0;
 
       if (!hasPlacedShips) {
+        const bgImage = getWallpaperPath(myAvatar);
         return (
-          <ShipPlacement
-            gameToken={token}
-            filiation={user.filiation}
-            onPlacementComplete={handlePlacementComplete}
-          />
+          <div className="relative flex flex-1 flex-col h-full">
+            {bgImage && (
+              <div className="absolute inset-0 opacity-15 pointer-events-none overflow-hidden">
+                <div
+                  className="absolute top-1/2 left-1/2 w-[100vh] h-[100vw] -translate-x-1/2 -translate-y-1/2 -rotate-90 bg-cover bg-center"
+                  style={{ backgroundImage: `url(${bgImage})` }}
+                />
+              </div>
+            )}
+            <ShipPlacement
+              gameToken={token}
+              filiation={user.filiation}
+              onPlacementComplete={handlePlacementComplete}
+            />
+          </div>
         );
       }
 
+      const bgImage = getWallpaperPath(myAvatar);
       return (
-        <div className="flex flex-1 flex-col items-center justify-center px-4 gap-6">
+        <div className="relative flex flex-1 flex-col items-center justify-center px-4 gap-6">
+          {bgImage && (
+            <div className="absolute inset-0 opacity-15 pointer-events-none overflow-hidden">
+              <div
+                className="absolute top-1/2 left-1/2 w-[100vh] h-[100vw] -translate-x-1/2 -translate-y-1/2 -rotate-90 bg-cover bg-center"
+                style={{ backgroundImage: `url(${bgImage})` }}
+              />
+            </div>
+          )}
           <div className="flex flex-col items-center gap-3 text-center">
             <span className="text-6xl animate-pulse">🧭</span>
             <h1 className="text-xl font-bold text-text-primary">
@@ -266,65 +291,7 @@ export default function GamePage() {
 
     // Phase: FINISHED
     if (gameState.phase === "FINISHED") {
-      const isWinner = gameState.winnerName === user.name;
-      const opponentName =
-        gameState.bluePlayerName === user.name
-          ? (gameState.redPlayerName ?? "Unknown")
-          : gameState.bluePlayerName;
-      const myAvatar =
-        gameState.bluePlayerName === user.name
-          ? gameState.bluePlayerAvatar
-          : gameState.redPlayerAvatar;
-      const opponentAvatar =
-        gameState.bluePlayerName === user.name
-          ? gameState.redPlayerAvatar
-          : gameState.bluePlayerAvatar;
-      const myShots = gameState.opponentBoard?.shotsFired.length ?? 0;
-      const myHits =
-        gameState.opponentBoard?.shotsFired.filter(
-          (s) => s.result === "HIT" || s.result === "SUNK",
-        ).length ?? 0;
-      const opponentShots = gameState.myBoard?.shotsReceived.length ?? 0;
-      const opponentHits =
-        gameState.myBoard?.shotsReceived.filter(
-          (s) => s.result === "HIT" || s.result === "SUNK",
-        ).length ?? 0;
-      const durationSeconds =
-        gameState.startedAt && gameState.endedAt
-          ? (new Date(gameState.endedAt).getTime() -
-              new Date(gameState.startedAt).getTime()) /
-            1000
-          : null;
-
-      const bgImage = getWallpaperPath(myAvatar);
-
-      return (
-        <div className="relative flex flex-1 flex-col items-center justify-center px-4 py-4 h-full overflow-hidden print:overflow-visible print:h-auto">
-          {bgImage && (
-            <div className="absolute inset-0 opacity-15 pointer-events-none overflow-hidden">
-              <div
-                className="absolute top-1/2 left-1/2 w-[100vh] h-[100vw] -translate-x-1/2 -translate-y-1/2 -rotate-90 bg-cover bg-center"
-                style={{ backgroundImage: `url(${bgImage})` }}
-              />
-            </div>
-          )}
-          <GameOverPanel
-            isWinner={isWinner}
-            winnerName={gameState.winnerName ?? "Unknown"}
-            opponentName={opponentName}
-            myShots={myShots}
-            myHits={myHits}
-            opponentShots={opponentShots}
-            opponentHits={opponentHits}
-            durationSeconds={durationSeconds}
-            myBoard={gameState.myBoard}
-            opponentBoard={gameState.opponentBoard}
-            myBounty={currentBounty}
-            myAvatar={myAvatar}
-            opponentAvatar={opponentAvatar}
-          />
-        </div>
-      );
+      return <GameOverPanel gameState={gameState} user={user} onClose={() => router.push("/")} />;
     }
 
     // Phase: CANCELLED
