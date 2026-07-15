@@ -149,6 +149,7 @@ export function BattleScreen({
         </div>
       )}
       {/* Turn indicator (hidden when readOnly) */}
+      <div className="relative z-10 flex flex-col items-center gap-6 bg-surface/80 backdrop-blur-sm rounded-2xl px-6 py-5">
       {!readOnly && (
         <div className="flex flex-col items-center justify-center gap-2">
           <div className="flex items-center justify-center gap-2">
@@ -206,6 +207,7 @@ export function BattleScreen({
           🏳️ Surrender
         </Button>
       )}
+      </div>
 
       <SurrenderModal
         open={surrenderOpen}

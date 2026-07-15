@@ -202,7 +202,9 @@ export function ShipPlacement({
     setPlacements(newPlacements);
 
     // Auto-select next unplaced ship
-    const nextShip = fleet.find((s) => s !== selectedShipType && !newPlacements.has(s));
+    const nextShip = fleet.find(
+      (s) => s !== selectedShipType && !newPlacements.has(s),
+    );
     setSelectedShipType(nextShip ?? null);
   }
 
@@ -342,154 +344,158 @@ export function ShipPlacement({
   }
 
   return (
-    <div className="flex flex-1 flex-col items-center px-4 py-6">
-      <h1 className="mb-4 text-xl font-bold text-foreground">
-        Deploy Your Fleet
-      </h1>
+    <div className="relative z-10 flex flex-1 flex-col items-center justify-center px-4 py-6">
+      <div className="flex flex-col gap-10 items-center w-fit bg-surface/80 backdrop-blur-sm rounded-2xl p-6">
+        <h1 className="mb-4 text-xl font-bold text-foreground">
+          Deploy Your Fleet
+        </h1>
 
-      {error && (
-        <Alert variant="error" className="mb-4 w-full max-w-3xl">
-          {error}
-        </Alert>
-      )}
+        {error && (
+          <Alert variant="error" className="mb-4 w-full max-w-3xl">
+            {error}
+          </Alert>
+        )}
 
-      <div className="flex w-full max-w-4xl flex-col gap-6 md:flex-row">
-        {/* Ship panel (left sidebar) */}
-        <div className="w-full shrink-0 md:w-56">
-          <h2 className="mb-2 text-sm font-semibold text-foreground">Ships</h2>
-          <div className="space-y-2">
-            {fleet.map((shipType) => {
-              const isPlaced = placements.has(shipType);
-              const isSelected = selectedShipType === shipType;
-              const size = SHIP_SIZES[shipType];
+        <div className="flex w-full max-w-4xl flex-col gap-24 md:flex-row">
+          {/* Ship panel (left sidebar) */}
+          <div className="w-full shrink-0 md:w-56">
+            <h2 className="mb-2 text-sm font-semibold text-foreground">
+              Ships
+            </h2>
+            <div className="space-y-2">
+              {fleet.map((shipType) => {
+                const isPlaced = placements.has(shipType);
+                const isSelected = selectedShipType === shipType;
+                const size = SHIP_SIZES[shipType];
 
-              return (
-                <button
-                  key={shipType}
-                  onClick={() => handleShipSelect(shipType)}
-                  className={`flex w-full items-center gap-2 rounded border px-3 py-2 text-left text-sm transition-colors ${
-                    isSelected
-                      ? "border-ocean bg-blue-900/30"
-                      : isPlaced
-                        ? "border-green-700 bg-green-900/30 opacity-70"
-                        : "border-border hover:border-border-light hover:bg-surface-secondary"
-                  }`}
-                >
-                  <div className="flex-1">
-                    <span className="font-medium text-foreground">
-                      {SHIP_DISPLAY_NAMES[shipType]}
-                    </span>
-                    <div className="mt-1 flex gap-0.5">
-                      {Array.from({ length: size }).map((_, i) => (
-                        <div
-                          key={i}
-                          className={`h-2.5 w-2.5 rounded-sm ${
-                            isPlaced ? "bg-green-500" : "bg-text-muted"
-                          }`}
-                        />
-                      ))}
+                return (
+                  <button
+                    key={shipType}
+                    onClick={() => handleShipSelect(shipType)}
+                    className={`flex w-full items-center gap-2 rounded border px-3 py-2 text-left text-sm transition-colors ${
+                      isSelected
+                        ? "border-primary bg-blue-950"
+                        : isPlaced
+                          ? "border-green-700 bg-green-950"
+                          : "border-border bg-surface-secondary hover:border-border-light hover:bg-surface"
+                    }`}
+                  >
+                    <div className="flex-1">
+                      <span className="font-medium text-foreground">
+                        {SHIP_DISPLAY_NAMES[shipType]}
+                      </span>
+                      <div className="mt-1 flex gap-0.5">
+                        {Array.from({ length: size }).map((_, i) => (
+                          <div
+                            key={i}
+                            className={`h-2.5 w-2.5 rounded-sm ${
+                              isPlaced ? "bg-green-500" : "bg-slate-400"
+                            }`}
+                          />
+                        ))}
+                      </div>
                     </div>
+                    {isPlaced && (
+                      <span className="text-xs text-green-400">✓</span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Orientation toggle */}
+            <div className="mt-4">
+              <button
+                onClick={toggleOrientation}
+                className="w-full rounded border border-border bg-surface-secondary px-3 py-2 text-sm text-foreground hover:bg-surface"
+              >
+                Orientation:{" "}
+                <span className="font-medium">
+                  {orientation === "HORIZONTAL" ? "→ Horizontal" : "↓ Vertical"}
+                </span>
+                <span className="ml-2 text-xs text-text-secondary">(R)</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Grid (center) */}
+          <div className="flex flex-1 flex-col items-center">
+            <div className="inline-block">
+              {/* Column labels */}
+              <div className="flex">
+                <div className="h-8 w-7 sm:w-8" /> {/* Corner spacer */}
+                {Array.from({ length: GRID_SIZE }).map((_, col) => (
+                  <div
+                    key={col}
+                    className="flex h-8 w-7 sm:w-8 items-center justify-center text-xs font-medium text-text-secondary"
+                  >
+                    {col + 1}
                   </div>
-                  {isPlaced && (
-                    <span className="text-xs text-green-400">✓</span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
+                ))}
+              </div>
 
-          {/* Orientation toggle */}
-          <div className="mt-4">
-            <button
-              onClick={toggleOrientation}
-              className="w-full rounded border border-border px-3 py-2 text-sm text-foreground hover:bg-surface-secondary"
-            >
-              Orientation:{" "}
-              <span className="font-medium">
-                {orientation === "HORIZONTAL" ? "→ Horizontal" : "↓ Vertical"}
-              </span>
-              <span className="ml-2 text-xs text-text-muted">(R)</span>
-            </button>
-          </div>
-        </div>
+              {/* Grid rows */}
+              {Array.from({ length: GRID_SIZE }).map((_, row) => (
+                <div key={row} className="flex">
+                  {/* Row label */}
+                  <div className="flex h-7 sm:h-8 w-7 sm:w-8 items-center justify-center text-xs font-medium text-text-secondary">
+                    {ROW_LABELS[row]}
+                  </div>
 
-        {/* Grid (center) */}
-        <div className="flex flex-1 flex-col items-center">
-          <div className="inline-block">
-            {/* Column labels */}
-            <div className="flex">
-              <div className="h-8 w-7 sm:w-8" /> {/* Corner spacer */}
-              {Array.from({ length: GRID_SIZE }).map((_, col) => (
-                <div
-                  key={col}
-                  className="flex h-8 w-7 sm:w-8 items-center justify-center text-xs font-medium text-text-muted"
-                >
-                  {col + 1}
+                  {/* Cells */}
+                  {Array.from({ length: GRID_SIZE }).map((_, col) => {
+                    const state = getCellState(row, col);
+                    return (
+                      <div
+                        key={col}
+                        className={`h-7 w-7 sm:h-8 sm:w-8 cursor-pointer border border-border transition-colors ${
+                          state === "placed"
+                            ? "bg-teal-600/60"
+                            : state === "preview-valid"
+                              ? "bg-green-500/60"
+                              : state === "preview-invalid"
+                                ? "bg-red-500/60"
+                                : "bg-sky-950/40 hover:bg-sky-900/40"
+                        }`}
+                        onClick={() => handleCellClick(row, col)}
+                        onMouseEnter={() => setHoveredCell({ row, col })}
+                        onMouseLeave={() => setHoveredCell(null)}
+                        role="button"
+                        aria-label={`Cell ${ROW_LABELS[row]}${col + 1}${
+                          state === "placed" ? " (ship placed)" : ""
+                        }`}
+                      />
+                    );
+                  })}
                 </div>
               ))}
             </div>
 
-            {/* Grid rows */}
-            {Array.from({ length: GRID_SIZE }).map((_, row) => (
-              <div key={row} className="flex">
-                {/* Row label */}
-                <div className="flex h-7 sm:h-8 w-7 sm:w-8 items-center justify-center text-xs font-medium text-text-muted">
-                  {ROW_LABELS[row]}
-                </div>
-
-                {/* Cells */}
-                {Array.from({ length: GRID_SIZE }).map((_, col) => {
-                  const state = getCellState(row, col);
-                  return (
-                    <div
-                      key={col}
-                      className={`h-7 w-7 sm:h-8 sm:w-8 cursor-pointer border border-border transition-colors ${
-                        state === "placed"
-                          ? "bg-teal-600"
-                          : state === "preview-valid"
-                            ? "bg-green-400/60"
-                            : state === "preview-invalid"
-                              ? "bg-red-400/60"
-                              : "bg-sky-900/40 hover:bg-sky-800/50"
-                      }`}
-                      onClick={() => handleCellClick(row, col)}
-                      onMouseEnter={() => setHoveredCell({ row, col })}
-                      onMouseLeave={() => setHoveredCell(null)}
-                      role="button"
-                      aria-label={`Cell ${ROW_LABELS[row]}${col + 1}${
-                        state === "placed" ? " (ship placed)" : ""
-                      }`}
-                    />
-                  );
-                })}
-              </div>
-            ))}
-          </div>
-
-          {/* Action buttons */}
-          <div className="mt-4 flex gap-3">
-            <Button
-              variant="primary"
-              onClick={handleDeploy}
-              loading={submitting}
-              disabled={!allPlaced}
-            >
-              Deploy Fleet
-            </Button>
-            <Button variant="secondary" onClick={handleRandomize}>
-              🎲 Random
-            </Button>
-            <Button variant="secondary" onClick={handleReset}>
-              Reset
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setSurrenderOpen(true)}
-              className="text-text-muted hover:text-danger"
-            >
-              🏳️ Surrender
-            </Button>
+            {/* Action buttons */}
+            <div className="mt-4 flex gap-3">
+              <Button
+                variant="primary"
+                onClick={handleDeploy}
+                loading={submitting}
+                disabled={!allPlaced}
+              >
+                Deploy Fleet
+              </Button>
+              <Button variant="secondary" onClick={handleRandomize}>
+                🎲 Random
+              </Button>
+              <Button variant="secondary" onClick={handleReset}>
+                Reset
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => setSurrenderOpen(true)}
+                className="text-danger"
+              >
+                🏳️ Surrender
+              </Button>
+            </div>
           </div>
         </div>
       </div>
