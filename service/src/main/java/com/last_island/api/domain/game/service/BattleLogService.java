@@ -1,9 +1,10 @@
 package com.last_island.api.domain.game.service;
 
+import com.last_island.api.common.dto.PageResponse;
 import com.last_island.api.domain.game.dto.BattleLogEntryResponse;
 import com.last_island.api.domain.game.mapper.GameMapper;
 import com.last_island.api.domain.game.repository.GameResultRepository;
-import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,11 +21,18 @@ public class BattleLogService {
     }
 
     @Transactional(readOnly = true)
-    public List<BattleLogEntryResponse> getBattleLog(UUID userId) {
-        return gameResultRepository
-                .findTop10ByUserIdOrderByEndedAtDesc(userId, PageRequest.of(0, 10))
-                .stream()
+    public PageResponse<BattleLogEntryResponse> getBattleLog(UUID userId, Pageable pageable) {
+        var results = gameResultRepository.findByUserIdOrderByEndedAtDesc(userId, pageable);
+        List<BattleLogEntryResponse> content = results.getContent().stream()
                 .map(gr -> GameMapper.toBattleLogEntry(gr, userId))
                 .toList();
+        return new PageResponse<>(
+                content,
+                results.getNumber(),
+                results.getSize(),
+                results.getTotalElements(),
+                results.getTotalPages(),
+                results.isLast()
+        );
     }
 }

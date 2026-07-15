@@ -52,7 +52,8 @@ export default function Home() {
   const [gamesPage, setGamesPage] =
     useState<PageResponse<GameSummaryResponse> | null>(null);
   const [loadingGames, setLoadingGames] = useState(false);
-  const [battleLog, setBattleLog] = useState<BattleLogEntryResponse[]>([]);
+  const [battleLog, setBattleLog] = useState<PageResponse<BattleLogEntryResponse> | null>(null);
+  const [battleLogPage, setBattleLogPage] = useState(0);
   const [loadingBattleLog, setLoadingBattleLog] = useState(false);
   const [leaderboard, setLeaderboard] = useState<LeaderboardResponse | null>(
     null,
@@ -86,7 +87,7 @@ export default function Home() {
         }
       }
       try {
-        const log = await getBattleLog();
+        const log = await getBattleLog({ page: 0, size: 5 });
         if (!cancelled) {
           setBattleLog(log);
         }
@@ -446,7 +447,7 @@ export default function Home() {
                 ⚔️ Battle Log
               </h2>
 
-              {loadingBattleLog && (
+              {!battleLog && loadingBattleLog && (
                 <div className="space-y-2">
                   <Skeleton height="2rem" className="w-full" />
                   <Skeleton height="2rem" className="w-full" />
@@ -454,16 +455,25 @@ export default function Home() {
                 </div>
               )}
 
-              {!loadingBattleLog && battleLog.length === 0 && (
+              {!loadingBattleLog && (!battleLog || battleLog.content.length === 0) && (
                 <EmptyState
                   title="No battles yet"
                   description="Your war record is empty, Captain!"
                 />
               )}
 
-              {!loadingBattleLog && battleLog.length > 0 && (
+              {battleLog && battleLog.content.length > 0 && (
                 <div className="space-y-2">
-                  {battleLog.map((entry) => (
+                  {loadingBattleLog ? (
+                    <div className="space-y-2">
+                      <Skeleton height="3.25rem" className="w-full rounded-lg" />
+                      <Skeleton height="3.25rem" className="w-full rounded-lg" />
+                      <Skeleton height="3.25rem" className="w-full rounded-lg" />
+                      <Skeleton height="3.25rem" className="w-full rounded-lg" />
+                      <Skeleton height="3.25rem" className="w-full rounded-lg" />
+                    </div>
+                  ) : (
+                    battleLog.content.map((entry) => (
                     <div
                       key={entry.gameId}
                       className="group flex items-center gap-3 px-3 py-3 rounded-lg border border-border-light cursor-pointer hover:border-primary/50 hover:bg-surface-secondary transition-all duration-150"
@@ -498,7 +508,53 @@ export default function Home() {
                         View details →
                       </span>
                     </div>
-                  ))}
+                  ))
+                  )}
+
+                  {/* Pagination controls */}
+                  {battleLog.totalPages > 1 && (
+                    <div className="flex items-center justify-between pt-2">
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        disabled={battleLogPage === 0}
+                        onClick={async () => {
+                          const newPage = battleLogPage - 1;
+                          setBattleLogPage(newPage);
+                          setLoadingBattleLog(true);
+                          try {
+                            const log = await getBattleLog({ page: newPage, size: 5 });
+                            setBattleLog(log);
+                          } catch { /* ignore */ } finally {
+                            setLoadingBattleLog(false);
+                          }
+                        }}
+                      >
+                        ← Prev
+                      </Button>
+                      <span className="text-xs text-text-muted">
+                        {battleLogPage + 1} / {battleLog.totalPages}
+                      </span>
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        disabled={battleLog.last}
+                        onClick={async () => {
+                          const newPage = battleLogPage + 1;
+                          setBattleLogPage(newPage);
+                          setLoadingBattleLog(true);
+                          try {
+                            const log = await getBattleLog({ page: newPage, size: 5 });
+                            setBattleLog(log);
+                          } catch { /* ignore */ } finally {
+                            setLoadingBattleLog(false);
+                          }
+                        }}
+                      >
+                        Next →
+                      </Button>
+                    </div>
+                  )}
                 </div>
               )}
             </section>

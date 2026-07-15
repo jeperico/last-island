@@ -367,8 +367,8 @@ function PlayerColumn({
   const rankGlow = getRankPanelStyle(rank);
 
   const borderColor = isWinner
-    ? "border-b-4 border-b-success shadow-[0_4px_20px_rgba(34,197,94,0.3)]"
-    : "border-b-4 border-b-danger/50";
+    ? "border-b-[16px] border-b-success shadow-[0_4px_20px_rgba(34,197,94,0.3)]"
+    : "border-b-[16px] border-b-danger/50";
 
   return (
     <div
