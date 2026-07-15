@@ -7,7 +7,6 @@ import { updateProfile } from "@/lib/api";
 import type { ApiError } from "@/lib/api/client";
 import { useSound } from "@/lib/sound";
 import {
-  Button,
   Alert,
   Spinner,
   AvatarIcon,
@@ -35,7 +34,7 @@ const AVATAR_OPTIONS = [
 
 export default function SettingsPage() {
   const { user, isLoading } = useRequireAuth();
-  const { refreshUser, logout } = useAuth();
+  const { refreshUser } = useAuth();
   const {
     isMuted,
     toggleMute,
@@ -193,27 +192,22 @@ export default function SettingsPage() {
         </div>
 
         {/* Sound Settings */}
-        <div className="rounded-xl border border-border bg-surface p-5">
-          <h3 className="text-base font-semibold text-text-primary mb-4">
-            🔊 Sound
-          </h3>
-
-          {/* Mute toggle */}
-          <div className="flex items-center justify-between mb-5 pb-4 border-b border-border-light">
-            <div>
-              <p className="text-sm font-medium text-text-primary">
-                Master Audio
-              </p>
-              <p className="text-xs text-text-muted">
-                Enable or disable all sound
-              </p>
+        <div className="rounded-xl border border-border bg-surface overflow-hidden">
+          {/* Header with master toggle */}
+          <div className={`flex items-center justify-between px-5 py-4 ${isMuted ? "bg-surface-secondary/50" : "bg-primary/5 border-b border-primary/20"}`}>
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">{isMuted ? "🔇" : "🔊"}</span>
+              <div>
+                <p className="text-sm font-semibold text-text-primary">Sound</p>
+                <p className="text-xs text-text-muted">{isMuted ? "All audio disabled" : "Audio enabled"}</p>
+              </div>
             </div>
             <button
               type="button"
               onClick={toggleMute}
               className={[
                 "relative inline-flex h-7 w-12 items-center rounded-full transition-colors cursor-pointer",
-                isMuted ? "bg-surface-secondary" : "bg-primary",
+                isMuted ? "bg-border" : "bg-primary",
               ].join(" ")}
             >
               <span
@@ -225,56 +219,56 @@ export default function SettingsPage() {
             </button>
           </div>
 
-          {/* Music volume */}
-          <div className="mb-4">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-sm text-text-secondary">🎵 Music</p>
-              <span className="text-xs font-medium text-text-muted tabular-nums">
-                {Math.round(musicVolume * 100)}%
-              </span>
+          {/* Volume controls */}
+          <div className={`p-5 space-y-5 transition-opacity ${isMuted ? "opacity-40 pointer-events-none" : ""}`}>
+            {/* Music volume */}
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 rounded-lg bg-surface-secondary flex items-center justify-center text-lg shrink-0">
+                🎵
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center justify-between mb-1.5">
+                  <p className="text-sm font-medium text-text-primary">Music</p>
+                  <span className="text-xs font-semibold text-primary tabular-nums">
+                    {Math.round(musicVolume * 100)}%
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={Math.round(musicVolume * 100)}
+                  onChange={(e) => setMusicVolume(parseInt(e.target.value) / 100)}
+                  className="w-full h-2 bg-surface-secondary rounded-full appearance-none cursor-pointer accent-primary"
+                />
+              </div>
             </div>
-            <input
-              type="range"
-              min="0"
-              max="100"
-              value={Math.round(musicVolume * 100)}
-              onChange={(e) => setMusicVolume(parseInt(e.target.value) / 100)}
-              disabled={isMuted}
-              className="w-full h-2 bg-surface-secondary rounded-full appearance-none cursor-pointer accent-primary disabled:opacity-40"
-            />
-          </div>
 
-          {/* Effects volume */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-sm text-text-secondary">💥 Effects</p>
-              <span className="text-xs font-medium text-text-muted tabular-nums">
-                {Math.round(sfxVolume * 100)}%
-              </span>
+            {/* Effects volume */}
+            <div className="flex items-center gap-4">
+              <div className="w-10 h-10 rounded-lg bg-surface-secondary flex items-center justify-center text-lg shrink-0">
+                💥
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center justify-between mb-1.5">
+                  <p className="text-sm font-medium text-text-primary">Effects</p>
+                  <span className="text-xs font-semibold text-primary tabular-nums">
+                    {Math.round(sfxVolume * 100)}%
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  value={Math.round(sfxVolume * 100)}
+                  onChange={(e) => setSfxVolume(parseInt(e.target.value) / 100)}
+                  className="w-full h-2 bg-surface-secondary rounded-full appearance-none cursor-pointer accent-primary"
+                />
+              </div>
             </div>
-            <input
-              type="range"
-              min="0"
-              max="100"
-              value={Math.round(sfxVolume * 100)}
-              onChange={(e) => setSfxVolume(parseInt(e.target.value) / 100)}
-              disabled={isMuted}
-              className="w-full h-2 bg-surface-secondary rounded-full appearance-none cursor-pointer accent-primary disabled:opacity-40"
-            />
           </div>
         </div>
 
-        {/* Logout */}
-        <div className="flex justify-center">
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={logout}
-            className="text-text-muted hover:text-danger"
-          >
-            Log out
-          </Button>
-        </div>
       </div>
     </div>
   );
