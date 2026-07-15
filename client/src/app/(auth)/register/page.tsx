@@ -12,6 +12,15 @@ import {
 } from "@/lib/validations/register";
 import { Alert, Input, Button } from "@/components/ui";
 
+const AVATAR_OPTIONS = [
+  { key: "LUFFY", name: "Luffy", image: "/avatars/luffy/profile.svg" },
+  { key: "ZORO", name: "Zoro", image: "/avatars/zoro/profile.svg" },
+  { key: "ROBIN", name: "Robin", image: "/avatars/robin/profile.svg" },
+  { key: "CHOPPER", name: "Chopper", image: "/avatars/chopper/profile.svg" },
+  { key: "NAMI", name: "Nami", image: "/avatars/nami/profile.svg" },
+  { key: "ACE", name: "Ace", image: "/avatars/ace/profile.svg" },
+] as const;
+
 export default function RegisterPage() {
   const auth = useAuth();
   const { isLoading, isAuthenticated } = useRedirectIfAuthenticated();
@@ -27,6 +36,7 @@ export default function RegisterPage() {
   });
 
   const filiation = watch("filiation");
+  const avatar = watch("avatar");
 
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -40,7 +50,7 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      await auth.register(data.name, data.email, data.password, data.filiation);
+      await auth.register(data.name, data.email, data.password, data.filiation, data.avatar ?? null);
       // Navigation handled by useRedirectIfAuthenticated once isAuthenticated flips
     } catch (err) {
       if (err instanceof ApiError) {
@@ -153,9 +163,10 @@ export default function RegisterPage() {
             </button>
             <button
               type="button"
-              onClick={() =>
-                setValue("filiation", filiation === "MARINE" ? (undefined as unknown as "MARINE") : "MARINE", { shouldValidate: true })
-              }
+              onClick={() => {
+                setValue("filiation", filiation === "MARINE" ? (undefined as unknown as "MARINE") : "MARINE", { shouldValidate: true });
+                setValue("avatar", null);
+              }}
               className={`relative flex flex-col items-center gap-2 rounded-lg border-2 px-4 py-5 transition-all duration-200 cursor-pointer ${
                 filiation === "MARINE"
                   ? "border-secondary bg-secondary/10 shadow-[0_0_12px_rgba(245,158,11,0.3)] scale-[1.03] hover:bg-secondary/20"
@@ -185,6 +196,42 @@ export default function RegisterPage() {
             </p>
           )}
         </fieldset>
+
+        {filiation === "PIRATE" && (
+          <fieldset>
+            <legend className="text-sm font-medium text-text-secondary mb-2">
+              Choose Your Captain
+            </legend>
+            <div className="grid grid-cols-3 gap-3">
+              {AVATAR_OPTIONS.map((opt) => (
+                <button
+                  key={opt.key}
+                  type="button"
+                  onClick={() => setValue("avatar", avatar === opt.key ? null : opt.key)}
+                  className={`flex flex-col items-center gap-2 p-3 rounded-lg border-2 transition-all duration-200 cursor-pointer ${
+                    avatar === opt.key
+                      ? "border-primary ring-2 ring-primary bg-primary/10"
+                      : "border-border hover:border-primary/50"
+                  }`}
+                  aria-pressed={avatar === opt.key}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={opt.image}
+                    alt={opt.name}
+                    className="w-16 h-16 rounded-full object-cover"
+                  />
+                  <span className="text-sm font-medium text-text-secondary">
+                    {opt.name}
+                  </span>
+                </button>
+              ))}
+            </div>
+            <p className="text-xs text-text-secondary mt-2">
+              Optional — you can pick later in settings
+            </p>
+          </fieldset>
+        )}
 
         <Button variant="primary" fullWidth loading={loading} type="submit">
           Set Sail! 🏴‍☠️

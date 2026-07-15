@@ -13,6 +13,7 @@ export interface RegisterRequest {
   email: string;
   password: string;
   filiation: Filiation;
+  avatar?: string | null;
 }
 
 export interface LoginRequest {

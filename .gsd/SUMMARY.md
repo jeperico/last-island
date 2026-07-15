@@ -141,3 +141,12 @@ Files changed: `client/src/interfaces/api.ts`, `client/src/interfaces/auth.ts`, 
 
 Reviewer: PASS — client-build ✓, client-lint 7 pre-existing issues (none introduced), all files verified
 Commit: uncommitted
+
+## 2026-07-15T10:42 — Frontend: Avatar Selection Step in Registration Flow
+
+Implementer: Modified 5 files. Extended Zod schema in `register.ts` with `avatar: z.string().nullable().optional()`. Added `avatar?: string | null` to `RegisterRequest` interface in `api.ts`. Updated `AuthContextValue.register` signature in `auth.ts` with 5th avatar parameter. Updated `auth-context.tsx` register callback to accept and forward avatar. In `register/page.tsx`: added `AVATAR_OPTIONS` constant (6 characters), watch for avatar field, clear avatar on Marine switch, conditional avatar grid with "Choose Your Captain" legend (3-col grid, ring-highlight selection, toggle deselect), updated onValid to pass avatar.
+
+Files changed: `client/src/lib/validations/register.ts` (modified, +1), `client/src/interfaces/api.ts` (modified, +1), `client/src/interfaces/auth.ts` (modified, +1), `client/src/lib/auth/auth-context.tsx` (modified, +2), `client/src/app/(auth)/register/page.tsx` (modified, +40)
+
+Reviewer: PASS — client-build ✓, client-lint 9 issues (all pre-existing, none introduced), service-test ✓, all 5 files verified
+Commit: uncommitted

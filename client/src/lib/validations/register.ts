@@ -9,6 +9,7 @@ export const registerSchema = z
     filiation: z.enum(["PIRATE", "MARINE"], {
       message: "Pick a side! Are you pirate or marine?",
     }),
+    avatar: z.string().nullable().optional(),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "Codes don't match, nakama!",

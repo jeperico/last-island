@@ -10,6 +10,7 @@ export interface AuthContextValue {
     email: string,
     password: string,
     filiation: string,
+    avatar?: string | null,
   ) => Promise<void>;
   logout: () => void;
   refreshUser: () => Promise<void>;
