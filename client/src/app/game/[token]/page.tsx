@@ -24,7 +24,7 @@ export default function GamePage() {
   const [error, setError] = useState<string | null>(null);
   const [currentBounty, setCurrentBounty] = useState<number>(0);
 
-  const { playSoundtrack, stopSoundtrack, playLaugh, playScream } = useSound();
+  const { playSoundtrack, stopSoundtrack, playLaugh } = useSound();
   const prevPhaseRef = useRef<GamePhase | null>(null);
 
   // Initial fetch on mount (after auth resolves)
@@ -89,8 +89,6 @@ export default function GamePage() {
       stopSoundtrack();
       if (gameState.winnerName === user.name) {
         playLaugh(myAvatar);
-      } else {
-        playScream(myAvatar);
       }
     }
     prevPhaseRef.current = gameState?.phase ?? null;
@@ -107,11 +105,6 @@ export default function GamePage() {
         refetchGame();
       },
       onShotReceived: (data) => {
-        if (data.result === "SUNK") {
-          const myAvatar = gameState?.bluePlayerName === user?.name
-            ? gameState?.bluePlayerAvatar : gameState?.redPlayerAvatar;
-          playScream(myAvatar ?? null);
-        }
         refetchGame();
       },
       onGameOver: (data) => {
@@ -120,8 +113,6 @@ export default function GamePage() {
           ? gameState?.bluePlayerAvatar : gameState?.redPlayerAvatar;
         if (data.winnerName === user?.name) {
           playLaugh(myAvatar ?? null);
-        } else {
-          playScream(myAvatar ?? null);
         }
         refetchGame();
       },

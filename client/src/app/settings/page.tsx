@@ -281,7 +281,7 @@ export default function SettingsPage() {
             <div>
               <p className="text-sm text-text-secondary">Sound effects & music</p>
               <p className="text-xs text-text-muted">
-                Laughs, screams, and battle soundtrack
+                Laughs and battle soundtrack
               </p>
             </div>
             <button

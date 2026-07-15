@@ -13,7 +13,6 @@ import {
 
 interface SoundContextValue {
   playLaugh: (avatar: string | null) => void;
-  playScream: (avatar: string | null) => void;
   playSoundtrack: (avatar: string | null) => void;
   stopSoundtrack: () => void;
   isMuted: boolean;
@@ -24,7 +23,7 @@ interface SoundContextValue {
 
 function getAudioPath(
   avatar: string | null,
-  type: "laugh" | "scream" | "soundtrack",
+  type: "laugh" | "soundtrack",
 ): string {
   if (avatar) {
     return `/avatars/${avatar.toLowerCase()}/${type}.mp3`;
@@ -83,15 +82,6 @@ export function SoundProvider({ children }: { children: React.ReactNode }) {
     [isMuted],
   );
 
-  const playScream = useCallback(
-    (avatar: string | null) => {
-      if (isMuted) return;
-      const audio = new Audio(getAudioPath(avatar, "scream"));
-      audio.play().catch(() => {});
-    },
-    [isMuted],
-  );
-
   const playSoundtrack = useCallback(
     (avatar: string | null) => {
       // Stop any existing soundtrack
@@ -133,7 +123,7 @@ export function SoundProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <SoundContext value={{ playLaugh, playScream, playSoundtrack, stopSoundtrack, isMuted, toggleMute }}>
+    <SoundContext value={{ playLaugh, playSoundtrack, stopSoundtrack, isMuted, toggleMute }}>
       {children}
     </SoundContext>
   );

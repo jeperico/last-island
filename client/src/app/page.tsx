@@ -286,7 +286,7 @@ export default function Home() {
         {/* Header */}
         <div className="mb-8 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <AvatarIcon avatar={user?.avatar ?? null} size="sm" />
+            <AvatarIcon avatar={user?.avatar ?? null} filiation={user?.filiation ?? null} size="sm" />
             <h1 className="text-2xl font-bold text-text-primary">
               {`Welcome${user ? `, ${user.name}` : ""}`}
             </h1>
@@ -416,7 +416,7 @@ export default function Home() {
                               </td>
                               <td className="py-3 px-2 text-left text-text-primary font-medium truncate">
                                 <span className="inline-flex items-center gap-1.5">
-                                  <AvatarIcon avatar={entry.avatar} size="sm" className="inline-block" />
+                                  <AvatarIcon avatar={entry.avatar} filiation={entry.filiation} size="sm" className="inline-block" />
                                   {entry.name}
                                 </span>
                               </td>
@@ -471,7 +471,7 @@ export default function Home() {
                                 </td>
                                 <td className="py-3 px-2 text-left text-text-primary font-medium truncate">
                                   <span className="inline-flex items-center gap-1.5">
-                                    <AvatarIcon avatar={userEntry.avatar} size="sm" className="inline-block" />
+                                    <AvatarIcon avatar={userEntry.avatar} filiation={userEntry.filiation} size="sm" className="inline-block" />
                                     {userEntry.name}
                                   </span>
                                 </td>
