@@ -2,6 +2,7 @@ package com.last_island.api.domain.user.service;
 
 import com.last_island.api.domain.user.dto.*;
 import com.last_island.api.domain.user.entity.User;
+import com.last_island.api.domain.user.enums.Avatar;
 import com.last_island.api.domain.user.enums.Filiation;
 import com.last_island.api.domain.user.mapper.UserMapper;
 import com.last_island.api.domain.user.repository.UserRepository;
@@ -42,11 +43,24 @@ public class AuthService {
 
         String defaultRank = BountyService.computeRank(BountyService.STARTING_BOUNTY, request.filiation());
 
+        Avatar parsedAvatar = null;
+        if (request.avatar() != null) {
+            if (request.filiation() == Filiation.MARINE) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Marines cannot select an avatar");
+            }
+            try {
+                parsedAvatar = Avatar.valueOf(request.avatar());
+            } catch (IllegalArgumentException e) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid avatar value");
+            }
+        }
+
         User user = User.builder()
                 .name(request.name())
                 .email(request.email())
                 .passwordHash(passwordEncoder.encode(request.password()))
                 .filiation(request.filiation())
+                .avatar(parsedAvatar)
                 .rank(defaultRank)
                 .bounty(BountyService.STARTING_BOUNTY)
                 .wins(0)

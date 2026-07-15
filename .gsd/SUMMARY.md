@@ -125,3 +125,10 @@ Files changed: `V6__update_bounty_default_and_backfill.sql` (created, +10), `Bou
 
 Reviewer: PASS — service-build ✓, service-test 73/73 ✓ (incl. BountyServiceTest 9/9), client-build ✓, client-lint 7 pre-existing issues (none introduced)
 Commit: uncommitted
+
+## 2026-07-15T10:19 — Backend: Avatar Data Model + API
+
+Implementer: Created 5 new files, modified 10 existing files. Created `V8__add_avatar_column.sql` (+1) — Flyway migration adding nullable VARCHAR(20) avatar column. Created `Avatar.java` (+5) — enum with LUFFY, ZORO, ROBIN, CHOPPER, NAMI, ACE. Created `UpdateProfileRequest.java` (+6) — record DTO with nullable filiation and avatar fields. Created `UserService.java` (+61) — `@Transactional updateProfile` method with filiation switch logic, avatar validation, rank recalculation. Created `UserServiceTest.java` (+140) — 6 unit tests covering pirate set avatar, marine rejected, filiation switching clears/sets avatar, rank updates, invalid string rejected. Modified `User.java` (+3) — added `@Enumerated(EnumType.STRING) Avatar avatar` field. Modified `RegisterRequest.java` (+1) — added `String avatar` field. Modified `AuthService.java` (+12) — avatar parsing with marine/invalid validation in register. Modified `UserResponse.java` (+1) — added `String avatar` field (9 fields total). Modified `UserMapper.java` (+1) — maps avatar enum to string. Modified `LeaderboardEntryResponse.java` (+1) — added `String avatar` field (9 fields total). Modified `LeaderboardService.java` (+2) — passes avatar to both entry constructors. Modified `GameStateResponse.java` (+2) — added `bluePlayerAvatar`, `redPlayerAvatar` fields. Modified `GameMapper.java` (+8) — extracts avatar from board owners with null safety. Modified `UserController.java` (+12) — added `PUT /me` endpoint with UserService injection.
+
+Reviewer: PASS — service-build ✓, service-test 79/79 ✓ (incl. UserServiceTest 6/6), no frontend files modified
+Commit: uncommitted

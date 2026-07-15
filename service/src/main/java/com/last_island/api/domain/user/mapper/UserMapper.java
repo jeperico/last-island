@@ -17,7 +17,8 @@ public final class UserMapper {
                 user.getRank(),
                 user.getBounty(),
                 user.getWins(),
-                user.getLosses()
+                user.getLosses(),
+                user.getAvatar() != null ? user.getAvatar().name() : null
         );
     }
 }

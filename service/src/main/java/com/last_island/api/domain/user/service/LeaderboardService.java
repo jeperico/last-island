@@ -45,7 +45,8 @@ public class LeaderboardService {
                     user.getWinRate(),
                     user.getRank(),
                     user.getBounty(),
-                    isCurrent
+                    isCurrent,
+                    user.getAvatar() != null ? user.getAvatar().name() : null
             ));
         }
 
@@ -73,7 +74,8 @@ public class LeaderboardService {
                             user.getWinRate(),
                             user.getRank(),
                             user.getBounty(),
-                            true
+                            true,
+                            user.getAvatar() != null ? user.getAvatar().name() : null
                     );
                 })
                 .orElse(null);

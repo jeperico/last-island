@@ -8,6 +8,7 @@ public record LeaderboardEntryResponse(
         double winRate,
         String rank,
         long bounty,
-        boolean isCurrentUser
+        boolean isCurrentUser,
+        String avatar
 ) {
 }

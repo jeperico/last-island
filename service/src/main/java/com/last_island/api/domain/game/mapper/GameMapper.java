@@ -71,6 +71,15 @@ public final class GameMapper {
                 ? game.getCurrentTurn().getName()
                 : null;
 
+        User blueOwner = game.getBlueBoard().getOwner();
+        String bluePlayerAvatar = blueOwner.getAvatar() != null ? blueOwner.getAvatar().name() : null;
+
+        String redPlayerAvatar = null;
+        if (game.getRedBoard() != null) {
+            User redOwner = game.getRedBoard().getOwner();
+            redPlayerAvatar = redOwner.getAvatar() != null ? redOwner.getAvatar().name() : null;
+        }
+
         Board myBoard;
         Board opponentBoard;
         if (game.getBlueBoard().getOwner().getId().equals(userId)) {
@@ -96,7 +105,9 @@ public final class GameMapper {
                 game.getToken(),
                 game.getPhase().name(),
                 game.getBlueBoard().getOwner().getName(),
+                bluePlayerAvatar,
                 redPlayerName,
+                redPlayerAvatar,
                 currentTurnPlayerName,
                 winnerName,
                 game.getStartedAt(),

@@ -1,6 +1,7 @@
 package com.last_island.api.domain.user.entity;
 
 import com.last_island.api.common.entity.BaseEntity;
+import com.last_island.api.domain.user.enums.Avatar;
 import com.last_island.api.domain.user.enums.Filiation;
 import jakarta.persistence.*;
 import lombok.*;
@@ -26,6 +27,9 @@ public class User extends BaseEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Filiation filiation;
+
+    @Enumerated(EnumType.STRING)
+    private Avatar avatar;
 
     private long bounty;
 
