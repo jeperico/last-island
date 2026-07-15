@@ -123,6 +123,15 @@ export interface GameStateResponse {
   redPlayerName: string | null;
   bluePlayerAvatar: string | null;
   redPlayerAvatar: string | null;
+  bluePlayerRank: string | null;
+  redPlayerRank: string | null;
+  bluePlayerBounty: number | null;
+  redPlayerBounty: number | null;
+  bluePlayerWins: number | null;
+  redPlayerWins: number | null;
+  bluePlayerAccuracy: number | null;
+  redPlayerAccuracy: number | null;
+  bountyDelta: number | null;
   currentTurnPlayerName: string | null;
   winnerName: string | null;
   startedAt: string | null;

@@ -21,6 +21,7 @@ interface BattleScreenProps {
   gameToken: string;
   onGameStateUpdate: (state: GameStateResponse) => void;
   readOnly?: boolean;
+  bgImage?: string | null;
 }
 
 export function BattleScreen({
@@ -29,6 +30,7 @@ export function BattleScreen({
   gameToken,
   onGameStateUpdate,
   readOnly,
+  bgImage: bgImageProp,
 }: BattleScreenProps) {
   const [firing, setFiring] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -129,8 +131,23 @@ export function BattleScreen({
     }
   }, [gameToken, onGameStateUpdate]);
 
+  const bgImage = bgImageProp ?? (myAvatar
+    ? `/avatars/${myAvatar.toLowerCase()}/${myAvatar.toLowerCase()}-bg-01.jpg`
+    : null);
+
   return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-6 px-4 py-6">
+    <div className="relative flex flex-1 flex-col items-center justify-center gap-6 px-4 py-6">
+      {/* Background image */}
+      {bgImage && (
+        <div
+          className="absolute inset-0 opacity-15 pointer-events-none overflow-hidden"
+        >
+          <div
+            className="absolute top-1/2 left-1/2 w-[100vh] h-[100vw] -translate-x-1/2 -translate-y-1/2 -rotate-90 bg-cover bg-center"
+            style={{ backgroundImage: `url(${bgImage})` }}
+          />
+        </div>
+      )}
       {/* Turn indicator (hidden when readOnly) */}
       {!readOnly && (
         <div className="flex flex-col items-center justify-center gap-2">

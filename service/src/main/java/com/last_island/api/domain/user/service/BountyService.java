@@ -22,7 +22,7 @@ public class BountyService {
      *   ~15 wins:  1500M → PIRATE_KING
      *   1 loss from start: drops below 100M → ROOKIE
      */
-    public void updateBounties(User winner, User loser) {
+    public long updateBounties(User winner, User loser) {
         long baseGain = 50_000_000L; // 50M base per win
 
         // Underdog bonus: if winner has lower bounty, gain more
@@ -63,6 +63,8 @@ public class BountyService {
 
         winner.setRank(computeRank(newWinnerBounty, winner.getFiliation()));
         loser.setRank(computeRank(newLoserBounty, loser.getFiliation()));
+
+        return gain;
     }
 
     /**

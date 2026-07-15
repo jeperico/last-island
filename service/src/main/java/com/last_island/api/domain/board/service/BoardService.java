@@ -279,7 +279,8 @@ public class BoardService {
             attacker.setWins(attacker.getWins() + 1);
             loser.setLosses(loser.getLosses() + 1);
 
-            bountyService.updateBounties(attacker, loser);
+            long bountyDelta = bountyService.updateBounties(attacker, loser);
+            game.setBountyDelta(bountyDelta);
 
             // Do NOT switch turn — game is over
             gameRepository.save(game);

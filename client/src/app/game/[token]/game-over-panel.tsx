@@ -113,10 +113,12 @@ export function GameOverPanel({
   }
 
   return (
-    <div className="flex flex-col items-center w-full max-w-5xl h-full print:h-auto">
+    <div className="flex flex-col items-center w-full max-w-5xl h-full print:h-auto relative z-10">
+      {/* Card wrapper */}
+      <div className="w-full flex-1 flex flex-col rounded-xl border border-border overflow-hidden bg-surface-elevated print:border-black">
       {/* Header — result banner + opponent + duration */}
       <div
-        className={`w-full flex items-center justify-between px-6 py-3 rounded-t-xl border border-b-0 ${
+        className={`w-full flex items-center justify-between px-6 py-3 border-b ${
           isWinner
             ? "bg-gradient-to-r from-success/20 via-success/10 to-transparent border-success/30"
             : "bg-gradient-to-r from-danger/20 via-danger/10 to-transparent border-danger/30"
@@ -146,14 +148,21 @@ export function GameOverPanel({
           <span className="text-text-muted print:text-black">
             ⏱️ {formatDuration(durationSeconds)}
           </span>
-          <span className={`font-bold ${isWinner ? "text-success" : "text-danger"}`}>
-            🏴‍☠️ {myBounty >= 1_000_000_000 ? `${(myBounty / 1_000_000_000).toFixed(1)}B` : myBounty >= 1_000_000 ? `${Math.round(myBounty / 1_000_000)}M` : myBounty.toLocaleString()}
+          <span
+            className={`font-bold ${isWinner ? "text-success" : "text-danger"}`}
+          >
+            🏴‍☠️{" "}
+            {myBounty >= 1_000_000_000
+              ? `${(myBounty / 1_000_000_000).toFixed(1)}B`
+              : myBounty >= 1_000_000
+                ? `${Math.round(myBounty / 1_000_000)}M`
+                : myBounty.toLocaleString()}
           </span>
         </div>
       </div>
 
       {/* Main content — boards + stats side by side */}
-      <div className="w-full flex-1 flex flex-col lg:flex-row border border-border rounded-b-xl bg-surface-elevated overflow-hidden print:border-black">
+      <div className="w-full flex-1 flex flex-col lg:flex-row bg-surface-elevated overflow-hidden print:border-black">
         {/* Boards section */}
         <div className="flex-1 flex flex-wrap items-center justify-center gap-4 p-4 print:p-2">
           {myBoard && <BoardGrid title="My Fleet" cells={myBoardCells} />}
@@ -163,31 +172,33 @@ export function GameOverPanel({
         </div>
 
         {/* Stats sidebar */}
-        <div className="lg:w-56 border-t lg:border-t-0 lg:border-l border-border-light bg-surface-secondary/50 flex flex-col print:border-black">
-          {/* Player vs Player */}
-          <div className="grid grid-cols-3 px-3 py-2 border-b border-border-light">
-            <div className="text-left">
-              <p className="text-[10px] text-text-muted uppercase">You</p>
+        <div className="lg:w-64 border-t lg:border-t-0 lg:border-l border-border-light bg-surface-secondary/30 flex flex-col print:border-black">
+          {/* Player vs Player header */}
+          <div className="flex items-center justify-between px-4 py-3 border-b border-border-light bg-surface-secondary/50">
+            <div className="flex flex-col items-center gap-1">
+              <span className="text-lg">⚔️</span>
+              <p className="text-[10px] font-bold text-text-secondary uppercase tracking-wider">You</p>
             </div>
             <div className="flex items-center justify-center">
-              <span className="text-[10px] font-bold text-text-muted">VS</span>
+              <span className="text-xs font-black text-text-muted bg-surface-secondary px-2 py-0.5 rounded">VS</span>
             </div>
-            <div className="text-right">
-              <p className="text-[10px] text-text-muted uppercase">Enemy</p>
+            <div className="flex flex-col items-center gap-1">
+              <span className="text-lg">💀</span>
+              <p className="text-[10px] font-bold text-text-secondary uppercase tracking-wider">Enemy</p>
             </div>
           </div>
 
           {/* Stat rows */}
-          <div className="flex-1 flex flex-col justify-center divide-y divide-border-light">
+          <div className="flex-1 flex flex-col justify-center gap-0">
             <CompactStatRow
               icon="💣"
-              label="Shots"
+              label="Shots Fired"
               myValue={myShots}
               opponentValue={opponentShots}
             />
             <CompactStatRow
               icon="🎯"
-              label="Hits"
+              label="Direct Hits"
               myValue={myHits}
               opponentValue={opponentHits}
               highlightBetter
@@ -205,15 +216,15 @@ export function GameOverPanel({
 
           {/* Winner banner */}
           <div
-            className={`flex items-center justify-center gap-2 px-3 py-2 ${
+            className={`flex items-center justify-center gap-2 px-4 py-3 ${
               isWinner
-                ? "bg-success-bg border-t border-success-border"
-                : "bg-danger-bg border-t border-danger-border"
+                ? "bg-success/10 border-t border-success/30"
+                : "bg-danger/10 border-t border-danger/30"
             } print:bg-white print:border-black`}
           >
-            <span className="text-sm">{isWinner ? "👑" : "⚔️"}</span>
+            <span className="text-lg">{isWinner ? "👑" : "💀"}</span>
             <span
-              className={`text-xs font-bold ${
+              className={`text-sm font-bold ${
                 isWinner ? "text-success" : "text-danger"
               } print:text-black`}
             >
@@ -221,6 +232,7 @@ export function GameOverPanel({
             </span>
           </div>
         </div>
+      </div>
       </div>
     </div>
   );
@@ -252,22 +264,26 @@ function CompactStatRow({
   const oppBetter = highlightBetter && oppNum > myNum;
 
   return (
-    <div className="grid grid-cols-3 items-center px-3 py-2">
-      <div
-        className={`text-left text-sm font-bold ${myBetter ? "text-success" : "text-text-primary"} print:text-black`}
-      >
-        {myValue}
+    <div className="grid grid-cols-3 items-center px-4 py-3 border-b border-border-light/50 last:border-b-0">
+      <div className="flex flex-col items-start">
+        <span
+          className={`text-lg font-black ${myBetter ? "text-success" : "text-text-primary"} print:text-black`}
+        >
+          {myValue}
+        </span>
       </div>
-      <div className="flex flex-col items-center gap-0">
-        <span className="text-sm">{icon}</span>
-        <span className="text-[9px] uppercase tracking-wider text-text-muted font-medium print:text-black">
+      <div className="flex flex-col items-center gap-0.5">
+        <span className="text-base">{icon}</span>
+        <span className="text-[9px] uppercase tracking-widest text-text-muted font-semibold print:text-black">
           {label}
         </span>
       </div>
-      <div
-        className={`text-right text-sm font-bold ${oppBetter ? "text-danger" : "text-text-primary"} print:text-black`}
-      >
-        {opponentValue}
+      <div className="flex flex-col items-end">
+        <span
+          className={`text-lg font-black ${oppBetter ? "text-danger" : "text-text-primary"} print:text-black`}
+        >
+          {opponentValue}
+        </span>
       </div>
     </div>
   );

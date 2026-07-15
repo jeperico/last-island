@@ -74,11 +74,30 @@ public final class GameMapper {
         User blueOwner = game.getBlueBoard().getOwner();
         String bluePlayerAvatar = blueOwner.getAvatar() != null ? blueOwner.getAvatar().name() : null;
 
+        String bluePlayerRank = blueOwner.getRank();
+        Long bluePlayerBounty = blueOwner.getBounty();
+        Integer bluePlayerWins = blueOwner.getWins();
+        Integer bluePlayerAccuracy = blueOwner.getTotalShots() > 0
+                ? blueOwner.getTotalHits() * 100 / blueOwner.getTotalShots()
+                : null;
+
         String redPlayerAvatar = null;
+        String redPlayerRank = null;
+        Long redPlayerBounty = null;
+        Integer redPlayerWins = null;
+        Integer redPlayerAccuracy = null;
         if (game.getRedBoard() != null) {
             User redOwner = game.getRedBoard().getOwner();
             redPlayerAvatar = redOwner.getAvatar() != null ? redOwner.getAvatar().name() : null;
+            redPlayerRank = redOwner.getRank();
+            redPlayerBounty = redOwner.getBounty();
+            redPlayerWins = redOwner.getWins();
+            redPlayerAccuracy = redOwner.getTotalShots() > 0
+                    ? redOwner.getTotalHits() * 100 / redOwner.getTotalShots()
+                    : null;
         }
+
+        Long bountyDelta = game.getBountyDelta();
 
         Board myBoard;
         Board opponentBoard;
@@ -108,6 +127,15 @@ public final class GameMapper {
                 bluePlayerAvatar,
                 redPlayerName,
                 redPlayerAvatar,
+                bluePlayerRank,
+                redPlayerRank,
+                bluePlayerBounty,
+                redPlayerBounty,
+                bluePlayerWins,
+                redPlayerWins,
+                bluePlayerAccuracy,
+                redPlayerAccuracy,
+                bountyDelta,
                 currentTurnPlayerName,
                 winnerName,
                 game.getStartedAt(),

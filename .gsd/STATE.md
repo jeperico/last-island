@@ -2,7 +2,7 @@
 
 ## Position
 
-Plan written — Full-screen character select screen for registration
+Plan written — Backend: Add player stats and bounty delta to GameStateResponse
 
 ## Decisions
 
@@ -18,4 +18,4 @@ Plan written — Full-screen character select screen for registration
 
 ## Last verification
 
-PASS at 2026-07-15T14:07 — service-build ✓, service-test 79/79 ✓, client-build ✓, client-lint 10 issues (all pre-existing, none introduced)
+PASS at 2026-07-15T15:10 — service-build ✓, service-test 79/79 ✓, client-build ✓, client-lint 10 issues (all pre-existing), grep confirms 3/3 call sites set bountyDelta, manual checks ✓ (24 fields, migration valid)

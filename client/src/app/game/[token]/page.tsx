@@ -12,6 +12,8 @@ import { ShipPlacement } from "./ship-placement";
 import { BattleScreen } from "./battle-screen";
 import { GameOverPanel } from "./game-over-panel";
 import { Spinner, Alert, Badge } from "@/components/ui";
+import { useWallpaper } from "@/lib/hooks";
+import { WallpaperModal } from "@/components/wallpaper-modal";
 
 export default function GamePage() {
   const { user, isLoading: authLoading } = useRequireAuth();
@@ -26,6 +28,8 @@ export default function GamePage() {
 
   const { swapSoundtrack, resumeGlobalSoundtrack, playLaugh } = useSound();
   const prevPhaseRef = useRef<GamePhase | null>(null);
+  const { wallpaper, setWallpaper, getWallpaperPath } = useWallpaper();
+  const [wallpaperModalOpen, setWallpaperModalOpen] = useState(false);
 
   // Initial fetch on mount (after auth resolves)
   useEffect(() => {
@@ -175,6 +179,11 @@ export default function GamePage() {
     );
   }
 
+  // Derive the user's avatar from game state
+  const myAvatar = gameState.bluePlayerName === user.name
+    ? gameState.bluePlayerAvatar
+    : gameState.redPlayerAvatar;
+
   // Render phase content
   function renderPhaseContent() {
     if (!gameState || !user) return null;
@@ -250,6 +259,7 @@ export default function GamePage() {
           user={user}
           gameToken={token}
           onGameStateUpdate={setGameState}
+          bgImage={getWallpaperPath(myAvatar)}
         />
       );
     }
@@ -286,8 +296,18 @@ export default function GamePage() {
             1000
           : null;
 
+      const bgImage = getWallpaperPath(myAvatar);
+
       return (
-        <div className="flex flex-1 flex-col items-center justify-center px-4 py-4 h-full overflow-hidden print:overflow-visible print:h-auto">
+        <div className="relative flex flex-1 flex-col items-center justify-center px-4 py-4 h-full overflow-hidden print:overflow-visible print:h-auto">
+          {bgImage && (
+            <div className="absolute inset-0 opacity-15 pointer-events-none overflow-hidden">
+              <div
+                className="absolute top-1/2 left-1/2 w-[100vh] h-[100vw] -translate-x-1/2 -translate-y-1/2 -rotate-90 bg-cover bg-center"
+                style={{ backgroundImage: `url(${bgImage})` }}
+              />
+            </div>
+          )}
           <GameOverPanel
             isWinner={isWinner}
             winnerName={gameState.winnerName ?? "Unknown"}
@@ -339,13 +359,33 @@ export default function GamePage() {
       {/* Persistent back link — top-left */}
       <Link
         href="/"
-        className="print:hidden absolute top-4 left-4 z-10 inline-flex items-center gap-1.5 text-xs font-medium text-text-muted hover:text-primary transition-colors"
+        className="print:hidden absolute top-4 left-4 z-10 inline-flex items-center gap-1.5 text-sm font-semibold text-text-secondary hover:text-primary bg-surface-secondary/80 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-border hover:border-primary transition-all"
       >
         <span>←</span>
         <span>Grand Line</span>
       </Link>
 
+      {/* Wallpaper picker — top-right */}
+      {myAvatar && (
+        <button
+          type="button"
+          onClick={() => setWallpaperModalOpen(true)}
+          className="print:hidden absolute top-4 right-4 z-10 inline-flex items-center gap-1.5 text-sm font-semibold text-text-secondary hover:text-primary bg-surface-secondary/80 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-border hover:border-primary transition-all cursor-pointer"
+        >
+          <span>🎨</span>
+          <span>Wallpaper</span>
+        </button>
+      )}
+
       {renderPhaseContent()}
+
+      <WallpaperModal
+        open={wallpaperModalOpen}
+        onClose={() => setWallpaperModalOpen(false)}
+        avatar={myAvatar}
+        current={wallpaper}
+        onSelect={setWallpaper}
+      />
     </div>
   );
 }
