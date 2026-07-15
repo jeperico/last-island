@@ -237,7 +237,7 @@ export default function RegisterPage() {
         </fieldset>
 
         <Button variant="primary" fullWidth loading={loading} type="submit">
-          Set Sail! 🏴‍☠️
+          Choose Your Captain ⚔️
         </Button>
       </form>
 

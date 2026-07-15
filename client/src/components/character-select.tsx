@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { useSound } from "@/lib/sound";
 import { Button } from "@/components/ui";
 
@@ -107,27 +108,27 @@ export function CharacterSelect({
     playLaugh(key);
   }
 
-  return (
+  const content = (
     <div
-      className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-navy/95"
+      className="fixed top-0 left-0 w-[100vw] h-[100vh] z-50 flex flex-col bg-black"
       style={{ animation: "character-select-in 300ms ease-out forwards" }}
     >
       {/* Back button */}
       <button
         type="button"
         onClick={onClose}
-        className="absolute top-4 left-4 text-text-secondary hover:text-text-primary text-sm transition-colors cursor-pointer"
+        className="absolute top-4 left-4 z-10 text-text-secondary hover:text-text-primary text-sm transition-colors cursor-pointer"
       >
         ← Back
       </button>
 
       {/* Title */}
-      <h2 className="text-text-primary text-2xl font-bold mb-6">
+      <h2 className="absolute top-4 left-1/2 -translate-x-1/2 z-10 text-text-primary text-2xl font-bold">
         Choose Your Captain
       </h2>
 
       {/* Panels container */}
-      <div className="flex w-full h-[70vh] gap-1 px-4">
+      <div className="flex w-full h-[100vh] gap-0.5">
         {CHARACTER_OPTIONS.map((char, index) => {
           const isSelected = selected === char.key;
           const hasSelection = selected !== null;
@@ -150,10 +151,10 @@ export function CharacterSelect({
               <div
                 className={`absolute inset-0 bg-cover bg-top transition-all duration-300 ${
                   isSelected
-                    ? "brightness-100 grayscale-0"
+                    ? "brightness-110"
                     : hasSelection
-                      ? "brightness-30 grayscale-[50%]"
-                      : "brightness-50 grayscale-[30%]"
+                      ? "brightness-50 grayscale-[30%]"
+                      : ""
                 }`}
                 style={{ backgroundImage: `url(${char.image})` }}
               />
@@ -172,9 +173,9 @@ export function CharacterSelect({
         })}
       </div>
 
-      {/* Confirm area */}
-      <div className="mt-6 h-12 flex items-center">
-        {selected !== null && (
+      {/* Confirm button — overlays bottom center */}
+      {selected !== null && (
+        <div className="absolute bottom-24 left-1/2 -translate-x-1/2 z-20">
           <Button
             variant="primary"
             size="lg"
@@ -183,8 +184,10 @@ export function CharacterSelect({
           >
             ⚓ Set Sail!
           </Button>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
+
+  return createPortal(content, document.body);
 }
