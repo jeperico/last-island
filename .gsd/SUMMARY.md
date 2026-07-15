@@ -170,3 +170,12 @@ Implementer: Modified 4 existing files, created 4 new files. Modified `Avatar.ja
 
 Reviewer: PASS — service-build ✓, service-test 79/79 ✓, client-build ✓, client-lint 9 issues (all pre-existing, none introduced), all files verified
 Commit: uncommitted
+
+## 2026-07-15T14:03 — Full-screen Character Select Screen for Registration
+
+Implementer: Created 1 new file, modified 2 existing files. Created `client/src/components/character-select.tsx` (+190) — full-screen overlay with 6 parallelogram panels using CSS clip-path:polygon(), character full-body images as backgrounds, idle/selected/unselected states with brightness/grayscale transitions, gold glow on selection, playLaugh on click, Escape key close, body scroll lock, confirm button. Modified `client/src/styles/globals.css` (+14) — added `@keyframes character-select-in` entry animation (opacity 0→1, scale 0.9→1, 300ms ease-out). Modified `client/src/app/(auth)/register/page.tsx` (net -40) — removed AVATAR_OPTIONS constant and inline avatar grid, added showCharacterSelect/isRegistering state, split onValid into MARINE (direct register) vs PIRATE (open overlay) paths, added handleCharacterConfirm/handleCharacterClose handlers, render CharacterSelect conditionally.
+
+Files changed: `client/src/components/character-select.tsx` (created, +190), `client/src/styles/globals.css` (modified, +14), `client/src/app/(auth)/register/page.tsx` (modified, net -40)
+
+Reviewer: PASS — client-build ✓, client-lint 10 issues (all pre-existing, none introduced), service-test 79/79 ✓
+Commit: uncommitted

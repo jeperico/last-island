@@ -11,15 +11,7 @@ import {
   type RegisterFormData,
 } from "@/lib/validations/register";
 import { Alert, Input, Button } from "@/components/ui";
-
-const AVATAR_OPTIONS = [
-  { key: "LUFFY", name: "Luffy", image: "/avatars/luffy/profile.jpg" },
-  { key: "ZORO", name: "Zoro", image: "/avatars/zoro/profile.jpg" },
-  { key: "ROBIN", name: "Robin", image: "/avatars/robin/profile.jpg" },
-  { key: "CHOPPER", name: "Chopper", image: "/avatars/chopper/profile.jpg" },
-  { key: "ACE", name: "Ace", image: "/avatars/ace/profile.jpg" },
-  { key: "DOFLAMINGO", name: "Doflamingo", image: "/avatars/doflamingo/profile.jpg" },
-] as const;
+import { CharacterSelect } from "@/components/character-select";
 
 export default function RegisterPage() {
   const auth = useAuth();
@@ -30,16 +22,18 @@ export default function RegisterPage() {
     handleSubmit,
     setValue,
     watch,
+    getValues,
     formState: { errors },
   } = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
   });
 
   const filiation = watch("filiation");
-  const avatar = watch("avatar");
 
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [showCharacterSelect, setShowCharacterSelect] = useState(false);
+  const [isRegistering, setIsRegistering] = useState(false);
 
   if (isLoading || isAuthenticated) {
     return null;
@@ -47,17 +41,15 @@ export default function RegisterPage() {
 
   async function onValid(data: RegisterFormData) {
     setError(null);
-    setLoading(true);
 
+    if (data.filiation === "PIRATE") {
+      setShowCharacterSelect(true);
+      return;
+    }
+
+    setLoading(true);
     try {
-      await auth.register(
-        data.name,
-        data.email,
-        data.password,
-        data.filiation,
-        data.avatar ?? null,
-      );
-      // Navigation handled by useRedirectIfAuthenticated once isAuthenticated flips
+      await auth.register(data.name, data.email, data.password, data.filiation, null);
     } catch (err) {
       if (err instanceof ApiError) {
         setError(err.message ?? "An unexpected error occurred");
@@ -65,6 +57,25 @@ export default function RegisterPage() {
     } finally {
       setLoading(false);
     }
+  }
+
+  async function handleCharacterConfirm(avatar: string) {
+    setIsRegistering(true);
+    setError(null);
+    try {
+      const data = getValues();
+      await auth.register(data.name, data.email, data.password, data.filiation, avatar);
+    } catch (err) {
+      setIsRegistering(false);
+      if (err instanceof ApiError) {
+        setError(err.message ?? "An unexpected error occurred");
+      }
+      setShowCharacterSelect(false);
+    }
+  }
+
+  function handleCharacterClose() {
+    setShowCharacterSelect(false);
   }
 
   return (
@@ -225,44 +236,6 @@ export default function RegisterPage() {
           )}
         </fieldset>
 
-        {filiation === "PIRATE" && (
-          <fieldset>
-            <legend className="text-sm font-medium text-text-secondary mb-2">
-              Choose Your Captain
-            </legend>
-            <div className="grid grid-cols-3 gap-3">
-              {AVATAR_OPTIONS.map((opt) => (
-                <button
-                  key={opt.key}
-                  type="button"
-                  onClick={() =>
-                    setValue("avatar", avatar === opt.key ? null : opt.key)
-                  }
-                  className={`flex flex-col items-center gap-2 p-3 rounded-lg border-2 transition-all duration-200 cursor-pointer ${
-                    avatar === opt.key
-                      ? "border-primary ring-2 ring-primary bg-primary/10"
-                      : "border-border hover:border-primary/50"
-                  }`}
-                  aria-pressed={avatar === opt.key}
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={opt.image}
-                    alt={opt.name}
-                    className="w-16 h-16 rounded-full object-cover"
-                  />
-                  <span className="text-sm font-medium text-text-secondary">
-                    {opt.name}
-                  </span>
-                </button>
-              ))}
-            </div>
-            <p className="text-xs text-text-secondary mt-2">
-              Optional — you can pick later in settings
-            </p>
-          </fieldset>
-        )}
-
         <Button variant="primary" fullWidth loading={loading} type="submit">
           Set Sail! 🏴‍☠️
         </Button>
@@ -274,6 +247,14 @@ export default function RegisterPage() {
           Log in
         </Link>
       </p>
+
+      {showCharacterSelect && (
+        <CharacterSelect
+          onConfirm={handleCharacterConfirm}
+          onClose={handleCharacterClose}
+          isLoading={isRegistering}
+        />
+      )}
     </div>
   );
 }

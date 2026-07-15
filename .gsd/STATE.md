@@ -2,7 +2,7 @@
 
 ## Position
 
-Plan written — Fix avatar fallback + Add Doflamingo
+Plan written — Full-screen character select screen for registration
 
 ## Decisions
 
@@ -18,4 +18,4 @@ Plan written — Fix avatar fallback + Add Doflamingo
 
 ## Last verification
 
-PASS at 2026-07-15T11:57 — service-build ✓, service-test 79/79 ✓, client-build ✓, client-lint 9 pre-existing issues (none introduced), all new files verified
+PASS at 2026-07-15T14:07 — service-build ✓, service-test 79/79 ✓, client-build ✓, client-lint 10 issues (all pre-existing, none introduced)
