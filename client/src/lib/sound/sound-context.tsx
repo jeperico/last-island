@@ -13,22 +13,38 @@ import {
 
 interface SoundContextValue {
   playLaugh: (avatar: string | null) => void;
-  playSoundtrack: (avatar: string | null) => void;
-  stopSoundtrack: () => void;
+  swapSoundtrack: (avatar: string | null) => void;
+  resumeGlobalSoundtrack: () => void;
   isMuted: boolean;
   toggleMute: () => void;
+  musicVolume: number;
+  setMusicVolume: (v: number) => void;
+  sfxVolume: number;
+  setSfxVolume: (v: number) => void;
 }
+
+// ─── Constants ───────────────────────────────────────────────────────────────
+
+const GLOBAL_SOUNDTRACK = "/audio/binks-sake.mp3";
+const DEFAULT_MUSIC_VOLUME = 0.15;
+const DEFAULT_SFX_VOLUME = 0.5;
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function getAudioPath(
-  avatar: string | null,
-  type: "laugh" | "soundtrack",
-): string {
+function getAvatarAudioPath(avatar: string | null, type: "laugh" | "soundtrack"): string {
   if (avatar) {
     return `/avatars/${avatar.toLowerCase()}/${type}.mp3`;
   }
-  return `/audio/default-${type}.mp3`;
+  return GLOBAL_SOUNDTRACK;
+}
+
+function createSoundtrackAudio(src: string, muted: boolean, volume: number): HTMLAudioElement {
+  const audio = new Audio(src);
+  audio.loop = true;
+  audio.volume = volume;
+  audio.muted = muted;
+  audio.preload = "auto";
+  return audio;
 }
 
 // ─── Context ─────────────────────────────────────────────────────────────────
@@ -42,29 +58,65 @@ export function SoundProvider({ children }: { children: React.ReactNode }) {
     if (typeof window === "undefined") return false;
     return localStorage.getItem("sound_muted") === "true";
   });
-  const soundtrackRef = useRef<HTMLAudioElement | null>(null);
-  const userInteractedRef = useRef(false);
 
-  // Register one-time user interaction listener for autoplay policy
+  const [musicVolume, setMusicVolumeState] = useState(() => {
+    if (typeof window === "undefined") return DEFAULT_MUSIC_VOLUME;
+    const saved = localStorage.getItem("music_volume");
+    return saved !== null ? parseFloat(saved) : DEFAULT_MUSIC_VOLUME;
+  });
+
+  const [sfxVolume, setSfxVolumeState] = useState(() => {
+    if (typeof window === "undefined") return DEFAULT_SFX_VOLUME;
+    const saved = localStorage.getItem("sfx_volume");
+    return saved !== null ? parseFloat(saved) : DEFAULT_SFX_VOLUME;
+  });
+
+  const soundtrackRef = useRef<HTMLAudioElement | null>(null);
+  const currentTrackRef = useRef<string>(GLOBAL_SOUNDTRACK);
+
+  const setMusicVolume = useCallback((v: number) => {
+    const clamped = Math.max(0, Math.min(1, v));
+    setMusicVolumeState(clamped);
+    localStorage.setItem("music_volume", String(clamped));
+    if (soundtrackRef.current) {
+      soundtrackRef.current.volume = clamped;
+    }
+  }, []);
+
+  const setSfxVolume = useCallback((v: number) => {
+    const clamped = Math.max(0, Math.min(1, v));
+    setSfxVolumeState(clamped);
+    localStorage.setItem("sfx_volume", String(clamped));
+  }, []);
+
+  // Start global soundtrack on mount
+  useEffect(() => {
+    const audio = createSoundtrackAudio(GLOBAL_SOUNDTRACK, isMuted, musicVolume);
+    soundtrackRef.current = audio;
+    currentTrackRef.current = GLOBAL_SOUNDTRACK;
+
+    audio.play().catch(() => {});
+
+    return () => {
+      audio.pause();
+      audio.src = "";
+      soundtrackRef.current = null;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Resume playback on user interaction (autoplay policy workaround)
   useEffect(() => {
     function handleInteraction() {
-      userInteractedRef.current = true;
-
-      // If soundtrack was paused due to autoplay policy, resume it
       const soundtrack = soundtrackRef.current;
       if (soundtrack && soundtrack.paused && !isMuted) {
         soundtrack.play().catch(() => {});
       }
-
-      // Remove listeners after first interaction
-      document.removeEventListener("click", handleInteraction);
-      document.removeEventListener("touchstart", handleInteraction);
-      document.removeEventListener("keydown", handleInteraction);
     }
 
-    document.addEventListener("click", handleInteraction);
-    document.addEventListener("touchstart", handleInteraction);
-    document.addEventListener("keydown", handleInteraction);
+    document.addEventListener("click", handleInteraction, { once: false });
+    document.addEventListener("touchstart", handleInteraction, { once: false });
+    document.addEventListener("keydown", handleInteraction, { once: false });
 
     return () => {
       document.removeEventListener("click", handleInteraction);
@@ -73,57 +125,87 @@ export function SoundProvider({ children }: { children: React.ReactNode }) {
     };
   }, [isMuted]);
 
+  // Sync muted/volume state whenever isMuted changes
+  useEffect(() => {
+    const soundtrack = soundtrackRef.current;
+    if (soundtrack) {
+      soundtrack.muted = isMuted;
+      soundtrack.volume = musicVolume;
+      // If unmuting, try to resume
+      if (!isMuted && soundtrack.paused) {
+        soundtrack.play().catch(() => {});
+      }
+    }
+  }, [isMuted, musicVolume]);
+
+  // Play a one-shot laugh effect on top of the soundtrack
   const playLaugh = useCallback(
     (avatar: string | null) => {
       if (isMuted) return;
-      const audio = new Audio(getAudioPath(avatar, "laugh"));
+      const audio = new Audio(getAvatarAudioPath(avatar, "laugh"));
+      audio.volume = sfxVolume;
       audio.play().catch(() => {});
     },
-    [isMuted],
+    [isMuted, sfxVolume],
   );
 
-  const playSoundtrack = useCallback(
+  // Swap the soundtrack to a battle-specific track
+  const swapSoundtrack = useCallback(
     (avatar: string | null) => {
-      // Stop any existing soundtrack
-      if (soundtrackRef.current) {
-        soundtrackRef.current.pause();
-        soundtrackRef.current = null;
+      const newTrack = getAvatarAudioPath(avatar, "soundtrack");
+
+      // Don't restart if already playing the same track
+      if (currentTrackRef.current === newTrack && soundtrackRef.current && !soundtrackRef.current.paused) {
+        return;
       }
 
-      const audio = new Audio(getAudioPath(avatar, "soundtrack"));
-      audio.loop = true;
-      audio.muted = isMuted;
-      soundtrackRef.current = audio;
+      // Pause and clean up current
+      if (soundtrackRef.current) {
+        soundtrackRef.current.pause();
+        soundtrackRef.current.src = "";
+      }
 
-      // Attempt to play — may fail due to autoplay policy (will resume on interaction)
+      // Start new track
+      const audio = createSoundtrackAudio(newTrack, isMuted, musicVolume);
+      soundtrackRef.current = audio;
+      currentTrackRef.current = newTrack;
+
       audio.play().catch(() => {});
     },
-    [isMuted],
+    [isMuted, musicVolume],
   );
 
-  const stopSoundtrack = useCallback(() => {
+  // Resume the global Binks' Sake soundtrack
+  const resumeGlobalSoundtrack = useCallback(() => {
+    // Don't restart if already playing global
+    if (currentTrackRef.current === GLOBAL_SOUNDTRACK && soundtrackRef.current && !soundtrackRef.current.paused) {
+      return;
+    }
+
+    // Pause and clean up current
     if (soundtrackRef.current) {
       soundtrackRef.current.pause();
-      soundtrackRef.current = null;
+      soundtrackRef.current.src = "";
     }
-  }, []);
+
+    // Start global
+    const audio = createSoundtrackAudio(GLOBAL_SOUNDTRACK, isMuted, musicVolume);
+    soundtrackRef.current = audio;
+    currentTrackRef.current = GLOBAL_SOUNDTRACK;
+
+    audio.play().catch(() => {});
+  }, [isMuted, musicVolume]);
 
   const toggleMute = useCallback(() => {
     setIsMuted((prev) => {
       const next = !prev;
       localStorage.setItem("sound_muted", String(next));
-
-      // Apply to active soundtrack
-      if (soundtrackRef.current) {
-        soundtrackRef.current.muted = next;
-      }
-
       return next;
     });
   }, []);
 
   return (
-    <SoundContext value={{ playLaugh, playSoundtrack, stopSoundtrack, isMuted, toggleMute }}>
+    <SoundContext value={{ playLaugh, swapSoundtrack, resumeGlobalSoundtrack, isMuted, toggleMute, musicVolume, setMusicVolume, sfxVolume, setSfxVolume }}>
       {children}
     </SoundContext>
   );

@@ -23,7 +23,6 @@ const AVATAR_OPTIONS = [
   { key: "ZORO", name: "Zoro", image: "/avatars/zoro/profile.jpg" },
   { key: "ROBIN", name: "Robin", image: "/avatars/robin/profile.jpg" },
   { key: "CHOPPER", name: "Chopper", image: "/avatars/chopper/profile.jpg" },
-  { key: "NAMI", name: "Nami", image: "/avatars/nami/profile.jpg" },
   { key: "ACE", name: "Ace", image: "/avatars/ace/profile.jpg" },
   { key: "DOFLAMINGO", name: "Doflamingo", image: "/avatars/doflamingo/profile.jpg" },
 ] as const;
@@ -53,7 +52,7 @@ function formatBounty(bounty: number): string {
 export default function SettingsPage() {
   const { user, isLoading } = useRequireAuth();
   const { logout, refreshUser } = useAuth();
-  const { isMuted, toggleMute } = useSound();
+  const { isMuted, toggleMute, musicVolume, setMusicVolume, sfxVolume, setSfxVolume } = useSound();
 
   const [error, setError] = useState<string | null>(null);
   const [savingFiliation, setSavingFiliation] = useState<Filiation | null>(
@@ -277,12 +276,12 @@ export default function SettingsPage() {
           <h3 className="text-lg font-semibold text-text-primary mb-4">
             Sound
           </h3>
-          <div className="flex items-center justify-between">
+
+          {/* Mute toggle */}
+          <div className="flex items-center justify-between mb-6">
             <div>
-              <p className="text-sm text-text-secondary">Sound effects & music</p>
-              <p className="text-xs text-text-muted">
-                Laughs and battle soundtrack
-              </p>
+              <p className="text-sm text-text-secondary">Master</p>
+              <p className="text-xs text-text-muted">Enable or disable all audio</p>
             </div>
             <button
               type="button"
@@ -299,6 +298,40 @@ export default function SettingsPage() {
                 ].join(" ")}
               />
             </button>
+          </div>
+
+          {/* Music volume */}
+          <div className="mb-5">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm text-text-secondary">🎵 Music</p>
+              <span className="text-xs text-text-muted">{Math.round(musicVolume * 100)}%</span>
+            </div>
+            <input
+              type="range"
+              min="0"
+              max="100"
+              value={Math.round(musicVolume * 100)}
+              onChange={(e) => setMusicVolume(parseInt(e.target.value) / 100)}
+              disabled={isMuted}
+              className="w-full h-2 bg-surface-secondary rounded-full appearance-none cursor-pointer accent-primary disabled:opacity-40"
+            />
+          </div>
+
+          {/* Effects volume */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-sm text-text-secondary">💥 Effects</p>
+              <span className="text-xs text-text-muted">{Math.round(sfxVolume * 100)}%</span>
+            </div>
+            <input
+              type="range"
+              min="0"
+              max="100"
+              value={Math.round(sfxVolume * 100)}
+              onChange={(e) => setSfxVolume(parseInt(e.target.value) / 100)}
+              disabled={isMuted}
+              className="w-full h-2 bg-surface-secondary rounded-full appearance-none cursor-pointer accent-primary disabled:opacity-40"
+            />
           </div>
         </Card>
 

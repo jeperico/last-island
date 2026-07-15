@@ -24,7 +24,7 @@ export default function GamePage() {
   const [error, setError] = useState<string | null>(null);
   const [currentBounty, setCurrentBounty] = useState<number>(0);
 
-  const { playSoundtrack, stopSoundtrack, playLaugh } = useSound();
+  const { swapSoundtrack, resumeGlobalSoundtrack, playLaugh } = useSound();
   const prevPhaseRef = useRef<GamePhase | null>(null);
 
   // Initial fetch on mount (after auth resolves)
@@ -70,14 +70,14 @@ export default function GamePage() {
     }
   }, [gameState?.phase]);
 
-  // Soundtrack lifecycle: start on IN_PROGRESS, stop on unmount
+  // Soundtrack lifecycle: swap to battle music on IN_PROGRESS, resume global on unmount
   useEffect(() => {
     if (gameState?.phase === "IN_PROGRESS") {
       const myAvatar = gameState.bluePlayerName === user?.name
         ? gameState.bluePlayerAvatar : gameState.redPlayerAvatar;
-      playSoundtrack(myAvatar);
+      swapSoundtrack(myAvatar);
     }
-    return () => { stopSoundtrack(); };
+    return () => { resumeGlobalSoundtrack(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gameState?.phase === "IN_PROGRESS"]);
 
@@ -86,7 +86,7 @@ export default function GamePage() {
     if (prevPhaseRef.current === "IN_PROGRESS" && gameState?.phase === "FINISHED" && user) {
       const myAvatar = gameState.bluePlayerName === user.name
         ? gameState.bluePlayerAvatar : gameState.redPlayerAvatar;
-      stopSoundtrack();
+      resumeGlobalSoundtrack();
       if (gameState.winnerName === user.name) {
         playLaugh(myAvatar);
       }
@@ -108,7 +108,7 @@ export default function GamePage() {
         refetchGame();
       },
       onGameOver: (data) => {
-        stopSoundtrack();
+        resumeGlobalSoundtrack();
         const myAvatar = gameState?.bluePlayerName === user?.name
           ? gameState?.bluePlayerAvatar : gameState?.redPlayerAvatar;
         if (data.winnerName === user?.name) {
@@ -120,11 +120,11 @@ export default function GamePage() {
         refetchGame();
       },
       onGameExpired: () => {
-        stopSoundtrack();
+        resumeGlobalSoundtrack();
         refetchGame();
       },
       onSurrender: () => {
-        stopSoundtrack();
+        resumeGlobalSoundtrack();
         refetchGame();
       },
     },
