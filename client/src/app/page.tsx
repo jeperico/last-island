@@ -264,13 +264,13 @@ export default function Home() {
   function formatBounty(bounty: number): string {
     if (bounty >= 1_000_000_000) {
       const b = bounty / 1_000_000_000;
-      return `${b % 1 === 0 ? b.toFixed(0) : b.toFixed(1)}B`;
+      return `${b % 1 === 0 ? b.toFixed(0) : b.toFixed(1)}B ₿`;
     }
     if (bounty >= 1_000_000) {
       const m = bounty / 1_000_000;
-      return `${m % 1 === 0 ? m.toFixed(0) : m.toFixed(0)}M`;
+      return `${m % 1 === 0 ? m.toFixed(0) : m.toFixed(0)}M ₿`;
     }
-    return bounty.toLocaleString();
+    return `${bounty.toLocaleString()} ₿`;
   }
 
   const podiumMedals = ["🥇", "🥈", "🥉"] as const;
@@ -286,7 +286,11 @@ export default function Home() {
         {/* Header */}
         <div className="mb-8 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <AvatarIcon avatar={user?.avatar ?? null} filiation={user?.filiation ?? null} size="sm" />
+            <AvatarIcon
+              avatar={user?.avatar ?? null}
+              filiation={user?.filiation ?? null}
+              size="sm"
+            />
             <h1 className="text-2xl font-bold text-text-primary">
               {`Welcome${user ? `, ${user.name}` : ""}`}
             </h1>
@@ -406,27 +410,32 @@ export default function Home() {
                                     : "border-l-transparent"
                               }`}
                             >
-                              <td className="py-3 px-2 font-bold text-text-secondary">
+                              <td className="py-2 px-2 font-bold text-text-secondary">
                                 {entry.position <= 3
                                   ? podiumMedals[entry.position - 1]
                                   : entry.position}
                               </td>
-                              <td className="py-3 px-2 text-left text-secondary font-medium">
+                              <td className="py-2 px-2 text-left text-secondary font-medium">
                                 {formatBounty(entry.bounty)}
                               </td>
-                              <td className="py-3 px-2 text-left text-text-primary font-medium truncate">
+                              <td className="py-2 px-2 text-left text-text-primary font-medium truncate">
                                 <span className="inline-flex items-center gap-1.5">
-                                  <AvatarIcon avatar={entry.avatar} filiation={entry.filiation} size="sm" className="inline-block" />
+                                  <AvatarIcon
+                                    avatar={entry.avatar}
+                                    filiation={entry.filiation}
+                                    size="sm"
+                                    className="inline-block"
+                                  />
                                   {entry.name}
                                 </span>
                               </td>
-                              <td className="py-3 px-2 text-left text-text-muted text-xs">
+                              <td className="py-2 px-2 text-left text-text-muted text-xs">
                                 {entry.rank.replace("_", " ")}
                               </td>
-                              <td className="py-3 px-2 text-left text-text-secondary">
+                              <td className="py-2 px-2 text-left text-text-secondary">
                                 {entry.wins}
                               </td>
-                              <td className="py-3 px-2 text-left text-text-secondary">
+                              <td className="py-2 px-2 text-left text-text-secondary">
                                 {Math.round(entry.winRate * 100)}%
                               </td>
                             </tr>
@@ -471,7 +480,12 @@ export default function Home() {
                                 </td>
                                 <td className="py-3 px-2 text-left text-text-primary font-medium truncate">
                                   <span className="inline-flex items-center gap-1.5">
-                                    <AvatarIcon avatar={userEntry.avatar} filiation={userEntry.filiation} size="sm" className="inline-block" />
+                                    <AvatarIcon
+                                      avatar={userEntry.avatar}
+                                      filiation={userEntry.filiation}
+                                      size="sm"
+                                      className="inline-block"
+                                    />
                                     {userEntry.name}
                                   </span>
                                 </td>
