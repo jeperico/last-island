@@ -121,6 +121,8 @@ export interface GameStateResponse {
   phase: GamePhase;
   bluePlayerName: string;
   redPlayerName: string | null;
+  bluePlayerAvatar: string | null;
+  redPlayerAvatar: string | null;
   currentTurnPlayerName: string | null;
   winnerName: string | null;
   startedAt: string | null;

@@ -224,6 +224,14 @@ export default function GamePage() {
         gameState.bluePlayerName === user.name
           ? (gameState.redPlayerName ?? "Unknown")
           : gameState.bluePlayerName;
+      const myAvatar =
+        gameState.bluePlayerName === user.name
+          ? gameState.bluePlayerAvatar
+          : gameState.redPlayerAvatar;
+      const opponentAvatar =
+        gameState.bluePlayerName === user.name
+          ? gameState.redPlayerAvatar
+          : gameState.bluePlayerAvatar;
       const myShots = gameState.opponentBoard?.shotsFired.length ?? 0;
       const myHits =
         gameState.opponentBoard?.shotsFired.filter(
@@ -255,6 +263,8 @@ export default function GamePage() {
             myBoard={gameState.myBoard}
             opponentBoard={gameState.opponentBoard}
             myBounty={currentBounty}
+            myAvatar={myAvatar}
+            opponentAvatar={opponentAvatar}
           />
         </div>
       );

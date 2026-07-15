@@ -7,6 +7,7 @@ import type {
 } from "@/lib/api/types";
 import { getShipCells, cellKey } from "@/lib/game";
 import { BoardGrid, type CellState } from "./board-grid";
+import { AvatarIcon } from "@/components/ui";
 
 interface GameOverPanelProps {
   isWinner: boolean;
@@ -20,6 +21,8 @@ interface GameOverPanelProps {
   myBoard: MyBoardResponse | null;
   opponentBoard: OpponentBoardResponse | null;
   myBounty: number;
+  myAvatar: string | null;
+  opponentAvatar: string | null;
 }
 
 // ─── Cell-building helpers ───────────────────────────────────────────────────
@@ -87,6 +90,8 @@ export function GameOverPanel({
   myBoard,
   opponentBoard,
   myBounty,
+  myAvatar,
+  opponentAvatar,
 }: GameOverPanelProps) {
   const myAccuracy = myShots > 0 ? Math.round((myHits / myShots) * 100) : 0;
   const opponentAccuracy =
@@ -118,9 +123,11 @@ export function GameOverPanel({
         } print:border-black print:bg-white`}
       >
         <div className="flex items-center gap-3">
-          <span className="text-3xl print:text-2xl">
-            {isWinner ? "🏴‍☠️" : "💀"}
-          </span>
+          <AvatarIcon
+            avatar={isWinner ? myAvatar : opponentAvatar}
+            size="lg"
+            highlight={isWinner ? "gold" : "none"}
+          />
           <div>
             <h1
               className={`text-xl font-bold ${isWinner ? "text-success" : "text-danger"} print:text-black`}

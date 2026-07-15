@@ -30,7 +30,6 @@ import {
   type JoinGameFormData,
 } from "@/lib/validations/join-game";
 import {
-  PageHeader,
   Alert,
   Button,
   Input,
@@ -39,6 +38,7 @@ import {
   EmptyState,
   Skeleton,
   Spinner,
+  AvatarIcon,
 } from "@/components/ui";
 import { BattleDetailModal } from "@/components/battle-detail-modal";
 
@@ -284,23 +284,26 @@ export default function Home() {
     <div className="flex flex-col flex-1 items-center px-4 py-8">
       <div className="w-full max-w-7xl">
         {/* Header */}
-        <PageHeader
-          title={`Welcome${user ? `, ${user.name}` : ""}`}
-          actions={
-            <div className="flex items-center gap-2">
-              <Link
-                href="/settings"
-                className="inline-flex items-center justify-center w-8 h-8 rounded-md text-text-secondary hover:bg-surface-secondary hover:text-primary transition-colors"
-                aria-label="Settings"
-              >
-                ⚙️
-              </Link>
-              <Button variant="secondary" size="sm" onClick={logout}>
-                Logout
-              </Button>
-            </div>
-          }
-        />
+        <div className="mb-8 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <AvatarIcon avatar={user?.avatar ?? null} size="sm" />
+            <h1 className="text-2xl font-bold text-text-primary">
+              {`Welcome${user ? `, ${user.name}` : ""}`}
+            </h1>
+          </div>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/settings"
+              className="inline-flex items-center justify-center w-8 h-8 rounded-md text-text-secondary hover:bg-surface-secondary hover:text-primary transition-colors"
+              aria-label="Settings"
+            >
+              ⚙️
+            </Link>
+            <Button variant="secondary" size="sm" onClick={logout}>
+              Logout
+            </Button>
+          </div>
+        </div>
 
         {/* Error display */}
         {error && (
@@ -412,8 +415,10 @@ export default function Home() {
                                 {formatBounty(entry.bounty)}
                               </td>
                               <td className="py-3 px-2 text-left text-text-primary font-medium truncate">
-                                {entry.filiation === "PIRATE" ? "🏴‍☠️" : "⚓"}{" "}
-                                {entry.name}
+                                <span className="inline-flex items-center gap-1.5">
+                                  <AvatarIcon avatar={entry.avatar} size="sm" className="inline-block" />
+                                  {entry.name}
+                                </span>
                               </td>
                               <td className="py-3 px-2 text-left text-text-muted text-xs">
                                 {entry.rank.replace("_", " ")}
@@ -465,10 +470,10 @@ export default function Home() {
                                   {formatBounty(userEntry.bounty)}
                                 </td>
                                 <td className="py-3 px-2 text-left text-text-primary font-medium truncate">
-                                  {userEntry.filiation === "PIRATE"
-                                    ? "🏴‍☠️"
-                                    : "⚓"}{" "}
-                                  {userEntry.name}
+                                  <span className="inline-flex items-center gap-1.5">
+                                    <AvatarIcon avatar={userEntry.avatar} size="sm" className="inline-block" />
+                                    {userEntry.name}
+                                  </span>
                                 </td>
                                 <td className="py-3 px-2 text-left text-text-muted text-xs">
                                   {userEntry.rank.replace("_", " ")}

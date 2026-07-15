@@ -1,129 +1,101 @@
-# Frontend: Avatar Selection Step in Registration Flow
+# Frontend: Avatar Display Across Screens
 
 ## Objective
 
-Add a conditional avatar selection grid to the registration page that appears when filiation is PIRATE, integrating with the existing react-hook-form + Zod setup and passing the selected avatar to the backend.
+Create a reusable AvatarIcon component and integrate avatar display into the battle screen, game over panel, leaderboard, dashboard header, and battle detail modal.
 
 ## Files to touch
 
-- `client/src/lib/validations/register.ts` — modify (add optional avatar field to Zod schema)
-- `client/src/interfaces/api.ts` — modify (add `avatar` field to `RegisterRequest` interface)
-- `client/src/interfaces/auth.ts` — modify (add `avatar` param to register signature)
-- `client/src/lib/auth/auth-context.tsx` — modify (accept and pass avatar in register callback)
-- `client/src/app/(auth)/register/page.tsx` — modify (add avatar grid UI, clear avatar on filiation switch, pass avatar on submit)
+- `client/public/avatars/default/profile.svg` — create (generic marine/null fallback SVG)
+- `client/src/components/ui/avatar-icon.tsx` — create (reusable AvatarIcon component)
+- `client/src/components/ui/index.ts` — modify (export AvatarIcon)
+- `client/src/interfaces/api.ts` — modify (add `bluePlayerAvatar`, `redPlayerAvatar` to GameStateResponse)
+- `client/src/app/game/[token]/battle-screen.tsx` — modify (show avatars next to turn indicator)
+- `client/src/app/game/[token]/game-over-panel.tsx` — modify (add avatar props, show in results header)
+- `client/src/app/game/[token]/page.tsx` — modify (pass avatar props to GameOverPanel)
+- `client/src/app/page.tsx` — modify (avatar in dashboard header + leaderboard entries)
+- `client/src/components/battle-detail-modal.tsx` — modify (show avatars in header banner)
 
 ## Steps
 
-1. **Extend Zod schema** — In `client/src/lib/validations/register.ts`, add `avatar: z.string().nullable().optional()` to the `.object({...})` fields (after `filiation`). The `RegisterFormData` type will automatically include it.
+1. **Create default fallback SVG** — `client/public/avatars/default/profile.svg`
+   - 200×200 circle SVG with a neutral navy background and anchor/skull-crossbones shape (same style as existing character SVGs but generic)
+   - Used when avatar is null (marines or unset)
 
-2. **Add avatar to RegisterRequest interface** — In `client/src/interfaces/api.ts`, add `avatar?: string | null;` to the `RegisterRequest` interface (after `filiation`).
+2. **Create AvatarIcon component** — `client/src/components/ui/avatar-icon.tsx`
+   - Interface: `{ avatar: string | null; size?: "sm" | "md" | "lg"; className?: string; highlight?: "gold" | "none" }`
+   - Size mapping: sm → `w-8 h-8`, md → `w-12 h-12`, lg → `w-16 h-16`
+   - Image src logic: if avatar is non-null, use `/avatars/${avatar.toLowerCase()}/profile.svg`; if null, use `/avatars/default/profile.svg`
+   - Base styling: `rounded-full border-2 border-border object-cover`
+   - highlight="gold" adds `ring-2 ring-gold` for winner styling
+   - Plain `<img>` tag (matching existing pattern from settings page)
+   - Export as named export
 
-3. **Update auth context interface** — In `client/src/interfaces/auth.ts`, add `avatar?: string | null` as a 5th parameter to the `register` method signature:
-   ```ts
-   register: (
-     name: string,
-     email: string,
-     password: string,
-     filiation: string,
-     avatar?: string | null,
-   ) => Promise<void>;
-   ```
+3. **Export from barrel** — `client/src/components/ui/index.ts`
+   - Add `export { AvatarIcon } from "./avatar-icon";`
 
-4. **Update auth context implementation** — In `client/src/lib/auth/auth-context.tsx`, update the `register` callback:
-   - Add `avatar?: string | null` parameter (after `filiation`)
-   - Include `avatar` in the object passed to `registerApi`: `{ name, email, password, filiation: filiation as "PIRATE" | "MARINE", avatar: avatar ?? null }`
+4. **Update GameStateResponse interface** — `client/src/interfaces/api.ts`
+   - Add `bluePlayerAvatar: string | null;` and `redPlayerAvatar: string | null;` fields to `GameStateResponse` (after `redPlayerName`)
 
-5. **Add avatar grid to registration page** — In `client/src/app/(auth)/register/page.tsx`:
+5. **Battle screen** — `client/src/app/game/[token]/battle-screen.tsx`
+   - Import `AvatarIcon` from `@/components/ui`
+   - In the turn indicator section (line ~119–131), wrap the Badge in a flex row with avatars:
+     - Compute `myAvatar` and `opponentAvatar` from gameState (bluePlayerName === user.name → myAvatar = bluePlayerAvatar)
+     - Show `<AvatarIcon avatar={isMyTurn ? myAvatar : opponentAvatar} size="sm" />` next to the Badge
+   - Keep it simple: one small avatar indicating whose turn it is
 
-   a. Add `AVATAR_OPTIONS` constant at top of file (same array from settings page):
-   ```ts
-   const AVATAR_OPTIONS = [
-     { key: "LUFFY", name: "Luffy", image: "/avatars/luffy/profile.svg" },
-     { key: "ZORO", name: "Zoro", image: "/avatars/zoro/profile.svg" },
-     { key: "ROBIN", name: "Robin", image: "/avatars/robin/profile.svg" },
-     { key: "CHOPPER", name: "Chopper", image: "/avatars/chopper/profile.svg" },
-     { key: "NAMI", name: "Nami", image: "/avatars/nami/profile.svg" },
-     { key: "ACE", name: "Ace", image: "/avatars/ace/profile.svg" },
-   ] as const;
-   ```
+6. **Game over panel** — `client/src/app/game/[token]/game-over-panel.tsx`
+   - Extend `GameOverPanelProps` with `myAvatar: string | null` and `opponentAvatar: string | null`
+   - Import `AvatarIcon` from `@/components/ui`
+   - In the header section (line ~99), replace the emoji (`"🏴‍☠️"` / `"💀"`) with `<AvatarIcon avatar={isWinner ? myAvatar : opponentAvatar} size="lg" highlight={isWinner ? "gold" : "none"} />`
+   - Optionally add the opponent's avatar on the other side for a VS layout feel
 
-   b. Add `avatar` to the `watch` call: `const avatar = watch("avatar");`
+7. **Game page (pass avatar props)** — `client/src/app/game/[token]/page.tsx`
+   - In the FINISHED phase block, compute:
+     - `myAvatar = gameState.bluePlayerName === user.name ? gameState.bluePlayerAvatar : gameState.redPlayerAvatar`
+     - `opponentAvatar = gameState.bluePlayerName === user.name ? gameState.redPlayerAvatar : gameState.bluePlayerAvatar`
+   - Pass `myAvatar` and `opponentAvatar` as new props to `<GameOverPanel>`
 
-   c. In the Marine filiation toggle `onClick`, add `setValue("avatar", null)` to clear avatar when switching to Marine.
+8. **Dashboard — header avatar** — `client/src/app/page.tsx`
+   - Import `AvatarIcon` from `@/components/ui`
+   - In the PageHeader title area (line ~287), add `<AvatarIcon avatar={user?.avatar ?? null} size="sm" />` next to the welcome text (wrap in flex if needed)
 
-   d. Insert a new conditional section between the filiation `</fieldset>` and the submit `<Button>`:
-   ```tsx
-   {filiation === "PIRATE" && (
-     <fieldset>
-       <legend className="text-sm font-medium text-text-secondary mb-2">
-         Choose Your Captain
-       </legend>
-       <div className="grid grid-cols-3 gap-3">
-         {AVATAR_OPTIONS.map((opt) => (
-           <button
-             key={opt.key}
-             type="button"
-             onClick={() => setValue("avatar", avatar === opt.key ? null : opt.key)}
-             className={`flex flex-col items-center gap-2 p-3 rounded-lg border-2 transition-all duration-200 cursor-pointer ${
-               avatar === opt.key
-                 ? "border-primary ring-2 ring-primary bg-primary/10"
-                 : "border-border hover:border-primary/50"
-             }`}
-             aria-pressed={avatar === opt.key}
-           >
-             {/* eslint-disable-next-line @next/next/no-img-element */}
-             <img
-               src={opt.image}
-               alt={opt.name}
-               className="w-16 h-16 rounded-full object-cover"
-             />
-             <span className="text-sm font-medium text-text-secondary">
-               {opt.name}
-             </span>
-           </button>
-         ))}
-       </div>
-       <p className="text-xs text-text-secondary mt-2">
-         Optional — you can pick later in settings
-       </p>
-     </fieldset>
-   )}
-   ```
+9. **Dashboard — leaderboard entries** — `client/src/app/page.tsx`
+   - In the leaderboard table Name column (line ~410), replace `{entry.filiation === "PIRATE" ? "🏴‍☠️" : "⚓"}` with `<AvatarIcon avatar={entry.avatar} size="sm" className="inline-block" />`
+   - Keep the entry name text after the avatar
 
-   e. Update the `onValid` submit handler to pass avatar:
-   ```ts
-   await auth.register(data.name, data.email, data.password, data.filiation, data.avatar ?? null);
-   ```
+10. **Battle detail modal** — `client/src/components/battle-detail-modal.tsx`
+    - Import `AvatarIcon` from `@/components/ui`
+    - In the header banner (line ~136), compute player avatars from `gameState.bluePlayerAvatar`/`gameState.redPlayerAvatar`
+    - Replace the emoji (`"🏴‍☠️"` / `"💀"`) with `<AvatarIcon avatar={myAvatar} size="md" highlight={isVictory ? "gold" : "none"} />`
+    - Optionally show opponent avatar next to "vs {opponentName}" text
 
 ## Verification
 
 ```bash
-cd /home/perico/work/last-island/client && npm run build
+cd client && npm run build
 ```
-Expect: clean build, no TypeScript errors.
+- Must pass with no new TypeScript errors
 
 ```bash
-cd /home/perico/work/last-island/client && npm run lint
+cd client && npm run lint
 ```
-Expect: ≤7 pre-existing issues, no new errors introduced.
+- Must not introduce new lint errors (pre-existing 9 issues are acceptable)
 
 ```bash
-cd /home/perico/work/last-island/service && mvn test -q
+cd service && mvn test -pl service -q
 ```
-Expect: all tests pass (no backend changes made).
+- Must pass (no backend changes in this task)
 
-Manual checks:
-- On register page with PIRATE selected → avatar grid visible with 6 options
-- Click an avatar → ring highlight appears; click again → deselects
-- Switch filiation to MARINE → avatar grid disappears
-- Switch back to PIRATE → avatar grid reappears with no selection
-- Submit with avatar selected → request body includes `avatar: "LUFFY"` (or whichever)
-- Submit without avatar selected → request body includes `avatar: null`
-- Submit as MARINE → no avatar field or `avatar: null` in body
+### Manual checks
+- Verify AvatarIcon renders at all 3 sizes (32px, 48px, 64px) with circular clipping
+- Verify null avatar shows the default/fallback SVG (marine placeholder)
+- Verify gold highlight ring displays on winner avatar in game-over panel
+- Verify leaderboard entries show character avatars inline with names
 
 ## Rollback
 
 ```bash
-cd /home/perico/work/last-island
-git checkout -- client/src/lib/validations/register.ts client/src/interfaces/api.ts client/src/interfaces/auth.ts client/src/lib/auth/auth-context.tsx "client/src/app/(auth)/register/page.tsx"
+git checkout -- client/src/components/ui/avatar-icon.tsx client/src/components/ui/index.ts client/src/interfaces/api.ts client/src/app/game/\[token\]/battle-screen.tsx client/src/app/game/\[token\]/game-over-panel.tsx client/src/app/game/\[token\]/page.tsx client/src/app/page.tsx client/src/components/battle-detail-modal.tsx
+rm -f client/public/avatars/default/profile.svg client/src/components/ui/avatar-icon.tsx
 ```

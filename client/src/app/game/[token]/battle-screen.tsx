@@ -10,6 +10,7 @@ import type {
 import { getShipCells, cellKey } from "@/lib/game";
 import { Badge, Alert, Spinner, Button } from "@/components/ui";
 import { CountdownTimer } from "@/components/ui";
+import { AvatarIcon } from "@/components/ui";
 import { BoardGrid, type CellState } from "./board-grid";
 import { SurrenderModal } from "@/components/surrender-modal";
 
@@ -37,6 +38,15 @@ export function BattleScreen({
   const [surrendering, setSurrendering] = useState(false);
 
   const isMyTurn = gameState.currentTurnPlayerName === user.name;
+
+  const myAvatar =
+    gameState.bluePlayerName === user.name
+      ? gameState.bluePlayerAvatar
+      : gameState.redPlayerAvatar;
+  const opponentAvatar =
+    gameState.bluePlayerName === user.name
+      ? gameState.redPlayerAvatar
+      : gameState.bluePlayerAvatar;
 
   // Merge server shots with optimistic shots
   const allShotsFired = useMemo(() => {
@@ -118,7 +128,8 @@ export function BattleScreen({
       {/* Turn indicator (hidden when readOnly) */}
       {!readOnly && (
         <div className="flex flex-col items-center justify-center gap-2">
-          <div className="flex items-center justify-center">
+          <div className="flex items-center justify-center gap-2">
+            <AvatarIcon avatar={isMyTurn ? myAvatar : opponentAvatar} size="sm" />
             {isMyTurn ? (
               <Badge variant="success">Your Turn — Fire!</Badge>
             ) : (

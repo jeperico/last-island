@@ -2,7 +2,7 @@
 
 ## Position
 
-Planning complete — Frontend: Avatar selection step in registration flow
+Plan written — Frontend: Avatar display across screens (battle, game over, leaderboard, dashboard)
 
 ## Decisions
 
@@ -18,4 +18,4 @@ Planning complete — Frontend: Avatar selection step in registration flow
 
 ## Last verification
 
-PASS at 2026-07-15T10:45 — client-build ✓, client-lint 9 issues (all pre-existing, none introduced), service-test ✓, all 5 files verified
+PASS at 2026-07-15T10:58 — client-build ✓, client-lint 9 issues (all pre-existing, none introduced), service-test ✓, all 9 files verified

@@ -150,3 +150,9 @@ Files changed: `client/src/lib/validations/register.ts` (modified, +1), `client/
 
 Reviewer: PASS — client-build ✓, client-lint 9 issues (all pre-existing, none introduced), service-test ✓, all 5 files verified
 Commit: uncommitted
+
+## 2026-07-15T10:53 — Frontend: Avatar Display Across Screens
+
+Implementer: Created `client/public/avatars/default/profile.svg` (anchor-shaped fallback for marines/null), `client/src/components/ui/avatar-icon.tsx` (reusable AvatarIcon component with sm/md/lg sizes and gold highlight). Modified `client/src/components/ui/index.ts` (+1 export), `client/src/interfaces/api.ts` (+2 fields: bluePlayerAvatar, redPlayerAvatar), `client/src/app/game/[token]/battle-screen.tsx` (avatar next to turn indicator), `client/src/app/game/[token]/game-over-panel.tsx` (avatar replacing emoji in header), `client/src/app/game/[token]/page.tsx` (pass avatar props to GameOverPanel), `client/src/app/page.tsx` (avatar in dashboard header + leaderboard entries), `client/src/components/battle-detail-modal.tsx` (avatar in header banner). Net: +2 files created, 7 files modified.
+Reviewer: PASS — client-build ✓, client-lint 9 issues (all pre-existing, none introduced), service-test ✓, all 9 files verified
+Commit: uncommitted

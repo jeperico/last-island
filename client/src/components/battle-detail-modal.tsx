@@ -9,7 +9,7 @@ import type {
 } from "@/lib/api/types";
 import { getGame } from "@/lib/api";
 import { cellKey, getShipCells } from "@/lib/game";
-import { Modal, Spinner } from "@/components/ui";
+import { Modal, Spinner, AvatarIcon } from "@/components/ui";
 import { BoardGrid, type CellState } from "../app/game/[token]/board-grid";
 
 interface BattleDetailModalProps {
@@ -111,6 +111,13 @@ export function BattleDetailModal({
 
   const isVictory = entry.result === "VICTORY";
 
+  // Determine my avatar from gameState (I'm the player who is NOT the opponent)
+  const myAvatar = gameState
+    ? gameState.bluePlayerName === entry.opponentName
+      ? gameState.redPlayerAvatar
+      : gameState.bluePlayerAvatar
+    : null;
+
   const myBoardCells = gameState?.myBoard
     ? buildMyBoardCells(gameState.myBoard)
     : new Map<string, CellState>();
@@ -136,7 +143,11 @@ export function BattleDetailModal({
           }`}
         >
           <div className="flex items-center gap-4">
-            <span className="text-3xl">{isVictory ? "🏴‍☠️" : "💀"}</span>
+            <AvatarIcon
+              avatar={myAvatar}
+              size="md"
+              highlight={isVictory ? "gold" : "none"}
+            />
             <div>
               <div className="flex items-center gap-2">
                 <span
