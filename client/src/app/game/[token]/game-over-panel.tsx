@@ -331,13 +331,38 @@ function PlayerColumn({
     ? `/avatars/${avatar.toLowerCase()}/full-body.jpg`
     : null;
 
+  // Rank-based panel glow (same tier system as avatar-icon)
+  function getRankPanelStyle(rank: string): string {
+    switch (rank) {
+      case "SUPER ROOKIE":
+      case "CAPTAIN":
+        return "ring-4 ring-inset ring-blue-500/60";
+      case "SUPERNOVA":
+      case "COMMODORE":
+        return "ring-4 ring-inset ring-yellow-500/60 shadow-[inset_0_0_50px_rgba(234,179,8,0.25)]";
+      case "SHICHIBUKAI":
+      case "VICE ADMIRAL":
+        return "ring-[5px] ring-inset ring-purple-500/70 shadow-[inset_0_0_60px_rgba(168,85,247,0.3)]";
+      case "YONKO":
+      case "ADMIRAL":
+        return "ring-[6px] ring-inset ring-red-500/80 shadow-[inset_0_0_80px_rgba(239,68,68,0.35)]";
+      case "PIRATE KING":
+      case "FLEET ADMIRAL":
+        return "ring-[6px] ring-inset ring-white/90 shadow-[inset_0_0_100px_rgba(255,255,255,0.4)]";
+      default:
+        return "";
+    }
+  }
+
+  const rankGlow = getRankPanelStyle(rank);
+
   const borderColor = isWinner
     ? "border-b-4 border-b-success shadow-[0_4px_20px_rgba(34,197,94,0.3)]"
     : "border-b-4 border-b-danger/50";
 
   return (
     <div
-      className={`relative flex flex-col justify-end overflow-hidden ${borderColor}`}
+      className={`relative flex flex-col justify-end overflow-hidden ${borderColor} ${rankGlow}`}
       style={
         avatarPath
           ? {
