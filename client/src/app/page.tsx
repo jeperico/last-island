@@ -289,6 +289,7 @@ export default function Home() {
             <AvatarIcon
               avatar={user?.avatar ?? null}
               filiation={user?.filiation ?? null}
+              rank={user?.rank ?? null}
               size="sm"
             />
             <h1 className="text-2xl font-bold text-text-primary">
@@ -388,7 +389,7 @@ export default function Home() {
                           <col className="w-14" />
                           <col className="w-18" />
                         </colgroup>
-                        <thead className="sticky top-0 bg-surface z-10">
+                        <thead className="sticky top-0 bg-surface z-20">
                           <tr className="text-text-muted text-xs border-b border-border-light">
                             <th className="py-2 px-2 text-left">#</th>
                             <th className="py-2 px-2 text-left">Bounty</th>
@@ -423,6 +424,7 @@ export default function Home() {
                                   <AvatarIcon
                                     avatar={entry.avatar}
                                     filiation={entry.filiation}
+                                    rank={entry.rank}
                                     size="sm"
                                     className="inline-block"
                                   />
@@ -483,6 +485,7 @@ export default function Home() {
                                     <AvatarIcon
                                       avatar={userEntry.avatar}
                                       filiation={userEntry.filiation}
+                                      rank={userEntry.rank}
                                       size="sm"
                                       className="inline-block"
                                     />
