@@ -39,7 +39,7 @@ export function BattleScreen({
   );
   const [surrenderOpen, setSurrenderOpen] = useState(false);
   const [surrendering, setSurrendering] = useState(false);
-  const { playLaugh } = useSound();
+  const { playLaugh, playHit, playSunk } = useSound();
 
   const isMyTurn = gameState.currentTurnPlayerName === user.name;
 
@@ -95,7 +95,12 @@ export function BattleScreen({
         };
         setOptimisticShots((prev) => [...prev, newShot]);
 
+        if (response.result === "HIT") {
+          playHit();
+        }
+
         if (response.result === "SUNK") {
+          playSunk();
           playLaugh(myAvatar);
         }
 
@@ -114,7 +119,7 @@ export function BattleScreen({
         setFiring(false);
       }
     },
-    [isMyTurn, firing, allShotsFired, gameToken, onGameStateUpdate, playLaugh, myAvatar],
+    [isMyTurn, firing, allShotsFired, gameToken, onGameStateUpdate, playLaugh, playHit, playSunk, myAvatar],
   );
 
   const handleSurrender = useCallback(async () => {

@@ -27,7 +27,7 @@ export default function GamePage() {
   const [error, setError] = useState<string | null>(null);
 
 
-  const { swapSoundtrack, resumeGlobalSoundtrack, playLaugh } = useSound();
+  const { swapSoundtrack, resumeGlobalSoundtrack, playLaugh, playSunk, playIncomingHit } = useSound();
   const prevPhaseRef = useRef<GamePhase | null>(null);
   const { wallpaper, setWallpaper, getWallpaperPath } = useWallpaper();
   const [wallpaperModalOpen, setWallpaperModalOpen] = useState(false);
@@ -101,6 +101,12 @@ export default function GamePage() {
         refetchGame();
       },
       onShotReceived: (data) => {
+        if (data.result === "HIT") {
+          playIncomingHit();
+        }
+        if (data.result === "SUNK") {
+          playSunk();
+        }
         refetchGame();
       },
       onGameOver: (data) => {

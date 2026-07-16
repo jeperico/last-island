@@ -13,6 +13,9 @@ import {
 
 interface SoundContextValue {
   playLaugh: (avatar: string | null) => void;
+  playHit: () => void;
+  playIncomingHit: () => void;
+  playSunk: () => void;
   swapSoundtrack: () => void;
   resumeGlobalSoundtrack: () => void;
   isMuted: boolean;
@@ -27,6 +30,9 @@ interface SoundContextValue {
 
 const GLOBAL_SOUNDTRACK = "/audio/binks-sake.mp3";
 const BATTLE_SOUNDTRACK = "/audio/rubber-bazooka.mp3";
+const HIT_SOUND = "/audio/shot.mp3";
+const INCOMING_HIT_SOUND = "/audio/hit.mp3";
+const SUNK_SOUND = "/audio/sunk.mp3";
 const DEFAULT_MUSIC_VOLUME = 0.15;
 const DEFAULT_SFX_VOLUME = 0.5;
 
@@ -150,6 +156,30 @@ export function SoundProvider({ children }: { children: React.ReactNode }) {
     [isMuted, sfxVolume],
   );
 
+  // Play hit sound when a cannonball strikes an enemy ship
+  const playHit = useCallback(() => {
+    if (isMuted) return;
+    const audio = new Audio(HIT_SOUND);
+    audio.volume = sfxVolume;
+    audio.play().catch(() => {});
+  }, [isMuted, sfxVolume]);
+
+  // Play sound when opponent hits your ship
+  const playIncomingHit = useCallback(() => {
+    if (isMuted) return;
+    const audio = new Audio(INCOMING_HIT_SOUND);
+    audio.volume = sfxVolume;
+    audio.play().catch(() => {});
+  }, [isMuted, sfxVolume]);
+
+  // Play sunk sound when a ship is sent to Davy Jones
+  const playSunk = useCallback(() => {
+    if (isMuted) return;
+    const audio = new Audio(SUNK_SOUND);
+    audio.volume = sfxVolume;
+    audio.play().catch(() => {});
+  }, [isMuted, sfxVolume]);
+
   // Swap the soundtrack to the battle track
   const swapSoundtrack = useCallback(
     () => {
@@ -204,7 +234,7 @@ export function SoundProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <SoundContext value={{ playLaugh, swapSoundtrack, resumeGlobalSoundtrack, isMuted, toggleMute, musicVolume, setMusicVolume, sfxVolume, setSfxVolume }}>
+    <SoundContext value={{ playLaugh, playHit, playIncomingHit, playSunk, swapSoundtrack, resumeGlobalSoundtrack, isMuted, toggleMute, musicVolume, setMusicVolume, sfxVolume, setSfxVolume }}>
       {children}
     </SoundContext>
   );
