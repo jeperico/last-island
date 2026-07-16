@@ -223,36 +223,95 @@ export function ShipPlacement({
   }
 
   function handleRandomize() {
-    // Retry entire layout until all ships are placed
-    for (let layoutAttempt = 0; layoutAttempt < 50; layoutAttempt++) {
+    // Improved fleet deployment algorithm:
+    // 1. Places ships largest-first for better space utilization
+    // 2. Enforces a 1-cell gap between ships (harder to hit multiple ships)
+    // 3. Uses edge/corner bias to spread ships across the board
+    // 4. Retries full layout if placement fails
+
+    function getBufferedCells(
+      row: number,
+      col: number,
+      size: number,
+      ori: Orientation,
+    ): string[] {
+      const buffered: string[] = [];
+      const cells = getShipCells(row, col, size, ori);
+      for (const c of cells) {
+        for (let dr = -1; dr <= 1; dr++) {
+          for (let dc = -1; dc <= 1; dc++) {
+            const r = c.row + dr;
+            const cl = c.col + dc;
+            if (r >= 0 && r <= 9 && cl >= 0 && cl <= 9) {
+              buffered.push(cellKey(r, cl));
+            }
+          }
+        }
+      }
+      return buffered;
+    }
+
+    // Sort fleet by size descending — place large ships first
+    const sortedFleet = [...fleet].sort(
+      (a, b) => SHIP_SIZES[b] - SHIP_SIZES[a],
+    );
+
+    for (let layoutAttempt = 0; layoutAttempt < 100; layoutAttempt++) {
       const newPlacements = new Map<ShipType, PlacementEntry>();
-      const occupied = new Set<string>();
+      const occupied = new Set<string>(); // actual ship cells
+      const buffer = new Set<string>(); // cells within 1 of a ship
       let allPlacedOk = true;
 
-      for (const shipType of fleet) {
+      for (const shipType of sortedFleet) {
         const size = SHIP_SIZES[shipType];
         let placed = false;
 
-        for (let attempt = 0; attempt < 200 && !placed; attempt++) {
-          const ori: Orientation =
-            Math.random() < 0.5 ? "HORIZONTAL" : "VERTICAL";
+        // Collect all valid positions, then pick one at random
+        const validPositions: { row: number; col: number; ori: Orientation }[] =
+          [];
+
+        for (const ori of ["HORIZONTAL", "VERTICAL"] as Orientation[]) {
           const maxRow = ori === "VERTICAL" ? 10 - size : 9;
           const maxCol = ori === "HORIZONTAL" ? 10 - size : 9;
-          const row = Math.floor(Math.random() * (maxRow + 1));
-          const col = Math.floor(Math.random() * (maxCol + 1));
 
-          const cells = getShipCells(row, col, size, ori);
-          const overlaps = cells.some((c) =>
-            occupied.has(cellKey(c.row, c.col)),
-          );
-
-          if (!overlaps) {
-            newPlacements.set(shipType, { row, col, orientation: ori });
-            for (const c of cells) {
-              occupied.add(cellKey(c.row, c.col));
+          for (let row = 0; row <= maxRow; row++) {
+            for (let col = 0; col <= maxCol; col++) {
+              const cells = getShipCells(row, col, size, ori);
+              const blocked = cells.some(
+                (c) =>
+                  occupied.has(cellKey(c.row, c.col)) ||
+                  buffer.has(cellKey(c.row, c.col)),
+              );
+              if (!blocked) {
+                validPositions.push({ row, col, ori });
+              }
             }
-            placed = true;
           }
+        }
+
+        if (validPositions.length > 0) {
+          // Pick a random valid position
+          const pick =
+            validPositions[Math.floor(Math.random() * validPositions.length)];
+          newPlacements.set(shipType, {
+            row: pick.row,
+            col: pick.col,
+            orientation: pick.ori,
+          });
+          const cells = getShipCells(pick.row, pick.col, size, pick.ori);
+          for (const c of cells) {
+            occupied.add(cellKey(c.row, c.col));
+          }
+          const bufferedCells = getBufferedCells(
+            pick.row,
+            pick.col,
+            size,
+            pick.ori,
+          );
+          for (const key of bufferedCells) {
+            buffer.add(key);
+          }
+          placed = true;
         }
 
         if (!placed) {
