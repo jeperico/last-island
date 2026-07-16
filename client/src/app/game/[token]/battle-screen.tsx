@@ -101,7 +101,11 @@ export function BattleScreen({
 
         if (response.result === "SUNK") {
           playSunk();
-          playLaugh(myAvatar);
+          // Play laugh only on 1st and 4th sunk (count before this shot + 1)
+          const sunkCount = allShotsFired.filter((s) => s.result === "SUNK").length + 1;
+          if (sunkCount === 1 || sunkCount === 3) {
+            playLaugh(myAvatar);
+          }
         }
 
         if (response.gameOver) {
