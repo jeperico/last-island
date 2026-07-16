@@ -144,25 +144,32 @@ class BoardServicePlaceShipsTest {
     }
 
     @Test
-    void placeShips_fleetAlreadyDeployed_rejects() {
+    void placeShips_fleetAlreadyDeployed_clearsAndRedeploys() {
         Game game = buildGame(GamePhase.PLACING_SHIPS);
         // Add a ship to blue board to simulate already deployed
         Ship existingShip = Ship.builder()
                 .board(game.getBlueBoard())
-                .type(ShipType.THOUSAND_SUNNY)
-                .orientation(Orientation.HORIZONTAL)
-                .row(0).col(0).hits(0)
+                .type(ShipType.STRIKER)
+                .orientation(Orientation.VERTICAL)
+                .row(9).col(9).hits(0)
                 .build();
         game.getBlueBoard().getShips().add(existingShip);
         when(gameRepository.findByTokenAndIsActiveTrue(TOKEN)).thenReturn(Optional.of(game));
 
         PlaceShipsRequest request = new PlaceShipsRequest(piratePlacement());
+        BoardResponse response = boardService.placeShips(TOKEN, bluePlayer.getId(), request);
 
-        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
-                () -> boardService.placeShips(TOKEN, bluePlayer.getId(), request));
-
-        assertThat(ex.getStatusCode().value()).isEqualTo(409);
-        assertThat(ex.getReason()).contains("Fleet already deployed");
+        // Old ship cleared, new fleet placed
+        assertThat(game.getBlueBoard().getShips()).hasSize(5);
+        assertThat(response.ships()).hasSize(5);
+        // Verify all 5 pirate fleet types are present
+        assertThat(game.getBlueBoard().getShips().stream()
+                .map(Ship::getType)
+                .toList())
+                .containsExactlyInAnyOrder(
+                        ShipType.THOUSAND_SUNNY, ShipType.MOBY_DICK, ShipType.RED_FORCE,
+                        ShipType.POLAR_TANG, ShipType.STRIKER);
+        verify(gameRepository).save(game);
     }
 
     @Test

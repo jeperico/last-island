@@ -70,9 +70,9 @@ public class BoardService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You are not a participant in this battle");
         }
 
-        // 4. Check ships not already placed
+        // 4. Clear existing ships if redeploying
         if (!board.getShips().isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Fleet already deployed");
+            board.getShips().clear();
         }
 
         // 5. Validate exactly 5 ships

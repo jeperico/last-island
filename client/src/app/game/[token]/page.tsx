@@ -190,9 +190,9 @@ export default function GamePage() {
     if (gameState.phase === "WAITING_OPPONENT") {
       const bgImage = getWallpaperPath(myAvatar);
       return (
-        <div className="relative flex flex-1 flex-col items-center justify-center px-4 gap-6">
+        <div className="flex flex-1 flex-col items-center justify-center px-4 gap-6">
           {bgImage && (
-            <div className="absolute inset-0 opacity-15 pointer-events-none overflow-hidden">
+            <div className="absolute inset-0 -z-10 opacity-15 pointer-events-none overflow-hidden">
               <div
                 className="absolute top-1/2 left-1/2 w-[100vh] h-[100vw] -translate-x-1/2 -translate-y-1/2 -rotate-90 bg-cover bg-center"
                 style={{ backgroundImage: `url(${bgImage})` }}
@@ -222,9 +222,9 @@ export default function GamePage() {
       if (!hasPlacedShips) {
         const bgImage = getWallpaperPath(myAvatar);
         return (
-          <div className="relative flex flex-1 flex-col h-full">
+          <div className="flex flex-1 flex-col h-full">
             {bgImage && (
-              <div className="absolute inset-0 opacity-15 pointer-events-none overflow-hidden">
+              <div className="absolute inset-0 -z-10 opacity-15 pointer-events-none overflow-hidden">
                 <div
                   className="absolute top-1/2 left-1/2 w-[100vh] h-[100vw] -translate-x-1/2 -translate-y-1/2 -rotate-90 bg-cover bg-center"
                   style={{ backgroundImage: `url(${bgImage})` }}
@@ -241,9 +241,9 @@ export default function GamePage() {
 
       const bgImage = getWallpaperPath(myAvatar);
       return (
-        <div className="relative flex flex-1 flex-col items-center justify-center px-4 gap-6">
+        <div className="flex flex-1 flex-col items-center justify-center px-4 gap-6">
           {bgImage && (
-            <div className="absolute inset-0 opacity-15 pointer-events-none overflow-hidden">
+            <div className="absolute inset-0 -z-10 opacity-15 pointer-events-none overflow-hidden">
               <div
                 className="absolute top-1/2 left-1/2 w-[100vh] h-[100vw] -translate-x-1/2 -translate-y-1/2 -rotate-90 bg-cover bg-center"
                 style={{ backgroundImage: `url(${bgImage})` }}

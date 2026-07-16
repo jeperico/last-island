@@ -404,6 +404,15 @@ export function ShipPlacement({
 
   return (
     <div className="relative flex flex-1 flex-col items-center justify-center px-4 py-6">
+      {/* Surrender — bottom center */}
+      <button
+        type="button"
+        onClick={() => setSurrenderOpen(true)}
+        className="absolute bottom-4 left-1/2 -translate-x-1/2 text-xs text-danger bg-surface/80 border border-danger/30 hover:bg-danger/10 px-4 py-2 rounded-lg transition-colors cursor-pointer"
+      >
+        🏳️ Surrender
+      </button>
+
       <div className="flex flex-col gap-10 items-center w-fit bg-surface/80 backdrop-blur-sm rounded-2xl p-6">
         <h1 className="mb-4 text-xl font-bold text-foreground">
           Deploy Your Fleet
@@ -531,28 +540,23 @@ export function ShipPlacement({
             </div>
 
             {/* Action buttons */}
-            <div className="mt-4 flex gap-3">
+            <div className="mt-4 flex flex-col gap-2 w-full">
+              <div className="flex gap-3">
+                <Button variant="secondary" onClick={handleRandomize} className="flex-1">
+                  ⚓ Auto-Deploy
+                </Button>
+                <Button variant="secondary" onClick={handleReset} className="flex-1">
+                  🔄 Clear Sea
+                </Button>
+              </div>
               <Button
                 variant="primary"
                 onClick={handleDeploy}
                 loading={submitting}
                 disabled={!allPlaced}
+                className="w-full"
               >
                 Deploy Fleet
-              </Button>
-              <Button variant="secondary" onClick={handleRandomize}>
-                🎲 Random
-              </Button>
-              <Button variant="secondary" onClick={handleReset}>
-                Reset
-              </Button>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => setSurrenderOpen(true)}
-                className="text-danger"
-              >
-                🏳️ Surrender
               </Button>
             </div>
           </div>

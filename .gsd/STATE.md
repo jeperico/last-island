@@ -2,7 +2,7 @@
 
 ## Position
 
-Plan written — Frontend: Remove 'Join by Token' functionality
+Plan written — Allow fleet redeployment during PLACING_SHIPS phase
 
 ## Decisions
 
