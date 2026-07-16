@@ -70,16 +70,14 @@ export default function GamePage() {
 
 
 
-  // Soundtrack lifecycle: swap to battle music on IN_PROGRESS, resume global on unmount
+  // Soundtrack lifecycle: swap to battle music on game page, resume global on unmount
   useEffect(() => {
-    if (gameState?.phase === "IN_PROGRESS") {
-      const myAvatar = gameState.bluePlayerName === user?.name
-        ? gameState.bluePlayerAvatar : gameState.redPlayerAvatar;
-      swapSoundtrack(myAvatar);
+    if (gameState?.phase && gameState.phase !== "FINISHED" && gameState.phase !== "CANCELLED") {
+      swapSoundtrack();
     }
     return () => { resumeGlobalSoundtrack(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gameState?.phase === "IN_PROGRESS"]);
+  }, [gameState?.phase]);
 
   // Game-over audio: fire once on IN_PROGRESS → FINISHED transition
   useEffect(() => {
