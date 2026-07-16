@@ -16,6 +16,7 @@ interface SoundContextValue {
   playHit: () => void;
   playIncomingHit: () => void;
   playSunk: () => void;
+  playAvatarHover: () => void;
   swapSoundtrack: () => void;
   resumeGlobalSoundtrack: () => void;
   isMuted: boolean;
@@ -33,6 +34,7 @@ const BATTLE_SOUNDTRACK = "/audio/soundtracks/rubber-bazooka.mp3";
 const HIT_SOUND = "/audio/sfx/battle/shot.mp3";
 const INCOMING_HIT_SOUND = "/audio/sfx/battle/hit.mp3";
 const SUNK_SOUND = "/audio/sfx/battle/sunk.mp3";
+const AVATAR_HOVER_SOUND = "/audio/sfx/ui/avatar-selector.mp3";
 const DEFAULT_MUSIC_VOLUME = 0.15;
 const DEFAULT_SFX_VOLUME = 0.5;
 
@@ -180,6 +182,14 @@ export function SoundProvider({ children }: { children: React.ReactNode }) {
     audio.play().catch(() => {});
   }, [isMuted, sfxVolume]);
 
+  // Play hover sound on character selection panels
+  const playAvatarHover = useCallback(() => {
+    if (isMuted) return;
+    const audio = new Audio(AVATAR_HOVER_SOUND);
+    audio.volume = sfxVolume;
+    audio.play().catch(() => {});
+  }, [isMuted, sfxVolume]);
+
   // Swap the soundtrack to the battle track
   const swapSoundtrack = useCallback(
     () => {
@@ -234,7 +244,7 @@ export function SoundProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <SoundContext value={{ playLaugh, playHit, playIncomingHit, playSunk, swapSoundtrack, resumeGlobalSoundtrack, isMuted, toggleMute, musicVolume, setMusicVolume, sfxVolume, setSfxVolume }}>
+    <SoundContext value={{ playLaugh, playHit, playIncomingHit, playSunk, playAvatarHover, swapSoundtrack, resumeGlobalSoundtrack, isMuted, toggleMute, musicVolume, setMusicVolume, sfxVolume, setSfxVolume }}>
       {children}
     </SoundContext>
   );

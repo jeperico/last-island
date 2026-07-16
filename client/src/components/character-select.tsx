@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useSound } from "@/lib/sound";
 import { Button } from "@/components/ui";
@@ -81,7 +81,16 @@ export function CharacterSelect({
   isLoading,
 }: CharacterSelectProps) {
   const [selected, setSelected] = useState<string | null>(null);
-  const { playLaugh } = useSound();
+  const { playLaugh, playAvatarHover } = useSound();
+  const lastSoundRef = useRef<number>(0);
+  const SOUND_COOLDOWN = 150; // ms
+
+  function canPlaySound() {
+    const now = Date.now();
+    if (now - lastSoundRef.current < SOUND_COOLDOWN) return false;
+    lastSoundRef.current = now;
+    return true;
+  }
 
   // Escape key handler
   useEffect(() => {
@@ -104,6 +113,9 @@ export function CharacterSelect({
   }, []);
 
   function handleCharacterClick(key: string) {
+    if (key !== selected && canPlaySound()) {
+      playAvatarHover();
+    }
     setSelected(key);
     playLaugh(key);
   }
@@ -138,6 +150,9 @@ export function CharacterSelect({
               key={char.key}
               type="button"
               onClick={() => handleCharacterClick(char.key)}
+              onMouseEnter={() => {
+                if (!selected && canPlaySound()) playAvatarHover();
+              }}
               className={`group flex-1 relative overflow-hidden transition-all duration-300 cursor-pointer border-2 ${
                 isSelected
                   ? "border-secondary shadow-[0_0_30px_rgba(245,158,11,0.6)]"
