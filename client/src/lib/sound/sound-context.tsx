@@ -28,11 +28,11 @@ interface SoundContextValue {
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
-const GLOBAL_SOUNDTRACK = "/audio/binks-sake.mp3";
-const BATTLE_SOUNDTRACK = "/audio/rubber-bazooka.mp3";
-const HIT_SOUND = "/audio/shot.mp3";
-const INCOMING_HIT_SOUND = "/audio/hit.mp3";
-const SUNK_SOUND = "/audio/sunk.mp3";
+const GLOBAL_SOUNDTRACK = "/audio/soundtracks/binks-sake.mp3";
+const BATTLE_SOUNDTRACK = "/audio/soundtracks/rubber-bazooka.mp3";
+const HIT_SOUND = "/audio/sfx/battle/shot.mp3";
+const INCOMING_HIT_SOUND = "/audio/sfx/battle/hit.mp3";
+const SUNK_SOUND = "/audio/sfx/battle/sunk.mp3";
 const DEFAULT_MUSIC_VOLUME = 0.15;
 const DEFAULT_SFX_VOLUME = 0.5;
 
