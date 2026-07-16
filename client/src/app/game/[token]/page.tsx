@@ -70,14 +70,12 @@ export default function GamePage() {
 
 
 
-  // Soundtrack lifecycle: swap to battle music on game page, resume global on unmount
+  // Soundtrack lifecycle: play battle music on mount, resume global on unmount
   useEffect(() => {
-    if (gameState?.phase && gameState.phase !== "FINISHED" && gameState.phase !== "CANCELLED") {
-      swapSoundtrack();
-    }
+    swapSoundtrack();
     return () => { resumeGlobalSoundtrack(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gameState?.phase]);
+  }, []);
 
   // Game-over audio: fire once on IN_PROGRESS → FINISHED transition
   useEffect(() => {
