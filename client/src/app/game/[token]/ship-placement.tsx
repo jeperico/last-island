@@ -344,7 +344,7 @@ export function ShipPlacement({
   }
 
   return (
-    <div className="relative z-10 flex flex-1 flex-col items-center justify-center px-4 py-6">
+    <div className="relative flex flex-1 flex-col items-center justify-center px-4 py-6">
       <div className="flex flex-col gap-10 items-center w-fit bg-surface/80 backdrop-blur-sm rounded-2xl p-6">
         <h1 className="mb-4 text-xl font-bold text-foreground">
           Deploy Your Fleet
