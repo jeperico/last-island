@@ -42,6 +42,7 @@ export default function SettingsPage() {
     setMusicVolume,
     sfxVolume,
     setSfxVolume,
+    playLaugh,
   } = useSound();
 
   const [error, setError] = useState<string | null>(null);
@@ -58,6 +59,7 @@ export default function SettingsPage() {
   async function handleAvatarChange(avatarKey: string) {
     if (avatarKey === user!.avatar) return;
 
+    playLaugh(avatarKey);
     setError(null);
     setSavingAvatar(avatarKey);
     try {
