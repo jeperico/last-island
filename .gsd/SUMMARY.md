@@ -95,3 +95,11 @@ Implementer: created `service/src/main/resources/db/migration/V11__create_haki_p
 Reviewer: PASS — 96/96 tests green, client build clean, all 3 call sites verified, 24-field record matches constructor args
 
 Commit: uncommitted
+
+## 2026-07-17T17:29 — Redesign W.O. (walkover) page for CANCELLED games
+
+Implementer: modified `client/src/app/game/[token]/page.tsx` (+20/-8): replaced plain CANCELLED section with wallpaper background + glass card layout (bg-surface/60, backdrop-blur-md, border, rounded-2xl), 🏳️ emoji at text-6xl, "W.O." heading in text-warning, opponentName message with bold styling, "Return to Grand Line" primary button with router.push("/"); added resumeGlobalSoundtrack() call in phase-change useEffect for CANCELLED phase
+
+Reviewer: PASS — build ✓, lint 0 errors on page.tsx, CANCELLED block has wallpaper bg+glass card+🏳️+W.O.+opponentName message+Return button+resumeGlobalSoundtrack in phase effect
+
+Commit: uncommitted

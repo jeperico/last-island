@@ -90,6 +90,9 @@ export default function GamePage() {
         playLaugh(myAvatar);
       }
     }
+    if (gameState?.phase === "CANCELLED") {
+      resumeGlobalSoundtrack();
+    }
     prevPhaseRef.current = gameState?.phase ?? null;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gameState?.phase]);
@@ -365,18 +368,37 @@ export default function GamePage() {
           ? (gameState.redPlayerName ?? "Unknown")
           : gameState.bluePlayerName;
 
+      const bgImage = getWallpaperPath(myAvatar);
+
       return (
-        <div className="flex flex-1 flex-col items-center justify-center gap-6 px-4 py-6">
-          <div className="flex flex-col items-center gap-3 text-center">
-            <span className="text-5xl">🏳️</span>
+        <div className="flex flex-1 flex-col items-center justify-center px-4 gap-8">
+          {bgImage && (
+            <div className="absolute inset-0 -z-10 opacity-15 pointer-events-none overflow-hidden">
+              <div
+                className="absolute top-1/2 left-1/2 w-[100vh] h-[100vw] -translate-x-1/2 -translate-y-1/2 -rotate-90 bg-cover bg-center"
+                style={{ backgroundImage: `url(${bgImage})` }}
+              />
+            </div>
+          )}
+
+          {/* Card */}
+          <div className="flex flex-col items-center gap-6 bg-surface/60 backdrop-blur-md border border-border rounded-2xl p-8 max-w-md w-full">
+            <span className="text-6xl">🏳️</span>
             <h1 className="text-3xl font-bold text-warning">W.O.</h1>
-            <p className="text-sm text-text-muted max-w-sm">
+            <p className="text-sm text-text-muted max-w-sm text-center">
               The battle against{" "}
-              <span className="font-semibold text-text-primary">
+              <span className="font-bold text-text-primary">
                 {opponentName}
               </span>{" "}
               ended by walkover. No contest recorded, Captain.
             </p>
+            <button
+              type="button"
+              onClick={() => router.push("/")}
+              className="mt-4 px-6 py-3 bg-primary hover:bg-primary-hover text-white font-bold rounded-lg transition-colors cursor-pointer"
+            >
+              Return to Grand Line
+            </button>
           </div>
         </div>
       );

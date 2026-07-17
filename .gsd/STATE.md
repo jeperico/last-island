@@ -18,4 +18,4 @@ Plan written — Redesign W.O. (walkover) page for CANCELLED games
 
 ## Last verification
 
-PASS at 2026-07-17T17:28 — 96/96 tests green, client build clean, HakiProfile in entity/repository/service/controller, V11 migration present, hakiService integrated in BountyService+AuthService
+PASS at 2026-07-17T17:32 — build ✓, lint 0 errors on page.tsx, CANCELLED block has wallpaper bg+glass card+🏳️+W.O.+opponentName message+Return button+resumeGlobalSoundtrack in phase effect
