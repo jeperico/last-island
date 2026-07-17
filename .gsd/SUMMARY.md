@@ -7,3 +7,11 @@ Implementer: Created `client/src/lib/api/haki.ts` (+10), `client/src/app/haki/pa
 Reviewer: PASS — build clean, eslint clean, 167/167 backend tests green, all grep checks confirm wiring
 
 Commit: uncommitted
+
+## 2026-07-17T18:44 — Frontend Battle Haki — Foundation (Types, API, SSE Wiring)
+
+Implementer: Modified `client/src/interfaces/api.ts` (+49 — Haki battle interfaces, id on ShipResponse, armament fields on ShotResponse), `client/src/types/game-events.ts` (+18 — 3 event types, 3 data interfaces, 3 handler callbacks), `client/src/lib/game/use-game-events.ts` (+18 — 3 handler functions, 3 addEventListener calls, 3 new imports), `client/src/lib/api/haki.ts` (+25 — 3 battle API functions with imports), `client/src/lib/api/index.ts` (+9 — re-exports for functions and types). Net: +119 lines across 5 files.
+
+Reviewer: PASS — build clean, no new lint errors, grep confirms all 3 SSE event types + listeners + 3 API functions + armamentTriggered + id:string on ShipResponse
+
+Commit: uncommitted

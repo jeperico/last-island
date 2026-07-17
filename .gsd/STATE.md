@@ -2,7 +2,7 @@
 
 ## Position
 
-Plan written — Frontend Haki Profile/Skill Tree page (/haki route, API client, types, lobby nav link)
+Plan written — Frontend Battle Haki UI (Plan #6a: Foundation — Types, API functions, SSE event wiring)
 
 ## Decisions
 
@@ -18,4 +18,4 @@ Plan written — Frontend Haki Profile/Skill Tree page (/haki route, API client,
 
 ## Last verification
 
-PASS at 2026-07-17T18:35 — client build clean (/haki route listed), eslint clean, 167/167 backend tests green, grep confirms HakiType/HakiProfileResponse/HakiUpgradeRequest wired across 6 files, /haki nav link present in lobby
+PASS at 2026-07-17T18:48 — next build clean, no new eslint errors (only pre-existing react-hooks/set-state-in-effect and no-empty-object-type), all grep checks confirm 3 SSE events wired, 3 API functions exported, armamentTriggered on ShotResponse, id on ShipResponse

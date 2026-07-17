@@ -2,7 +2,7 @@ export { register, login, refresh, logout, getProfile } from "./auth";
 export { createGame, joinGame, listGames, getGame, getBattleLog, surrender, cancelGame } from "./games";
 export { placeShips, fireShot } from "./board";
 export { getLeaderboard, updateProfile } from "./users";
-export { getHakiProfile, upgradeHaki } from "./haki";
+export { getHakiProfile, upgradeHaki, activateObservation, activateConquerors, assignArmament } from "./haki";
 export { ApiError, attemptRefresh } from "./client";
 export type {
   PirateRank,
@@ -36,4 +36,13 @@ export type {
   HakiProfileResponse,
   HakiUpgradeRequest,
   HakiType,
+  ObservationRequest,
+  ObservationResponse,
+  RevealedCell,
+  CellRevealStatus,
+  ConquerorsActivationRequest,
+  ConquerorsActivationResponse,
+  XPatternShotResult,
+  ArmamentAssignmentRequest,
+  CounterFireResult,
 } from "./types";

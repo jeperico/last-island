@@ -11,6 +11,9 @@ import type {
   TurnExpiredEventData,
   GameExpiredEventData,
   SurrenderEventData,
+  ObservationHakiUsedEventData,
+  ArmamentHakiTriggeredEventData,
+  ConquerorsHakiUsedEventData,
 } from "@/types/game-events";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
@@ -97,6 +100,21 @@ export function useGameEvents(
         handlersRef.current.onSurrender?.(data);
       }
 
+      function handleObservationHakiUsed(event: MessageEvent) {
+        const data: ObservationHakiUsedEventData = event.data ? JSON.parse(event.data) : {};
+        handlersRef.current.onObservationHakiUsed?.(data);
+      }
+
+      function handleArmamentHakiTriggered(event: MessageEvent) {
+        const data: ArmamentHakiTriggeredEventData = JSON.parse(event.data);
+        handlersRef.current.onArmamentHakiTriggered?.(data);
+      }
+
+      function handleConquerorsHakiUsed(event: MessageEvent) {
+        const data: ConquerorsHakiUsedEventData = JSON.parse(event.data);
+        handlersRef.current.onConquerorsHakiUsed?.(data);
+      }
+
       function handleError(event: Event) {
         es.close();
         setConnected(false);
@@ -129,6 +147,9 @@ export function useGameEvents(
       es.addEventListener("TURN_EXPIRED", handleTurnExpired);
       es.addEventListener("GAME_EXPIRED", handleGameExpired);
       es.addEventListener("SURRENDER", handleSurrender);
+      es.addEventListener("OBSERVATION_HAKI_USED", handleObservationHakiUsed);
+      es.addEventListener("ARMAMENT_HAKI_TRIGGERED", handleArmamentHakiTriggered);
+      es.addEventListener("CONQUERORS_HAKI_USED", handleConquerorsHakiUsed);
       es.onerror = handleError;
     }
 

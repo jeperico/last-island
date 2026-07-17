@@ -1,115 +1,203 @@
-# Frontend Haki Profile / Skill Tree Page
+# Plan #6a: Frontend Battle Haki — Foundation (Types, API, SSE Wiring)
 
 ## Objective
 
-Add a `/haki` page where authenticated players can view their Haki skill tree (3 branches: Observation, Armament, Conqueror's), see available points, and spend points to upgrade abilities — with Conqueror's locked behind prerequisite logic.
+Add Haki battle types, API client functions, and SSE event wiring as the foundation layer for the Battle Haki UI.
 
 ## Files to touch
 
-- **create** `client/src/lib/api/haki.ts` — API client functions (getHakiProfile, upgradeHaki)
-- **modify** `client/src/interfaces/api.ts` — Add HakiProfileResponse and HakiUpgradeRequest interfaces
-- **modify** `client/src/types/game.ts` — Add HakiType union type
-- **modify** `client/src/lib/api/index.ts` — Add barrel exports for haki functions and new types
-- **create** `client/src/app/haki/page.tsx` — Haki skill tree page
-- **modify** `client/src/app/page.tsx` — Add navigation link to /haki in lobby header
+- modify `client/src/interfaces/api.ts` — Add Haki battle request/response interfaces (ObservationRequest, ObservationResponse, RevealedCell, ConquerorsActivationRequest, ConquerorsActivationResponse, XPatternShotResult, ArmamentAssignmentRequest); add `id: string` to `ShipResponse`; add `armamentTriggered` and `counterFire` fields to `ShotResponse`
+- modify `client/src/types/game-events.ts` — Add `OBSERVATION_HAKI_USED`, `ARMAMENT_HAKI_TRIGGERED`, `CONQUERORS_HAKI_USED` to `GameEventType`; add data interfaces (`ObservationHakiUsedEventData`, `ArmamentHakiTriggeredEventData`, `ConquerorsHakiUsedEventData`); extend `GameEventHandlers` with new callbacks
+- modify `client/src/lib/game/use-game-events.ts` — Register event listeners for the 3 new Haki SSE events
+- modify `client/src/lib/api/haki.ts` — Add `activateObservation`, `activateConquerors`, `assignArmament` functions
+- modify `client/src/lib/api/index.ts` — Re-export new haki API functions and new types
 
 ## Steps
 
-1. **Add HakiType to types/game.ts**
-   Append at end of file:
-   ```ts
-   export type HakiType = "OBSERVATION" | "ARMAMENT" | "CONQUERORS";
-   ```
+1. **Add Haki battle interfaces to `client/src/interfaces/api.ts`**:
+   ```typescript
+   // After existing HakiUpgradeRequest interface:
 
-2. **Add interfaces to interfaces/api.ts**
-   Add at the bottom (after LeaderboardResponse):
-   ```ts
-   // ─── Haki ─────────────────────────────────────────────────────────────────────
+   // ─── Haki Battle ──────────────────────────────────────────────────────────────
 
-   export interface HakiProfileResponse {
-     hakiPoints: number;
-     hakiPointsAvailable: number;
-     observationLevel: number;
-     armamentLevel: number;
-     conquerorsLevel: number;
-     bountyMilestonesReached: number;
+   export type CellRevealStatus = "HAS_SHIP" | "EMPTY";
+
+   export interface RevealedCell {
+     row: number;
+     col: number;
+     status: CellRevealStatus;
    }
 
-   export interface HakiUpgradeRequest {
-     hakiType: HakiType;
-     targetLevel: number;
-   }
-   ```
-   Add `HakiType` to the imports from `@/types` at the top.
-
-3. **Create client/src/lib/api/haki.ts**
-   ```ts
-   import { apiGet, apiPost } from "./client";
-   import type { HakiProfileResponse, HakiUpgradeRequest } from "./types";
-
-   export function getHakiProfile(): Promise<HakiProfileResponse> {
-     return apiGet<HakiProfileResponse>("/api/haki/profile");
+   export interface ObservationRequest {
+     row: number;
+     col: number;
+     revealRowIndex?: number | null;
+     revealColIndex?: number | null;
    }
 
-   export function upgradeHaki(data: HakiUpgradeRequest): Promise<HakiProfileResponse> {
-     return apiPost<HakiProfileResponse>("/api/haki/upgrade", data);
+   export interface ObservationResponse {
+     revealedCells: RevealedCell[];
+     effectLevel: string;
+   }
+
+   export interface ConquerorsActivationRequest {
+     row?: number | null;
+     col?: number | null;
+   }
+
+   export interface XPatternShotResult {
+     row: number;
+     col: number;
+     result: ShotResult;
+     sunkShipType: string | null;
+   }
+
+   export interface ConquerorsActivationResponse {
+     skipTurns: number;
+     effectLevel: string;
+     xPatternShots: XPatternShotResult[] | null;
+   }
+
+   export interface ArmamentAssignmentRequest {
+     ship1Id: string;
+     ship2Id: string | null;
+   }
+
+   export interface CounterFireResult {
+     row: number;
+     col: number;
+     result: ShotResult;
+     sunkShipType: string | null;
    }
    ```
 
-4. **Update barrel export (lib/api/index.ts)**
-   - Add `export { getHakiProfile, upgradeHaki } from "./haki";` to function exports
-   - Add `HakiProfileResponse`, `HakiUpgradeRequest`, `HakiType` to the type export list
-
-5. **Create client/src/app/haki/page.tsx**
-   A `"use client"` page component with:
-   - `useRequireAuth()` guard with Spinner loading state
-   - `useEffect` fetching `getHakiProfile()` on mount into state
-   - Three branch cards (Observation 👁, Armament ✊, Conqueror's 👑):
-     - Each shows branch name, icon, current level (0–3), level pips (filled vs empty circles)
-     - Description text per branch
-     - Upgrade button showing cost (disabled if insufficient points or wrong level)
-     - For Conqueror's: locked overlay with prerequisite text ("Requires Observation Lv1 + Armament Lv1 + one Awakening (Lv3)") when conditions not met
-   - Available points counter displayed prominently at top
-   - Error Alert for failed API calls
-   - Back link "← Grand Line" to `/` (same pattern as settings page)
-   - Upgrade flow: click upgrade → API call → update local state from response → show error if rejected
-   - Point cost constants: `OBSERVATION_COSTS = [1, 1, 2]`, `ARMAMENT_COSTS = [1, 1, 2]`, `CONQUERORS_COSTS = [3, 3, 5]`
-   - Conqueror's prerequisite check: `observationLevel >= 1 && armamentLevel >= 1 && (observationLevel >= 3 || armamentLevel >= 3)`
-   - Visual styling: Card component for each branch, `bg-surface`/`bg-surface-elevated` backgrounds, `text-primary`/`text-secondary` accents, border for locked state, opacity reduction for locked Conqueror's
-   - Responsive: single column on mobile, 3-column grid on lg+
-
-6. **Add navigation link in lobby (page.tsx)**
-   In the header `<div className="flex items-center gap-2">` section (around line 253), add a Link to `/haki` before the settings link:
-   ```tsx
-   <Link
-     href="/haki"
-     className="inline-flex items-center justify-center w-8 h-8 rounded-md text-text-secondary hover:bg-surface-secondary hover:text-primary transition-colors"
-     aria-label="Haki"
-   >
-     👁
-   </Link>
+2. **Add `id` field to `ShipResponse`** in `client/src/interfaces/api.ts`:
+   ```typescript
+   export interface ShipResponse {
+     id: string;  // ← NEW
+     type: ShipType;
+     orientation: Orientation;
+     row: number;
+     col: number;
+     size: number;
+   }
    ```
+
+3. **Add armament fields to `ShotResponse`** in `client/src/interfaces/api.ts`:
+   ```typescript
+   export interface ShotResponse {
+     row: number;
+     col: number;
+     result: ShotResult;
+     sunkShipType: string | null;
+     gameOver: boolean;
+     winnerName: string | null;
+     armamentTriggered: boolean;       // ← NEW
+     counterFire: CounterFireResult | null;  // ← NEW
+   }
+   ```
+
+4. **Add SSE event types to `client/src/types/game-events.ts`**:
+   - Extend `GameEventType` union with `| "OBSERVATION_HAKI_USED" | "ARMAMENT_HAKI_TRIGGERED" | "CONQUERORS_HAKI_USED"`
+   - Add data interfaces:
+     ```typescript
+     export interface ObservationHakiUsedEventData {}
+
+     export interface ArmamentHakiTriggeredEventData {
+       turnSkipped: boolean;
+       counterFireRow?: number | null;
+       counterFireCol?: number | null;
+       counterFireResult?: ShotResult | null;
+       counterFireSunkShipType?: string | null;
+     }
+
+     export interface ConquerorsHakiUsedEventData {
+       skipTurns: number;
+       effectLevel: string;
+     }
+     ```
+   - Extend `GameEventHandlers`:
+     ```typescript
+     onObservationHakiUsed?: (data: ObservationHakiUsedEventData) => void;
+     onArmamentHakiTriggered?: (data: ArmamentHakiTriggeredEventData) => void;
+     onConquerorsHakiUsed?: (data: ConquerorsHakiUsedEventData) => void;
+     ```
+
+5. **Wire SSE listeners in `client/src/lib/game/use-game-events.ts`**:
+   - Import the 3 new event data types
+   - Add handler functions following the existing pattern (parse JSON, call handlersRef):
+     ```typescript
+     function handleObservationHakiUsed(event: MessageEvent) {
+       const data: ObservationHakiUsedEventData = event.data ? JSON.parse(event.data) : {};
+       handlersRef.current.onObservationHakiUsed?.(data);
+     }
+
+     function handleArmamentHakiTriggered(event: MessageEvent) {
+       const data: ArmamentHakiTriggeredEventData = JSON.parse(event.data);
+       handlersRef.current.onArmamentHakiTriggered?.(data);
+     }
+
+     function handleConquerorsHakiUsed(event: MessageEvent) {
+       const data: ConquerorsHakiUsedEventData = JSON.parse(event.data);
+       handlersRef.current.onConquerorsHakiUsed?.(data);
+     }
+     ```
+   - Add `addEventListener` calls:
+     ```typescript
+     es.addEventListener("OBSERVATION_HAKI_USED", handleObservationHakiUsed);
+     es.addEventListener("ARMAMENT_HAKI_TRIGGERED", handleArmamentHakiTriggered);
+     es.addEventListener("CONQUERORS_HAKI_USED", handleConquerorsHakiUsed);
+     ```
+
+6. **Add battle API functions to `client/src/lib/api/haki.ts`**:
+   ```typescript
+   import type {
+     ObservationRequest,
+     ObservationResponse,
+     ConquerorsActivationRequest,
+     ConquerorsActivationResponse,
+     ArmamentAssignmentRequest,
+   } from "./types";
+
+   export function activateObservation(
+     gameToken: string,
+     data: ObservationRequest,
+   ): Promise<ObservationResponse> {
+     return apiPost<ObservationResponse>(`/api/games/${gameToken}/haki/observation`, data);
+   }
+
+   export function activateConquerors(
+     gameToken: string,
+     data: ConquerorsActivationRequest,
+   ): Promise<ConquerorsActivationResponse> {
+     return apiPost<ConquerorsActivationResponse>(`/api/games/${gameToken}/haki/conquerors`, data);
+   }
+
+   export function assignArmament(
+     gameToken: string,
+     data: ArmamentAssignmentRequest,
+   ): Promise<void> {
+     return apiPost<void>(`/api/games/${gameToken}/haki/armament`, data);
+   }
+   ```
+
+7. **Update barrel exports in `client/src/lib/api/index.ts`**:
+   - Add `activateObservation, activateConquerors, assignArmament` to the haki re-export line
+   - Add new types to the type re-export block: `ObservationRequest, ObservationResponse, RevealedCell, CellRevealStatus, ConquerorsActivationRequest, ConquerorsActivationResponse, XPatternShotResult, ArmamentAssignmentRequest, CounterFireResult`
 
 ## Verification
 
 ```bash
-cd client && npm run build
-cd client && npx eslint src/app/haki/page.tsx src/lib/api/haki.ts src/interfaces/api.ts src/types/game.ts
-grep -r "HakiProfileResponse\|HakiUpgradeRequest\|HakiType" client/src/
-grep -r "/haki" client/src/app/page.tsx
-cd service && mvn test -q
+cd client && npx next build
+cd client && npx eslint src/
+grep -r "OBSERVATION_HAKI_USED\|ARMAMENT_HAKI_TRIGGERED\|CONQUERORS_HAKI_USED" client/src/types/game-events.ts client/src/lib/game/use-game-events.ts
+grep -r "activateObservation\|activateConquerors\|assignArmament" client/src/lib/api/haki.ts client/src/lib/api/index.ts
+grep "armamentTriggered" client/src/interfaces/api.ts
+grep "id: string" client/src/interfaces/api.ts | grep -i ship
 ```
-
-Manual checks:
-- Visit `/haki` while authenticated → skill tree renders with 3 branches
-- Verify Conqueror's shows locked state with prerequisite text when conditions not met
-- Verify upgrade button is disabled when points are insufficient
-- Visit `/` → verify 👁 icon link navigates to `/haki`
 
 ## Rollback
 
 ```bash
-rm client/src/app/haki/page.tsx
-rm client/src/lib/api/haki.ts
-git checkout -- client/src/interfaces/api.ts client/src/types/game.ts client/src/lib/api/index.ts client/src/app/page.tsx
+git checkout -- client/src/interfaces/api.ts client/src/types/game-events.ts client/src/lib/game/use-game-events.ts client/src/lib/api/haki.ts client/src/lib/api/index.ts
 ```

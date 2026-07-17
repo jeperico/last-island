@@ -8,7 +8,10 @@ export type GameEventType =
   | "GAME_OVER"
   | "TURN_EXPIRED"
   | "GAME_EXPIRED"
-  | "SURRENDER";
+  | "SURRENDER"
+  | "OBSERVATION_HAKI_USED"
+  | "ARMAMENT_HAKI_TRIGGERED"
+  | "CONQUERORS_HAKI_USED";
 
 export interface ConnectedEventData {}
 
@@ -44,6 +47,22 @@ export interface SurrenderEventData {
   surrenderedPlayerName: string;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+export interface ObservationHakiUsedEventData {}
+
+export interface ArmamentHakiTriggeredEventData {
+  turnSkipped: boolean;
+  counterFireRow?: number | null;
+  counterFireCol?: number | null;
+  counterFireResult?: ShotResult | null;
+  counterFireSunkShipType?: string | null;
+}
+
+export interface ConquerorsHakiUsedEventData {
+  skipTurns: number;
+  effectLevel: string;
+}
+
 export interface GameEventHandlers {
   onConnected?: (data: ConnectedEventData) => void;
   onOpponentJoined?: (data: OpponentJoinedEventData) => void;
@@ -53,6 +72,9 @@ export interface GameEventHandlers {
   onTurnExpired?: (data: TurnExpiredEventData) => void;
   onGameExpired?: (data: GameExpiredEventData) => void;
   onSurrender?: (data: SurrenderEventData) => void;
+  onObservationHakiUsed?: (data: ObservationHakiUsedEventData) => void;
+  onArmamentHakiTriggered?: (data: ArmamentHakiTriggeredEventData) => void;
+  onConquerorsHakiUsed?: (data: ConquerorsHakiUsedEventData) => void;
   onError?: (error: Event) => void;
 }
 
