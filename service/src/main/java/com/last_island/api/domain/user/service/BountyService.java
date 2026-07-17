@@ -1,10 +1,17 @@
 package com.last_island.api.domain.user.service;
 
+import com.last_island.api.domain.haki.service.HakiService;
 import com.last_island.api.domain.user.entity.User;
 import org.springframework.stereotype.Service;
 
 @Service
 public class BountyService {
+
+    private final HakiService hakiService;
+
+    public BountyService(HakiService hakiService) {
+        this.hakiService = hakiService;
+    }
 
     public static final long STARTING_BOUNTY = 100_000_000L;  // 100M — Super Rookie
     public static final long BOUNTY_FLOOR = 0L;
@@ -73,6 +80,9 @@ public class BountyService {
 
         winner.setRank(computeRank(newWinnerBounty));
         loser.setRank(computeRank(newLoserBounty));
+
+        hakiService.awardPointForWin(winner);
+        hakiService.checkBountyMilestones(winner, newWinnerBounty);
 
         return gain;
     }

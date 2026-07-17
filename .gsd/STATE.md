@@ -2,7 +2,7 @@
 
 ## Position
 
-Plan written — Change game expiration timers (turn 60s, game 5min, placing 5min)
+Plan written — Redesign W.O. (walkover) page for CANCELLED games
 
 ## Decisions
 
@@ -18,4 +18,4 @@ Plan written — Change game expiration timers (turn 60s, game 5min, placing 5mi
 
 ## Last verification
 
-PASS at 2026-07-17T15:25 — 78/78 tests green, client build+lint clean (0 new errors), grep confirms no old timeout values (120/30) remain, TURN_TIMEOUT_SECONDS=60, GAME_TIMEOUT_MINUTES=5, PLACING_SHIPS_TIMEOUT_MINUTES=5, frontend default=60
+PASS at 2026-07-17T17:28 — 96/96 tests green, client build clean, HakiProfile in entity/repository/service/controller, V11 migration present, hakiService integrated in BountyService+AuthService

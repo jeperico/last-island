@@ -1,65 +1,42 @@
-# Change game expiration timers
+# Redesign W.O. (walkover) page for CANCELLED games
 
 ## Objective
 
-Reduce turn timeout to 60s, game timeout to 5 minutes, add a 5-minute PLACING_SHIPS phase timeout, and update frontend timer default + all affected tests.
+Replace the minimal CANCELLED section in the game page with a properly styled card (wallpaper background, glass card, button) matching the existing design language used in other waiting/phase screens.
 
 ## Files to touch
 
-- modify `service/src/main/java/com/last_island/api/domain/game/service/GameExpirationService.java` — change constants, add PLACING_SHIPS timeout constant + handler call
-- modify `service/src/main/java/com/last_island/api/domain/game/repository/GameRepository.java` — add `findExpiredPlacingShipsGames` query
-- modify `service/src/test/java/com/last_island/api/domain/game/service/GameExpirationServiceTest.java` — update test values + add PLACING_SHIPS expiration test
-- modify `client/src/components/ui/countdown-timer.tsx` — change default `turnDurationSeconds` from 120 to 60
+- modify: `client/src/app/game/[token]/page.tsx`
 
 ## Steps
 
-1. **Change backend constants** in `GameExpirationService.java`:
-   - `TURN_TIMEOUT_SECONDS = 120` → `60`
-   - `GAME_TIMEOUT_MINUTES = 30` → `5`
-   - Add `private static final int PLACING_SHIPS_TIMEOUT_MINUTES = 5;`
+1. In `page.tsx`, locate the `if (gameState.phase === "CANCELLED")` block (currently lines 361–382).
 
-2. **Add repository query** in `GameRepository.java`:
-   - Add `findExpiredPlacingShipsGames(@Param("placingDeadline") LocalDateTime placingDeadline)` with JPQL: `SELECT g FROM Game g WHERE g.phase = 'PLACING_SHIPS' AND g.isActive = true AND g.updatedAt < :placingDeadline`
-   - Rationale: `updatedAt` is set by `@PreUpdate` when `joinGame()` saves the game with phase=PLACING_SHIPS, so it accurately marks when placement started.
+2. Replace the existing plain markup with a redesigned block that includes:
+   - **Wallpaper background**: reuse the same `getWallpaperPath(myAvatar)` + absolute positioned background pattern as WAITING_OPPONENT (rotated, 15% opacity).
+   - **Centered glass card**: `max-w-md w-full bg-surface/60 backdrop-blur-md border border-border rounded-2xl p-8`, flex-col centered.
+   - **Content inside the card**:
+     - `🏳️` emoji at `text-6xl`
+     - `<h1>` with text "W.O." styled `text-3xl font-bold text-warning`
+     - `<p>` message: "The battle against **{opponentName}** ended by walkover. No contest recorded, Captain." (opponentName bold/text-text-primary, rest text-sm text-text-muted, max-w-sm)
+     - "Return to Grand Line" button: `<button>` with `onClick={() => router.push("/")}`, styled `mt-4 px-6 py-3 bg-primary hover:bg-primary-hover text-white font-bold rounded-lg transition-colors cursor-pointer`
 
-3. **Add PLACING_SHIPS expiration handling** in `GameExpirationService.checkExpirations()`:
-   - Compute `LocalDateTime placingDeadline = LocalDateTime.now().minusMinutes(PLACING_SHIPS_TIMEOUT_MINUTES);`
-   - Call `gameRepository.findExpiredPlacingShipsGames(placingDeadline)` and iterate with `handleGameExpiration(game)` (same cancel behaviour as game-timeout — sets CANCELLED, no bounty/GameResult).
+3. Add a `resumeGlobalSoundtrack()` call to the phase-change effect (`useEffect` dependent on `gameState?.phase`) for the CANCELLED phase. Add a condition: if the current phase is `"CANCELLED"`, call `resumeGlobalSoundtrack()`. This handles the case where a game transitions to CANCELLED while the user is on the page (e.g. via SSE expiration event).
 
-4. **Update frontend timer default** in `client/src/components/ui/countdown-timer.tsx`:
-   - Change `turnDurationSeconds = 120` → `turnDurationSeconds = 60`
-
-5. **Update test timing values** in `GameExpirationServiceTest.java`:
-   - `buildInProgressGame()` helper: change `minusMinutes(10)` → `minusMinutes(2)` for `startedAt`, change `minusSeconds(60)` → `minusSeconds(30)` for `turnStartedAt` (so helper games are NOT expired under the new 5-min/60s thresholds)
-   - Turn-expired test: change `minusSeconds(121)` → `minusSeconds(61)`
-   - Game-expired test: change `minusMinutes(31)` → `minusMinutes(6)`, change `minusSeconds(60)` → `minusSeconds(30)` for `turnStartedAt`
-   - Combined (both queries) test: change `minusMinutes(31)` → `minusMinutes(6)`, change `minusSeconds(121)` → `minusSeconds(61)`
-   - Add new test `checkExpirations_placingShipsExpired_setsPhaseToCancel()`:
-     - Build a game with `phase = PLACING_SHIPS`, `updatedAt` set to `minusMinutes(6)`, `redBoard` present
-     - Mock `findExpiredPlacingShipsGames` to return it, other queries return empty
-     - Assert game phase becomes `CANCELLED` and `endedAt` is set
-
-6. **Add mock setup for new query** in existing tests:
-   - Add `when(gameRepository.findExpiredPlacingShipsGames(any())).thenReturn(Collections.emptyList())` to all existing tests that call `checkExpirations()` (or use `lenient()` if Mockito strict mode complains).
+4. The `opponentName` derivation logic stays exactly as-is (compare `gameState.bluePlayerName` to `user.name`).
 
 ## Verification
 
 ```bash
-cd service && mvn test
-cd client && npm run build
-cd client && npm run lint
-grep -rn "120" service/src/main/java/com/last_island/api/domain/game/service/GameExpirationService.java
-grep -rn "= 30" service/src/main/java/com/last_island/api/domain/game/service/GameExpirationService.java
-grep -rn "120" client/src/components/ui/countdown-timer.tsx
+cd client && npm run build && npm run lint
 ```
 
-Expected: all tests green (77+1 new = 78 minimum), client builds cleanly, no lint errors, no grep hits for old timeout values.
+- Build must succeed with 0 errors.
+- Lint must report 0 new errors (pre-existing warnings acceptable).
+- Manual check: grep the CANCELLED section and confirm it contains: wallpaper bg div, glass card classes, 🏳️ emoji, "W.O." heading, opponentName message, "Return to Grand Line" button with router.push("/"), and resumeGlobalSoundtrack in the phase effect for CANCELLED.
 
 ## Rollback
 
 ```bash
-git checkout -- service/src/main/java/com/last_island/api/domain/game/service/GameExpirationService.java
-git checkout -- service/src/main/java/com/last_island/api/domain/game/repository/GameRepository.java
-git checkout -- service/src/test/java/com/last_island/api/domain/game/service/GameExpirationServiceTest.java
-git checkout -- client/src/components/ui/countdown-timer.tsx
+git checkout -- client/src/app/game/[token]/page.tsx
 ```

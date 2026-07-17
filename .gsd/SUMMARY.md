@@ -87,3 +87,11 @@ Implementer: modified `service/src/main/java/com/last_island/api/domain/game/ser
 Reviewer: PASS — 78/78 tests green, client build+lint clean (0 new errors, 5 pre-existing), grep 0 hits for old values (120/30), constants verified: TURN=60s, GAME=5min, PLACING_SHIPS=5min, frontend default=60
 
 Commit: uncommitted
+
+## 2026-07-17T17:22 — Backend: Haki Profile + Point Economy
+
+Implementer: created `service/src/main/resources/db/migration/V11__create_haki_profiles.sql` (+17), `service/src/main/java/com/last_island/api/domain/haki/enums/HakiType.java` (+7), `service/src/main/java/com/last_island/api/domain/haki/entity/HakiProfile.java` (+38), `service/src/main/java/com/last_island/api/domain/haki/repository/HakiProfileRepository.java` (+12), `service/src/main/java/com/last_island/api/domain/haki/dto/HakiProfileResponse.java` (+10), `service/src/main/java/com/last_island/api/domain/haki/dto/HakiUpgradeRequest.java` (+8), `service/src/main/java/com/last_island/api/domain/haki/service/HakiService.java` (+154), `service/src/main/java/com/last_island/api/domain/haki/controller/HakiController.java` (+33), `service/src/test/java/com/last_island/api/domain/haki/service/HakiServiceTest.java` (+299); modified `service/src/main/java/com/last_island/api/domain/user/service/BountyService.java` (+10), `service/src/main/java/com/last_island/api/domain/user/service/AuthService.java` (+4), `service/src/test/java/com/last_island/api/domain/user/service/BountyServiceTest.java` (+5/-3)
+
+Reviewer: PASS — 96/96 tests green, client build clean, all 3 call sites verified, 24-field record matches constructor args
+
+Commit: uncommitted
