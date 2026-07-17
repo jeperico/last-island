@@ -1,26 +1,17 @@
 "use client";
 
-import { useState, useCallback, useMemo, useEffect } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { fireShot, getGame, surrender } from "@/lib/api";
-import {
-  getHakiProfile,
-  activateObservation,
-  activateConquerors,
-} from "@/lib/api";
 import type {
   GameStateResponse,
   UserResponse,
   ShotCellResponse,
-  HakiProfileResponse,
-  RevealedCell,
-  ConquerorsActivationResponse,
 } from "@/lib/api/types";
 import { getShipCells, cellKey } from "@/lib/game";
 import { Badge, Alert, Spinner, Button } from "@/components/ui";
 import { CountdownTimer } from "@/components/ui";
 import { AvatarIcon } from "@/components/ui";
 import { BoardGrid, type CellState } from "./board-grid";
-import { HakiBar } from "./haki-bar";
 import { SurrenderModal } from "@/components/surrender-modal";
 import { useSound } from "@/lib/sound";
 
@@ -31,8 +22,6 @@ interface BattleScreenProps {
   onGameStateUpdate: (state: GameStateResponse) => void;
   readOnly?: boolean;
   bgImage?: string | null;
-  skipTurnsLeft?: number;
-  onHakiNotification?: (msg: string) => void;
 }
 
 export function BattleScreen({
@@ -42,8 +31,6 @@ export function BattleScreen({
   onGameStateUpdate,
   readOnly,
   bgImage: bgImageProp,
-  skipTurnsLeft = 0,
-  onHakiNotification,
 }: BattleScreenProps) {
   const [firing, setFiring] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -53,37 +40,6 @@ export function BattleScreen({
   const [surrenderOpen, setSurrenderOpen] = useState(false);
   const [surrendering, setSurrendering] = useState(false);
   const { playLaugh, playHit, playSunk } = useSound();
-
-  // Haki state
-  const [hakiProfile, setHakiProfile] = useState<HakiProfileResponse | null>(null);
-  const [hakiUsedThisTurn, setHakiUsedThisTurn] = useState(false);
-  const [observationUsesLeft, setObservationUsesLeft] = useState(0);
-  const [conquerorsUsesLeft, setConquerorsUsesLeft] = useState(0);
-  const [conquerorsCooldown, setConquerorsCooldown] = useState(0);
-  const [observationMode, setObservationMode] = useState(false);
-  const [conquerorsMode, setConquerorsMode] = useState(false);
-  const [revealedCells, setRevealedCells] = useState<RevealedCell[]>([]);
-  const [hakiMessage, setHakiMessage] = useState<string | null>(null);
-
-  // Fetch Haki profile once
-  useEffect(() => {
-    if (readOnly) return;
-    getHakiProfile()
-      .then((profile) => {
-        setHakiProfile(profile);
-        // Init uses based on level
-        const obsUses = profile.observationLevel >= 2 ? 2 : profile.observationLevel >= 1 ? 1 : 0;
-        setObservationUsesLeft(obsUses);
-        const conqUses = profile.conquerorsLevel >= 2 ? 2 : profile.conquerorsLevel >= 1 ? 1 : 0;
-        setConquerorsUsesLeft(conqUses);
-      })
-      .catch(() => {/* no haki */});
-  }, [readOnly]);
-
-  // Reset hakiUsedThisTurn when turn changes
-  useEffect(() => {
-    setHakiUsedThisTurn(false);
-  }, [gameState.currentTurnPlayerName]);
 
   const isMyTurn = gameState.currentTurnPlayerName === user.name;
 
@@ -110,21 +66,8 @@ export function BattleScreen({
   // Build My Board cell map
   const myBoardCells = buildMyBoardCells(gameState);
 
-  // Build Opponent Board cell map (with revealed cells from Observation)
-  const opponentBoardCells = useMemo(() => {
-    const cells = buildOpponentBoardCells(allShotsFired);
-    // Overlay revealed cells from Observation Haki
-    for (const rc of revealedCells) {
-      const key = cellKey(rc.row, rc.col);
-      if (!cells.has(key)) {
-        // Only show reveal if not already shot
-        cells.set(key, {
-          type: rc.status === "HAS_SHIP" ? "ship" : "empty",
-        });
-      }
-    }
-    return cells;
-  }, [allShotsFired, revealedCells]);
+  // Build Opponent Board cell map
+  const opponentBoardCells = buildOpponentBoardCells(allShotsFired);
 
   const handleFire = useCallback(
     async (row: number, col: number) => {
@@ -165,17 +108,6 @@ export function BattleScreen({
           }
         }
 
-        // Handle Armament Haki trigger
-        if (response.armamentTriggered) {
-          setHakiMessage("⚡ Armament Haki deflects your momentum! Turn lost!");
-          setTimeout(() => setHakiMessage(null), 3000);
-        }
-        if (response.counterFire) {
-          const cf = response.counterFire;
-          setHakiMessage(`⚡ Counter-fire! Your board hit at (${cf.row + 1}, ${cf.col + 1})!`);
-          setTimeout(() => setHakiMessage(null), 3000);
-        }
-
         if (response.gameOver) {
           // Refetch full game state to trigger FINISHED phase in parent
           const updatedState = await getGame(gameToken);
@@ -213,70 +145,6 @@ export function BattleScreen({
     },
     [isMyTurn, firing, allShotsFired, gameToken, onGameStateUpdate, playLaugh, playHit, playSunk, myAvatar, user, gameState],
   );
-
-  // ─── Haki Handlers ────────────────────────────────────────────────────────
-
-  const handleObservationConfirm = useCallback(
-    async (row: number, col: number) => {
-      setObservationMode(false);
-      try {
-        const result = await activateObservation(gameToken, { row, col });
-        setRevealedCells((prev) => [...prev, ...result.revealedCells]);
-        setObservationUsesLeft((prev) => prev - 1);
-        setHakiUsedThisTurn(true);
-        setHakiMessage(`Observation Haki reveals ${result.revealedCells.length} cells!`);
-        setTimeout(() => setHakiMessage(null), 3000);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Observation failed");
-      }
-    },
-    [gameToken],
-  );
-
-  const handleConquerorsConfirm = useCallback(
-    async (row?: number, col?: number) => {
-      setConquerorsMode(false);
-      try {
-        const result = await activateConquerors(gameToken, {
-          row: row ?? null,
-          col: col ?? null,
-        });
-        setConquerorsUsesLeft((prev) => prev - 1);
-        setHakiUsedThisTurn(true);
-        if (result.xPatternShots) {
-          const newShots: ShotCellResponse[] = result.xPatternShots.map((s) => ({
-            row: s.row,
-            col: s.col,
-            result: s.result,
-            sunkShipType: s.sunkShipType,
-          }));
-          setOptimisticShots((prev) => [...prev, ...newShots]);
-        }
-        setHakiMessage(`Conqueror's Haki! Opponent skips ${result.skipTurns} turns!`);
-        setTimeout(() => setHakiMessage(null), 4000);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Conqueror's failed");
-      }
-    },
-    [gameToken],
-  );
-
-  const handleCellClick = useCallback(
-    (row: number, col: number) => {
-      if (observationMode) {
-        handleObservationConfirm(row, col);
-        return;
-      }
-      if (conquerorsMode) {
-        handleConquerorsConfirm(row, col);
-        return;
-      }
-      handleFire(row, col);
-    },
-    [observationMode, conquerorsMode, handleObservationConfirm, handleConquerorsConfirm, handleFire],
-  );
-
-  // ─── End Haki Handlers ──────────────────────────────────────────────────────
 
   const handleSurrender = useCallback(async () => {
     setSurrendering(true);
@@ -331,65 +199,13 @@ export function BattleScreen({
       <div className="flex flex-wrap items-start justify-center gap-8">
         <BoardGrid title="My Fleet" cells={myBoardCells} />
         <BoardGrid
-          title={observationMode ? "Select Area to Scan" : conquerorsMode ? "Select X-Pattern Target" : "Enemy Waters"}
+          title="Enemy Waters"
           cells={opponentBoardCells}
           interactive={!readOnly}
-          disabled={readOnly || (!isMyTurn && !observationMode && !conquerorsMode) || firing}
-          onCellClick={handleCellClick}
+          disabled={readOnly || !isMyTurn || firing}
+          onCellClick={handleFire}
         />
       </div>
-
-      {/* Haki Bar */}
-      {!readOnly && hakiProfile && (
-        <HakiBar
-          gameToken={gameToken}
-          hakiProfile={hakiProfile}
-          isMyTurn={isMyTurn}
-          hakiUsedThisTurn={hakiUsedThisTurn}
-          observationUsesLeft={observationUsesLeft}
-          conquerorsUsesLeft={conquerorsUsesLeft}
-          conquerorsCooldown={conquerorsCooldown}
-          onHakiUsed={() => setHakiUsedThisTurn(true)}
-          onObservationResult={(cells) => setRevealedCells((prev) => [...prev, ...cells])}
-          onConquerorsResult={() => {}}
-          onError={(msg) => setError(msg)}
-          observationMode={observationMode}
-          onStartObservation={() => setObservationMode(true)}
-          onCancelObservation={() => setObservationMode(false)}
-          conquerorsMode={conquerorsMode}
-          onStartConquerors={() => {
-            // If Lv3 awakened and it's the 2nd use, need target selection
-            if (hakiProfile.conquerorsLevel >= 3 && conquerorsUsesLeft === 1) {
-              setConquerorsMode(true);
-            } else {
-              handleConquerorsConfirm();
-            }
-          }}
-          onCancelConquerors={() => setConquerorsMode(false)}
-        />
-      )}
-
-      {/* Haki notification */}
-      {hakiMessage && (
-        <div className="px-4 py-2 bg-purple-900/60 border border-purple-500/40 rounded-lg text-sm text-purple-200 text-center animate-pulse">
-          ⚡ {hakiMessage}
-        </div>
-      )}
-
-      {/* Skip turns indicator */}
-      {skipTurnsLeft > 0 && (
-        <div className="px-4 py-2 bg-red-900/60 border border-red-500/40 rounded-lg text-sm text-red-200 text-center">
-          🌊 Overwhelmed by Conqueror&apos;s Haki — {skipTurnsLeft} turns remaining
-        </div>
-      )}
-
-      {/* Observation/Conquerors mode hint */}
-      {(observationMode || conquerorsMode) && (
-        <div className="px-3 py-1.5 bg-yellow-900/40 border border-yellow-500/30 rounded text-xs text-yellow-200 text-center">
-          {observationMode && "👁 Click a cell on Enemy Waters to scan that area"}
-          {conquerorsMode && "👑 Click a cell for X-pattern shot (center + 4 diagonals)"}
-        </div>
-      )}
 
       {/* Firing indicator — fixed height to prevent layout shift */}
       {!readOnly && (
