@@ -103,3 +103,11 @@ Implementer: modified `client/src/app/game/[token]/page.tsx` (+20/-8): replaced 
 Reviewer: PASS — build ✓, lint 0 errors on page.tsx, CANCELLED block has wallpaper bg+glass card+🏳️+W.O.+opponentName message+Return button+resumeGlobalSoundtrack in phase effect
 
 Commit: uncommitted
+
+## 2026-07-17T17:36 — Backend: Observation Haki Battle Ability
+
+Implementer: created `service/src/main/resources/db/migration/V12__create_haki_battle_state.sql` (+12), `service/src/main/java/com/last_island/api/domain/haki/entity/HakiBattleState.java` (+36), `service/src/main/java/com/last_island/api/domain/haki/repository/HakiBattleStateRepository.java` (+12), `service/src/main/java/com/last_island/api/domain/haki/dto/ObservationRequest.java` (+4), `service/src/main/java/com/last_island/api/domain/haki/dto/ObservationResponse.java` (+6), `service/src/main/java/com/last_island/api/domain/haki/dto/RevealedCell.java` (+6), `service/src/main/java/com/last_island/api/domain/haki/enums/CellRevealStatus.java` (+6), `service/src/main/java/com/last_island/api/domain/haki/service/HakiBattleService.java` (+237), `service/src/test/java/com/last_island/api/domain/haki/service/HakiBattleServiceTest.java` (+511); modified `service/src/main/java/com/last_island/api/infrastructure/sse/GameEvent.java` (+1), `service/src/main/java/com/last_island/api/infrastructure/sse/GameEventEmitter.java` (+6), `service/src/main/java/com/last_island/api/domain/board/service/BoardService.java` (+5/-3), `service/src/main/java/com/last_island/api/domain/game/controller/GameController.java` (+12/-3), `service/src/test/java/com/last_island/api/domain/board/service/BoardServiceFireShotTest.java` (+5), `service/src/test/java/com/last_island/api/domain/board/service/BoardServicePlaceShipsTest.java` (+10/-2)
+
+Reviewer: PASS — 116/116 tests green (20 HakiBattleServiceTest), compile clean, grep confirms HakiBattleState/OBSERVATION_HAKI_USED/observation coverage, all Observation Haki rules correctly enforced (level-based stacking, bounds validation, turn checks, SSE to opponent without location)
+
+Commit: uncommitted

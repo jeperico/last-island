@@ -13,6 +13,9 @@ import com.last_island.api.domain.game.dto.GameStateResponse;
 import com.last_island.api.domain.game.dto.GameSummaryResponse;
 import com.last_island.api.domain.game.service.BattleLogService;
 import com.last_island.api.domain.game.service.GameService;
+import com.last_island.api.domain.haki.dto.ObservationRequest;
+import com.last_island.api.domain.haki.dto.ObservationResponse;
+import com.last_island.api.domain.haki.service.HakiBattleService;
 import com.last_island.api.infrastructure.security.principal.AuthenticatedUser;
 import com.last_island.api.infrastructure.sse.SseConnectionRegistry;
 import org.springframework.data.domain.Pageable;
@@ -34,13 +37,16 @@ public class GameController {
     private final BoardService boardService;
     private final SseConnectionRegistry sseConnectionRegistry;
     private final BattleLogService battleLogService;
+    private final HakiBattleService hakiBattleService;
 
     public GameController(GameService gameService, BoardService boardService,
-                          SseConnectionRegistry sseConnectionRegistry, BattleLogService battleLogService) {
+                          SseConnectionRegistry sseConnectionRegistry, BattleLogService battleLogService,
+                          HakiBattleService hakiBattleService) {
         this.gameService = gameService;
         this.boardService = boardService;
         this.sseConnectionRegistry = sseConnectionRegistry;
         this.battleLogService = battleLogService;
+        this.hakiBattleService = hakiBattleService;
     }
 
     @PostMapping
@@ -97,6 +103,13 @@ public class GameController {
     public void surrender(@PathVariable String token,
                           @AuthenticationPrincipal AuthenticatedUser principal) {
         gameService.surrender(token, principal.getId());
+    }
+
+    @PostMapping("/{token}/haki/observation")
+    public ObservationResponse useObservationHaki(@PathVariable String token,
+                                                  @RequestBody ObservationRequest request,
+                                                  @AuthenticationPrincipal AuthenticatedUser principal) {
+        return hakiBattleService.activateObservation(token, principal.getId(), request);
     }
 
     @GetMapping(value = "/{token}/events", produces = MediaType.TEXT_EVENT_STREAM_VALUE)

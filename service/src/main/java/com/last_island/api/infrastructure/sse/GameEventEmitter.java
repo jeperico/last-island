@@ -69,4 +69,10 @@ public class GameEventEmitter {
         GameEvent event = GameEvent.of(id, GameEvent.SURRENDER, Map.of("surrenderedPlayerName", surrenderedPlayerName));
         registry.send(gameToken, targetPlayerId, event);
     }
+
+    public void emitObservationHakiUsed(String gameToken, UUID opponentId) {
+        long id = registry.nextEventId(gameToken);
+        GameEvent event = GameEvent.of(id, GameEvent.OBSERVATION_HAKI_USED);
+        registry.send(gameToken, opponentId, event);
+    }
 }

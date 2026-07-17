@@ -2,7 +2,7 @@
 
 ## Position
 
-Plan written — Redesign W.O. (walkover) page for CANCELLED games
+Plan written — Observation Haki backend (HakiBattleState entity, service, endpoint, tests)
 
 ## Decisions
 
@@ -18,4 +18,4 @@ Plan written — Redesign W.O. (walkover) page for CANCELLED games
 
 ## Last verification
 
-PASS at 2026-07-17T17:32 — build ✓, lint 0 errors on page.tsx, CANCELLED block has wallpaper bg+glass card+🏳️+W.O.+opponentName message+Return button+resumeGlobalSoundtrack in phase effect
+PASS at 2026-07-17T17:43 — 116/116 tests green (20 HakiBattleServiceTest), compile clean, grep confirms HakiBattleState/OBSERVATION_HAKI_USED/observation coverage

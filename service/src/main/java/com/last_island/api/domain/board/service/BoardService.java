@@ -19,6 +19,7 @@ import com.last_island.api.domain.game.repository.GameRepository;
 import com.last_island.api.domain.game.repository.GameResultRepository;
 import com.last_island.api.domain.user.entity.User;
 import com.last_island.api.domain.user.service.BountyService;
+import com.last_island.api.domain.haki.service.HakiBattleService;
 import com.last_island.api.infrastructure.sse.GameEventEmitter;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -38,12 +39,14 @@ public class BoardService {
     private final GameResultRepository gameResultRepository;
     private final GameEventEmitter gameEventEmitter;
     private final BountyService bountyService;
+    private final HakiBattleService hakiBattleService;
 
-    public BoardService(GameRepository gameRepository, GameResultRepository gameResultRepository, GameEventEmitter gameEventEmitter, BountyService bountyService) {
+    public BoardService(GameRepository gameRepository, GameResultRepository gameResultRepository, GameEventEmitter gameEventEmitter, BountyService bountyService, HakiBattleService hakiBattleService) {
         this.gameRepository = gameRepository;
         this.gameResultRepository = gameResultRepository;
         this.gameEventEmitter = gameEventEmitter;
         this.bountyService = bountyService;
+        this.hakiBattleService = hakiBattleService;
     }
 
     @Transactional
@@ -145,6 +148,7 @@ public class BoardService {
             game.setPhase(GamePhase.IN_PROGRESS);
             game.setStartedAt(LocalDateTime.now());
             game.setTurnStartedAt(LocalDateTime.now());
+            hakiBattleService.initializeHakiBattleStates(game);
         }
 
         // 11. Save game (cascades board + ships)
@@ -302,6 +306,7 @@ public class BoardService {
             game.setCurrentTurn(opponentBoard.getOwner());
             game.setTurnStartedAt(LocalDateTime.now());
             turnSwitched = true;
+            hakiBattleService.resetHakiUsedThisTurn(opponentBoard.getId());
         } else {
             // HIT or SUNK — same player continues, reset turn timer
             game.setTurnStartedAt(LocalDateTime.now());
