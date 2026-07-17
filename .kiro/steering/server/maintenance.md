@@ -4,82 +4,68 @@
 
 | Command | Description |
 |---------|-------------|
-| `make up` | Start local Postgres (required for dev) |
+| `make up` | Start local Postgres (Docker, port 5432) |
 | `make down` | Stop local Postgres |
 | `make ps` | Show running containers |
-| `make install` | Clean install (skips tests) |
-| `make run` | Start app (dev profile, port 8081) |
-| `make run-homolog` | Start app (homolog profile, remote Supabase) |
-| `make run-prod` | Start app (prod profile) |
-| `make test` | Full suite: lint + 182 integration tests + coverage |
-| `make test-no-lint` | Tests only (skips Spotless/Checkstyle/SpotBugs, faster) |
-| `make lint` | Spotless format + Checkstyle + SpotBugs |
+| `make service-install` | Clean install (skip tests) |
+| `make service-run` | Start app (dev profile, port 8081) |
+| `make service-build` | Compile only |
+| `make service-test` | Full test suite with pretty output |
+| `make client-run` | Start frontend (dev, port 3000) |
+| `make status` | Show containers + git branch |
 
 ## Profiles
 
 | Profile | Usage | Database |
 |---------|-------|----------|
-| `dev` | Local development (`make run`) | Local Docker Postgres |
-| `homolog` | Staging with real data (`make run-homolog`) | Remote Supabase Postgres |
-| `prod` | Production deployment (`make run-prod`) | Remote Postgres (env vars) |
-| `test` | Test suite (`make test`) | H2 in PostgreSQL-compat mode |
+| `dev` | Local development (`make service-run`) | Local Docker Postgres |
+| `prod` | Production deployment | Remote Postgres (env vars) |
 
 ## Database
 
 ### Local Dev
-- Start: `make up` → PostgreSQL 16 on port 5433 (user: `hestia`, pass: `hestia123`, db: `hestia_dev`)
+- Start: `make up` → PostgreSQL 16 on port 5432 (user: `lastisland`, pass: from `.env.dev`, db: `lastisland_dev`)
 - Stop: `make down`
+- Shell: `make db-shell`
 
 ### Migrations
-- **Supabase (prod)**: `src/main/resources/db/supabase/migration/` — run manually against Supabase SQL editor
-- **H2 (test)**: `src/main/resources/db/h2/migration/` — auto-applied by Flyway during tests
-- Production uses `spring.flyway.enabled=false` + `ddl-auto=validate` (schema managed by Supabase)
+- Location: `src/main/resources/db/migration/`
+- Naming: `V{N}__{description}.sql`
+- Applied automatically by Flyway on startup (both dev and prod)
+- JPA configured as `ddl-auto=validate` — schema is migration-only
 
 ### Schema Changes Workflow
-1. Write the Supabase migration SQL in `db/supabase/migration/V{N}__description.sql`
-2. Write the equivalent H2-compatible migration in `db/h2/migration/V{N}__description.sql` (H2 uses custom domains for enums)
-3. Run migration on Supabase SQL editor
-4. Update entities/DTOs in Java code
-5. Run `make test` to verify
-
-## Code Quality Pipeline
-
-Runs on `make lint` and `make test`:
-1. **Spotless** (Palantir Java Format 2.50.0) — auto-formats code
-2. **Checkstyle** (10.21.4) — naming, imports, patterns
-3. **SpotBugs** (4.9.3) — potential bug detection
-4. **JaCoCo** (0.8.12) — coverage report at `target/site/jacoco/index.html`
-
-## Formatting Rules
-- Palantir Java Format (spaces, not tabs; 120-char lines)
-- Import order: `com.hestia`, `jakarta`, `org`, `java`, `javax`
-- Remove unused imports automatically
+1. Write migration SQL in `db/migration/V{N}__description.sql`
+2. Update entities/DTOs in Java code
+3. Run `make service-test` to verify
+4. Flyway auto-applies on next startup
 
 ## Environment Variables
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `DB_URL` | Yes | JDBC connection string |
-| `DB_USERNAME` | Yes | Database user |
+| `DB_HOST` | Yes | Postgres host (default: localhost) |
+| `DB_PORT` | Yes | Postgres port (default: 5432) |
+| `DB_NAME` | Yes | Database name |
+| `DB_USER` | Yes | Database user |
 | `DB_PASSWORD` | Yes | Database password |
-| `SUPABASE_PROJECT_ID` | Prod only | Supabase project for JWT validation |
-| `ASAAS_API_KEY` | Yes | Héstia's Asaas API key |
-| `ASAAS_ENVIRONMENT` | Yes | `SANDBOX` or `PRODUCTION` |
-| `ASAAS_WEBHOOK_TOKEN` | Yes | Webhook validation token |
+| `JWT_SECRET` | Prod only | HS256 signing secret (min 256 bits) |
+| `CORS_ALLOWED_ORIGINS` | Prod only | Comma-separated allowed origins |
+| `PORT` | Prod only | Server port override (default: 8081) |
 
 ## Adding a New Domain Entity
 
-1. Create package under `domain/{name}/` with: `entity/`, `repository/`, `service/`, `controller/`, `dto/`, `mapper/`, `enums/` (if needed)
-2. Entity extends `BaseTenantModel` (has id, createdAt, updatedAt, isActive, weddingId)
-3. Add Supabase + H2 migrations
-4. Add seed data to `V4__test_data.sql` for tests
-5. Add endpoint rules to `SecurityConfig.java` if non-standard access
-6. Write integration tests with `@WithMockAdmin` / `@WithMockCouple`
-7. Run `make test`
+1. Create package under `domain/{name}/` with: `entity/`, `repository/`, `service/`, `controller/`, `dto/`, `mapper/`, `enums/` (as needed)
+2. Entity extends `BaseEntity` (has id, createdAt, updatedAt)
+3. Add Flyway migration for the new table
+4. Add endpoint rules to `SecurityConfig.java` if non-standard access (default: authenticated)
+5. Write unit tests with `@ExtendWith(MockitoExtension.class)`
+6. Run `make service-test`
 
 ## Troubleshooting
 
-- **H2 enum errors**: H2 uses `CREATE DOMAIN` to simulate Postgres enums. Check `V1__create_base.sql`.
-- **Test failures after migration**: Ensure H2 migration matches Supabase migration semantics.
-- **JWT validation fails locally**: Dev profile stubs the issuer/jwk-set-uri to localhost.
-- **Asaas webhook 404**: Check the token in URL matches `ASAAS_WEBHOOK_TOKEN` env var.
+- **Flyway checksum mismatch**: Never modify an applied migration. Create a new `V{N+1}` migration instead.
+- **JWT validation fails locally**: Dev profile uses `app.jwt.secret` from `.env.dev` — ensure it's at least 256 bits.
+- **Port conflict on 8081**: Check if another service is running, or override with `server.port`.
+- **SSE timeout**: Default async timeout is 5 minutes (`spring.mvc.async.request-timeout=300000`). Client should reconnect with `Last-Event-ID`.
+- **CORS errors**: Verify `app.cors.allowed-origins` in properties matches the frontend URL.

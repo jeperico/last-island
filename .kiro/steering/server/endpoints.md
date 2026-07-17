@@ -2,86 +2,18 @@
 
 ## Base URL
 
-- Dev: `http://localhost:8081/api/v2`
-- Context path: `/api/v2` (configured in `application-prod.properties`)
-
-## Authenticated Endpoints (JWT Required)
-
-### RSVP
-| Method | Path | Roles | Description |
-|--------|------|-------|-------------|
-| GET | `/rsvp/invite` | COUPLE, ADMIN | List invites (paginated) |
-| GET | `/rsvp/invite/{id}` | COUPLE, ADMIN | Get invite |
-| POST | `/rsvp/invite` | COUPLE, ADMIN | Create invite |
-| PUT | `/rsvp/invite/{id}` | COUPLE, ADMIN | Update invite |
-| DELETE | `/rsvp/invite/{id}` | COUPLE, ADMIN | Delete invite |
-| GET | `/rsvp/guest` | COUPLE, ADMIN | List guests (paginated) |
-| GET | `/rsvp/guest/{id}` | COUPLE, ADMIN | Get guest |
-| POST | `/rsvp/guest` | COUPLE, ADMIN | Create guest |
-| PUT | `/rsvp/guest/{id}` | COUPLE, ADMIN | Update guest |
-| DELETE | `/rsvp/guest/{id}` | COUPLE, ADMIN | Delete guest |
-
-### Gift Registry
-| Method | Path | Roles | Description |
-|--------|------|-------|-------------|
-| GET | `/gift` | COUPLE, ADMIN | List gifts (paginated) |
-| GET | `/gift/{id}` | COUPLE, ADMIN | Get gift |
-| POST | `/gift` | COUPLE, ADMIN | Create gift |
-| PUT | `/gift/{id}` | COUPLE, ADMIN | Update gift |
-| DELETE | `/gift/{id}` | COUPLE, ADMIN | Delete gift |
-
-### Messages
-| Method | Path | Roles | Description |
-|--------|------|-------|-------------|
-| GET | `/message` | COUPLE, ADMIN | List messages (paginated) |
-| GET | `/message/{id}` | COUPLE, ADMIN | Get message |
-| DELETE | `/message/{id}` | COUPLE, ADMIN | Delete message |
-
-### Wallet
-| Method | Path | Roles | Description |
-|--------|------|-------|-------------|
-| GET | `/wallet` | COUPLE, ADMIN | List wallets |
-| GET | `/wallet/{id}` | COUPLE, ADMIN | Get wallet (shows availableBalance) |
-| POST | `/wallet` | COUPLE, ADMIN | Create wallet |
-| PATCH | `/wallet/{id}` | COUPLE, ADMIN | Update wallet (PIX key) |
-
-### Transfers
-| Method | Path | Roles | Description |
-|--------|------|-------|-------------|
-| POST | `/transfers` | COUPLE | Request PIX withdrawal |
-
-### Orders
-| Method | Path | Roles | Description |
-|--------|------|-------|-------------|
-| GET | `/order` | COUPLE, ADMIN | List orders (paginated) |
-| GET | `/order/{id}` | COUPLE, ADMIN | Get order details |
-
-### Admin-Only
-| Method | Path | Roles | Description |
-|--------|------|-------|-------------|
-| GET | `/wedding` | ADMIN | List weddings |
-| POST | `/wedding` | ADMIN | Create wedding |
-| DELETE | `/wedding/{id}` | ADMIN | Delete wedding |
-| GET | `/account` | ADMIN | List accounts |
-| POST | `/account` | ADMIN | Create account |
-| DELETE | `/account/{id}` | ADMIN | Delete account |
+- Dev: `http://localhost:8081/api/v1`
+- Context path: `/api/v1` (configured in `application.properties`)
 
 ## Public Endpoints (No Auth)
 
-### Guest-Facing (slug-based)
+### Auth
 | Method | Path | Description |
 |--------|------|-------------|
-| GET | `/w/{slug}/gift` | List available gifts |
-| POST | `/w/{slug}/gift/{giftId}/checkout` | Start payment (returns checkout_url) |
-| GET | `/w/{slug}/rsvp/invite` | Search invites by name |
-| POST | `/w/{slug}/rsvp/guest` | RSVP a guest |
-| PUT | `/w/{slug}/rsvp/guest/{id}` | Update guest RSVP status |
-| POST | `/w/{slug}/message` | Send a message |
-
-### Webhook
-| Method | Path | Description |
-|--------|------|-------------|
-| POST | `/webhook/asaas/{webhookToken}` | Asaas payment/transfer events |
+| POST | `/auth/register` | Create account (name, email, password) |
+| POST | `/auth/login` | Login (email, password) → sets cookies |
+| POST | `/auth/refresh` | Refresh access token (reads refresh_token cookie) |
+| POST | `/auth/logout` | Clear auth cookies |
 
 ### Infrastructure
 | Path | Description |
@@ -89,9 +21,58 @@
 | `/swagger-ui/**` | Swagger UI |
 | `/v3/api-docs/**` | OpenAPI spec |
 
+## Authenticated Endpoints (JWT Required)
+
+### Auth / Profile
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/auth/me` | Get current user profile |
+
+### Users
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/users/leaderboard` | Get leaderboard (top players + current user rank) |
+| PUT | `/users/me` | Update profile (avatar) |
+
+### Games
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/games` | Create a new game (returns token) |
+| POST | `/games/{token}` | Join an existing game by token |
+| GET | `/games` | List available games (paginated) |
+| GET | `/games/{token}` | Get full game state for current player |
+| GET | `/games/history` | Get battle log (paginated game results) |
+| POST | `/games/{token}/place-ships` | Place fleet on the board |
+| POST | `/games/{token}/shots` | Fire a shot at opponent |
+| POST | `/games/{token}/cancel` | Cancel a game (only in WAITING_OPPONENT) |
+| POST | `/games/{token}/surrender` | Surrender the battle |
+| POST | `/games/{token}/haki/observation` | Use Observation Haki to reveal cells |
+| GET | `/games/{token}/events` | SSE stream — real-time game events |
+
+### Lobby
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/lobby/events` | SSE stream — lobby updates (new games, joins) |
+
+### Haki
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/haki/profile` | Get Haki skill tree profile |
+| POST | `/haki/upgrade` | Spend Haki points to level up a skill |
+
+## SSE Endpoints
+
+Both SSE endpoints produce `text/event-stream`:
+- `/games/{token}/events` — game-scoped events (opponent joined, ships placed, shot fired, game ended, turn change)
+- `/lobby/events` — global lobby events (game created, game started/filled)
+
+Supports `Last-Event-ID` header for reconnection replay.
+
 ## Conventions
+
 - All list endpoints return `PageResponse<T>` with pagination metadata.
-- Admin endpoints that create tenant-scoped resources require `?wedding={uuid}` query param.
-- Couple endpoints auto-resolve `weddingId` from JWT.
 - Snake_case JSON (`spring.jackson.property-naming-strategy=SNAKE_CASE`).
-- Error responses use `ErrorResponse` with `status`, `error`, `message` fields.
+- Error responses use consistent format: `{ status, error, message, timestamp }`.
+- Auth is cookie-based (HttpOnly JWT) — no `Authorization` header needed from browser.
+- Game resources are scoped by token (6-char alphanumeric).
+- Player identity resolved from JWT in cookie.

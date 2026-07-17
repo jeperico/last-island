@@ -2,59 +2,65 @@
 
 ## Who Consumes This API
 
-1. **Couple Dashboard (Frontend)** — Authenticated SPA consuming `/api/v2/*` endpoints with Supabase JWT.
-2. **Wedding Guests (Public)** — Unauthenticated users accessing `/w/{slug}/*` endpoints (RSVP, gifts, messages, checkout).
-3. **Admin Panel** — Authenticated admin managing all weddings via `/api/v2/wedding`, `/api/v2/account`.
-4. **Asaas (Webhooks)** — Payment/transfer event callbacks to `/webhook/asaas/{token}`.
+1. **Game Client (Next.js frontend)** — Authenticated SPA consuming `/api/v1/*` endpoints with cookie-based JWT.
+2. **SSE Subscribers** — Same client maintains persistent SSE connections for real-time game and lobby events.
 
 ## Authentication Flow
 
-1. User signs in via Supabase (OAuth, magic link, or email/password) — handled entirely by frontend + Supabase.
-2. Frontend receives a JWT from Supabase.
-3. Frontend sends `Authorization: Bearer {jwt}` on every API request.
-4. Backend validates JWT signature against Supabase JWK Set URI (ES256).
-5. Backend looks up user by `auth_user_id` (from JWT `sub` claim) to resolve role and weddingId.
-6. Request proceeds with `AuthenticatedUser` principal containing: userId, role, weddingId.
+1. User registers or logs in via `POST /auth/register` or `POST /auth/login`.
+2. Backend validates credentials, issues JWT pair (HS256, self-signed).
+3. Backend sets `access_token` and `refresh_token` as HttpOnly cookies (`SameSite=Lax`).
+4. Browser automatically includes cookies on every subsequent request (`credentials: "include"`).
+5. `JwtAuthenticationFilter` extracts token from cookie, validates signature, and sets `AuthenticatedUser` principal.
+6. On 401, client calls `POST /auth/refresh` (reads refresh_token cookie) to get new tokens.
 
-## Guest (Public) Flow
+## Game Flow (End-to-End)
 
-1. Guest receives a link like `https://app.hestia.com/w/alice-bob`.
-2. Frontend loads wedding data from slug-based endpoints — no auth needed.
-3. Guest can: search invites by name, RSVP, view gifts, pay for gifts (Asaas checkout), send messages.
+1. **Create game**: Player A calls `POST /games` → receives `token` (6 chars). Game enters `WAITING_OPPONENT`.
+2. **Lobby notification**: SSE broadcasts `GAME_CREATED` to lobby subscribers.
+3. **Join game**: Player B calls `POST /games/{token}` → game moves to `PLACING_SHIPS`.
+4. **SSE subscribe**: Both players connect to `GET /games/{token}/events`.
+5. **Place ships**: Each player calls `POST /games/{token}/place-ships` with 5 ships. When both placed → `IN_PROGRESS`.
+6. **Battle**: Players alternate turns calling `POST /games/{token}/shots`. SSE notifies opponent of each shot.
+7. **Haki (optional)**: During their turn, a player may use `POST /games/{token}/haki/observation` to reveal cells.
+8. **Game over**: When all ships of one side are sunk → `FINISHED`. SSE sends `GAME_OVER` event.
+9. **Bounty update**: Winner gains bounty, loser loses bounty. Ranks may change.
 
-## Payment Flow (End-to-End)
+## SSE Event Types
 
-1. Guest picks gift → `POST /w/{slug}/gift/{giftId}/checkout` → receives `checkout_url`.
-2. Guest pays on Asaas hosted page (PIX or credit card).
-3. Asaas sends `CHECKOUT_PAID` webhook → Order marked PAID, wallet balance credited.
-4. Couple sees balance in dashboard → requests transfer via `POST /transfers`.
-5. Backend calls Asaas Transfer API → PIX sent to couple.
-6. Asaas sends `TRANSFER_DONE` webhook → Transaction marked COMPLETED, balance deducted.
+### Game Events (`/games/{token}/events`)
+| Event | Payload | Trigger |
+|-------|---------|---------|
+| `OPPONENT_JOINED` | opponent info | Player B joins |
+| `SHIPS_PLACED` | — | Opponent finishes placing ships |
+| `SHOT_FIRED` | shot result | Opponent fires a shot |
+| `GAME_OVER` | winner info | Game ends |
+| `TURN_CHANGE` | current turn | Turn switches |
+| `GAME_CANCELLED` | — | Game cancelled |
+| `OPPONENT_SURRENDERED` | — | Opponent surrenders |
 
-## API Collections (Ready to Use)
+### Lobby Events (`/lobby/events`)
+| Event | Payload | Trigger |
+|-------|---------|---------|
+| `GAME_CREATED` | game summary | A new game is available to join |
+| `GAME_STARTED` | token | A game was filled (no longer joinable) |
 
-### Bruno (recommended, version-controlled)
+## API Collections
+
+### Bruno (version-controlled)
 Location: `docs/bruno/` — open with Bruno app, environments pre-configured.
 
-### Postman
-Location: `docs/postman/` — import collection + environment JSON files.
-
 ## Swagger UI
-Available at: `{base_url}/swagger-ui.html` (dev: `http://localhost:8081/api/v2/swagger-ui.html`)
+Available at: `http://localhost:8081/api/v1/swagger-ui.html` (dev)
 
 ## Key Behaviors for Frontend Consumers
 
-- **Pagination**: All list endpoints accept `?page=0&size=10` params. Response wraps content in `PageResponse`.
+- **Pagination**: List endpoints accept `?page=0&size=10`. Response wraps content in `PageResponse`.
 - **Snake case**: All JSON fields use snake_case.
-- **Tenant scoping**: Couple JWT auto-resolves wedding. No need to pass wedding ID.
-- **Admin cross-tenant**: Admin must pass `?wedding={uuid}` for creation operations.
-- **Slug resolution**: Public endpoints resolve wedding from `{slug}` in URL path.
-- **Soft deletes**: Entities have `is_active` field. DELETE sets `is_active=false` (logical delete).
-- **Error format**: Consistent `{ "status": int, "error": string, "message": string }`.
-- **Gift availability**: `remain` field on gift response shows how many units are still available.
-- **Wallet balance**: `available_balance` is the max withdrawal amount (already fee-adjusted).
-
-## Rate Limits & Restrictions
-- No rate limiting implemented yet (planned for Step 6/7).
-- Webhook token in URL path is the only webhook validation mechanism.
-- No CORS configuration documented (likely needs frontend origin whitelist).
+- **Cookie auth**: No `Authorization` header needed — cookies are sent automatically.
+- **Game scoping**: All game operations use the 6-char `token` in the URL path.
+- **Player identity**: Resolved from JWT — no need to pass user ID.
+- **SSE reconnection**: Send `Last-Event-ID` header to replay missed events.
+- **Error format**: Consistent `{ "status": int, "error": string, "message": string, "timestamp": string }`.
+- **Turn enforcement**: Only the current-turn player can fire shots. Others get 403.
+- **Phase enforcement**: Actions are only valid in specific phases (e.g., place-ships only in PLACING_SHIPS).
