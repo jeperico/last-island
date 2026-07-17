@@ -3,6 +3,7 @@ import type {
   Orientation,
   ShotResult,
   GamePhase,
+  HakiType,
 } from "@/types";
 
 // ─── Request interfaces ──────────────────────────────────────────────────────
@@ -189,4 +190,20 @@ export interface LeaderboardEntryResponse {
 export interface LeaderboardResponse {
   entries: LeaderboardEntryResponse[];
   currentUserEntry: LeaderboardEntryResponse | null;
+}
+
+// ─── Haki ─────────────────────────────────────────────────────────────────────
+
+export interface HakiProfileResponse {
+  hakiPoints: number;
+  hakiPointsAvailable: number;
+  observationLevel: number;
+  armamentLevel: number;
+  conquerorsLevel: number;
+  bountyMilestonesReached: number;
+}
+
+export interface HakiUpgradeRequest {
+  hakiType: HakiType;
+  targetLevel: number;
 }
