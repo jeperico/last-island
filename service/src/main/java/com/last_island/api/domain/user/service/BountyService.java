@@ -12,14 +12,22 @@ public class BountyService {
     /**
      * Updates bounties for winner and loser.
      * Flat gain/loss system with underdog bonus for simpler, more predictable progression.
+     * Wins are multiplied by 3x for aggressive progression.
      *
      * Target progression (for equal-skill opponents):
      *   Start (0W): 100M → SUPER_ROOKIE
-     *   ~2 wins:    200M → SUPERNOVA
-     *   ~4 wins:    400M → SHICHIBUKAI
-     *   ~8 wins:    800M → YONKO
-     *   ~15 wins:  1500M → PIRATE_KING
+     *   ~1 win:     250M → SUPERNOVA       (gain 150M)
+     *   ~2 wins:    400M → SHICHIBUKAI     (gain 150M)
+     *   ~4 wins:    800M → YONKO
+     *   ~7 wins:   1500M → PIRATE_KING
      *   1 loss from start: drops below 100M → ROOKIE
+     *
+     * Gain values (after 3x multiplier):
+     *   Equal match:     150M
+     *   Big underdog:    300M
+     *   Slight underdog: 225M
+     *   Slight favorite: 112.5M
+     *   Big favorite:     75M
      */
     public long updateBounties(User winner, User loser) {
         long baseGain = 50_000_000L; // 50M base per win
@@ -53,6 +61,9 @@ public class BountyService {
             gain = baseGain / 2;
             loss = baseGain * 2;
         }
+
+        // 3x win multiplier — aggressive progression
+        gain *= 3;
 
         long newWinnerBounty = winner.getBounty() + gain;
         long newLoserBounty = Math.max(BOUNTY_FLOOR, loser.getBounty() - loss);

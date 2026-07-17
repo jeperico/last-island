@@ -2,7 +2,7 @@
 
 ## Position
 
-Plan written — Eliminate GET refetch after player's own shot in BattleScreen
+Plan written — 3x bounty gain multiplier for wins
 
 ## Decisions
 
@@ -18,4 +18,4 @@ Plan written — Eliminate GET refetch after player's own shot in BattleScreen
 
 ## Last verification
 
-PASS at 2026-07-17T11:14 — build ✓, lint 0 errors, getGame only in game-over+surrender paths, optimistic update appends shot+switches turn correctly, useCallback deps complete
+PASS at 2026-07-17T14:34 — 7/7 BountyServiceTest green, 73/73 full suite green, client build clean, gain*=3 placed correctly, loss values unchanged

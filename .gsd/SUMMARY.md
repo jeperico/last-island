@@ -44,7 +44,7 @@ Commit: uncommitted
 
 Implementer: modified `service/src/main/java/com/last_island/api/domain/board/service/BoardService.java` (+2/-2), `service/src/test/java/com/last_island/api/domain/board/service/BoardServicePlaceShipsTest.java` (+17/-10), `client/src/app/game/[token]/page.tsx` (+13/-3)
 
-Reviewer: pending
+Reviewer: PASS — verified as part of full suite run (73/73 tests green)
 
 Commit: uncommitted
 
@@ -61,5 +61,13 @@ Commit: uncommitted
 Implementer: modified `client/src/app/game/[token]/battle-screen.tsx` (+16/-3): replaced `else` branch's `getGame()` refetch with optimistic local state update (derive `currentTurnPlayerName` from shot result, append shot to `opponentBoard.shotsFired`, reset `turnStartedAt`, clear optimistic shots); added `user` and `gameState` to `useCallback` deps
 
 Reviewer: PASS — build ✓, lint 0 errors, getGame only in game-over+surrender paths, optimistic update appends shot+switches turn correctly, useCallback deps complete
+
+Commit: uncommitted
+
+## 2026-07-17T14:32 — 3x bounty gain multiplier for wins
+
+Implementer: modified `service/src/main/java/com/last_island/api/domain/user/service/BountyService.java` (+11/-6): added `gain *= 3;` after ratio branching block, updated Javadoc with 3x progression values; modified `service/src/test/java/com/last_island/api/domain/user/service/BountyServiceTest.java` (+10/-6): renamed equal-match test, updated 4 winner bounty assertions to reflect 3x gains, added winner assertions to rank-demotion test, loser assertions unchanged
+
+Reviewer: PASS — 7/7 BountyServiceTest green, 73/73 full suite green, client build clean, gain*=3 after ratio block & before newWinnerBounty, loss variable untouched by multiplier
 
 Commit: uncommitted
