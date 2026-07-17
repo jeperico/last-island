@@ -28,3 +28,5 @@ export type ShipType =
 export type Orientation = "HORIZONTAL" | "VERTICAL";
 
 export type ShotResult = "HIT" | "MISS" | "SUNK";
+
+export type HakiType = "OBSERVATION" | "ARMAMENT" | "CONQUERORS";

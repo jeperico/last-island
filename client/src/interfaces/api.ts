@@ -3,6 +3,7 @@ import type {
   Orientation,
   ShotResult,
   GamePhase,
+  HakiType,
 } from "@/types";
 
 // ─── Request interfaces ──────────────────────────────────────────────────────
@@ -81,6 +82,7 @@ export interface JoinGameResponse {
 }
 
 export interface ShipResponse {
+  id: string;
   type: ShipType;
   orientation: Orientation;
   row: number;
@@ -149,6 +151,8 @@ export interface ShotResponse {
   sunkShipType: string | null;
   gameOver: boolean;
   winnerName: string | null;
+  armamentTriggered: boolean;
+  counterFire: CounterFireResult | null;
 }
 
 // ─── Error shape ─────────────────────────────────────────────────────────────
@@ -189,4 +193,72 @@ export interface LeaderboardEntryResponse {
 export interface LeaderboardResponse {
   entries: LeaderboardEntryResponse[];
   currentUserEntry: LeaderboardEntryResponse | null;
+}
+
+// ─── Haki ─────────────────────────────────────────────────────────────────────
+
+export interface HakiProfileResponse {
+  hakiPoints: number;
+  hakiPointsAvailable: number;
+  observationLevel: number;
+  armamentLevel: number;
+  conquerorsLevel: number;
+  bountyMilestonesReached: number;
+}
+
+export interface HakiUpgradeRequest {
+  hakiType: HakiType;
+  targetLevel: number;
+}
+
+// ─── Haki Battle ──────────────────────────────────────────────────────────────
+
+export type CellRevealStatus = "HAS_SHIP" | "EMPTY";
+
+export interface RevealedCell {
+  row: number;
+  col: number;
+  status: CellRevealStatus;
+}
+
+export interface ObservationRequest {
+  row: number;
+  col: number;
+  revealRowIndex?: number | null;
+  revealColIndex?: number | null;
+}
+
+export interface ObservationResponse {
+  revealedCells: RevealedCell[];
+  effectLevel: string;
+}
+
+export interface ConquerorsActivationRequest {
+  row?: number | null;
+  col?: number | null;
+}
+
+export interface XPatternShotResult {
+  row: number;
+  col: number;
+  result: ShotResult;
+  sunkShipType: string | null;
+}
+
+export interface ConquerorsActivationResponse {
+  skipTurns: number;
+  effectLevel: string;
+  xPatternShots: XPatternShotResult[] | null;
+}
+
+export interface ArmamentAssignmentRequest {
+  ship1Id: string;
+  ship2Id: string | null;
+}
+
+export interface CounterFireResult {
+  row: number;
+  col: number;
+  result: ShotResult;
+  sunkShipType: string | null;
 }

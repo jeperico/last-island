@@ -2,7 +2,7 @@
 
 ## Position
 
-Plan written — Frontend: Remove 'Join by Token' functionality
+Plan written — Frontend Battle Haki UI (Plan #6a: Foundation — Types, API functions, SSE event wiring)
 
 ## Decisions
 
@@ -18,4 +18,4 @@ Plan written — Frontend: Remove 'Join by Token' functionality
 
 ## Last verification
 
-PASS at 2026-07-15T16:38 — build ✓, lint 0 new errors (4 pre-existing errors same as before), grep 0 matches for joinGameSchema/JoinGameFormData/join-game/Battle Token/Enter game token/Share the token/Join by Token, handleJoinFromList+joinGame still present in lobby, WAITING_OPPONENT shows only "Waiting for an opponent from the Grand Line…"
+PASS at 2026-07-17T18:48 — next build clean, no new eslint errors (only pre-existing react-hooks/set-state-in-effect and no-empty-object-type), all grep checks confirm 3 SSE events wired, 3 API functions exported, armamentTriggered on ShotResponse, id on ShipResponse

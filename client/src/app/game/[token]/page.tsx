@@ -4,14 +4,16 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useRequireAuth, useAuth } from "@/lib/auth";
-import { getGame } from "@/lib/api";
+import { getGame, cancelGame } from "@/lib/api";
 import type { GamePhase, GameStateResponse } from "@/lib/api/types";
 import { useGameEvents } from "@/lib/game";
 import { useSound } from "@/lib/sound";
 import { ShipPlacement } from "./ship-placement";
 import { BattleScreen } from "./battle-screen";
 import { GameOverPanel } from "./game-over-panel";
-import { Spinner, Alert } from "@/components/ui";
+import { Spinner, Alert, AvatarIcon } from "@/components/ui";
+import { formatBounty } from "@/lib/format";
+import { SHIP_DISPLAY_NAMES, SHIP_SIZES } from "@/lib/game/ship-config";
 import { useWallpaper } from "@/lib/hooks";
 import { WallpaperModal } from "@/components/wallpaper-modal";
 
@@ -25,9 +27,10 @@ export default function GamePage() {
   const [gameState, setGameState] = useState<GameStateResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isRedeploying, setIsRedeploying] = useState(false);
 
 
-  const { swapSoundtrack, resumeGlobalSoundtrack, playLaugh } = useSound();
+  const { swapSoundtrack, resumeGlobalSoundtrack, playLaugh, playSunk, playIncomingHit } = useSound();
   const prevPhaseRef = useRef<GamePhase | null>(null);
   const { wallpaper, setWallpaper, getWallpaperPath } = useWallpaper();
   const [wallpaperModalOpen, setWallpaperModalOpen] = useState(false);
@@ -70,16 +73,12 @@ export default function GamePage() {
 
 
 
-  // Soundtrack lifecycle: swap to battle music on IN_PROGRESS, resume global on unmount
+  // Soundtrack lifecycle: play battle music on mount, resume global on unmount
   useEffect(() => {
-    if (gameState?.phase === "IN_PROGRESS") {
-      const myAvatar = gameState.bluePlayerName === user?.name
-        ? gameState.bluePlayerAvatar : gameState.redPlayerAvatar;
-      swapSoundtrack(myAvatar);
-    }
+    swapSoundtrack();
     return () => { resumeGlobalSoundtrack(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gameState?.phase === "IN_PROGRESS"]);
+  }, []);
 
   // Game-over audio: fire once on IN_PROGRESS → FINISHED transition
   useEffect(() => {
@@ -90,6 +89,9 @@ export default function GamePage() {
       if (gameState.winnerName === user.name) {
         playLaugh(myAvatar);
       }
+    }
+    if (gameState?.phase === "CANCELLED") {
+      resumeGlobalSoundtrack();
     }
     prevPhaseRef.current = gameState?.phase ?? null;
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -105,6 +107,12 @@ export default function GamePage() {
         refetchGame();
       },
       onShotReceived: (data) => {
+        if (data.result === "HIT") {
+          playIncomingHit();
+        }
+        if (data.result === "SUNK") {
+          playSunk();
+        }
         refetchGame();
       },
       onGameOver: (data) => {
@@ -188,25 +196,55 @@ export default function GamePage() {
     if (gameState.phase === "WAITING_OPPONENT") {
       const bgImage = getWallpaperPath(myAvatar);
       return (
-        <div className="relative flex flex-1 flex-col items-center justify-center px-4 gap-6">
+        <div className="flex flex-1 flex-col items-center justify-center px-4 gap-8">
           {bgImage && (
-            <div className="absolute inset-0 opacity-15 pointer-events-none overflow-hidden">
+            <div className="absolute inset-0 -z-10 opacity-15 pointer-events-none overflow-hidden">
               <div
                 className="absolute top-1/2 left-1/2 w-[100vh] h-[100vw] -translate-x-1/2 -translate-y-1/2 -rotate-90 bg-cover bg-center"
                 style={{ backgroundImage: `url(${bgImage})` }}
               />
             </div>
           )}
-          <div className="flex flex-col items-center gap-3 text-center">
-            <span className="text-6xl animate-[bounce_3s_ease-in-out_infinite]">
-              ⛵
-            </span>
-            <h1 className="text-xl font-bold text-text-primary">
-              Scanning the horizon…
-            </h1>
-            <p className="text-sm text-text-muted max-w-sm">
-              Waiting for an opponent from the Grand Line…
-            </p>
+
+          {/* Card */}
+          <div className="flex flex-col items-center gap-6 bg-surface/60 backdrop-blur-md border border-border rounded-2xl p-8 max-w-md w-full">
+            {/* Player identity section */}
+            <div className="flex flex-col items-center gap-2">
+              <AvatarIcon avatar={user.avatar} rank={user.rank} size="lg" />
+              <span className="text-lg font-bold text-text-primary">{user.name}</span>
+              <span className="text-sm text-text-secondary">{user.rank.replace(/_/g, " ")}</span>
+              <span className="text-primary text-sm font-semibold">
+                {formatBounty(user.bounty)} ₿
+              </span>
+            </div>
+
+            {/* Stats row */}
+            <div className="flex gap-4 text-center">
+              <div className="flex flex-col items-center px-3 py-1.5 rounded-lg bg-surface-secondary/60">
+                <span className="text-sm font-bold text-text-primary">{user.wins + user.losses}</span>
+                <span className="text-xs text-text-muted">Battles</span>
+              </div>
+              <div className="flex flex-col items-center px-3 py-1.5 rounded-lg bg-surface-secondary/60">
+                <span className="text-sm font-bold text-success">{user.wins}</span>
+                <span className="text-xs text-text-muted">Victories</span>
+              </div>
+              <div className="flex flex-col items-center px-3 py-1.5 rounded-lg bg-surface-secondary/60">
+                <span className="text-sm font-bold text-text-primary">
+                  {user.wins + user.losses > 0
+                    ? `${Math.round((user.wins / (user.wins + user.losses)) * 100)}%`
+                    : "—"}
+                </span>
+                <span className="text-xs text-text-muted">Win Rate</span>
+              </div>
+            </div>
+
+            {/* Waiting status */}
+            <div className="flex items-center gap-2 rounded-full border border-border bg-surface-secondary px-4 py-2">
+              <span className="h-2 w-2 rounded-full bg-warning animate-pulse" />
+              <span className="text-xs text-text-muted font-medium">
+                Searching for opponents…
+              </span>
+            </div>
           </div>
         </div>
       );
@@ -217,12 +255,12 @@ export default function GamePage() {
       const hasPlacedShips =
         gameState.myBoard !== null && gameState.myBoard.ships.length > 0;
 
-      if (!hasPlacedShips) {
+      if (!hasPlacedShips || isRedeploying) {
         const bgImage = getWallpaperPath(myAvatar);
         return (
-          <div className="relative flex flex-1 flex-col h-full">
+          <div className="flex flex-1 flex-col h-full">
             {bgImage && (
-              <div className="absolute inset-0 opacity-15 pointer-events-none overflow-hidden">
+              <div className="absolute inset-0 -z-10 opacity-15 pointer-events-none overflow-hidden">
                 <div
                   className="absolute top-1/2 left-1/2 w-[100vh] h-[100vw] -translate-x-1/2 -translate-y-1/2 -rotate-90 bg-cover bg-center"
                   style={{ backgroundImage: `url(${bgImage})` }}
@@ -231,7 +269,10 @@ export default function GamePage() {
             )}
             <ShipPlacement
               gameToken={token}
-              onPlacementComplete={handlePlacementComplete}
+              onPlacementComplete={(gamePhase) => {
+                setIsRedeploying(false);
+                handlePlacementComplete(gamePhase);
+              }}
             />
           </div>
         );
@@ -239,30 +280,64 @@ export default function GamePage() {
 
       const bgImage = getWallpaperPath(myAvatar);
       return (
-        <div className="relative flex flex-1 flex-col items-center justify-center px-4 gap-6">
+        <div className="flex flex-1 flex-col items-center justify-center px-4 gap-8">
           {bgImage && (
-            <div className="absolute inset-0 opacity-15 pointer-events-none overflow-hidden">
+            <div className="absolute inset-0 -z-10 opacity-15 pointer-events-none overflow-hidden">
               <div
                 className="absolute top-1/2 left-1/2 w-[100vh] h-[100vw] -translate-x-1/2 -translate-y-1/2 -rotate-90 bg-cover bg-center"
                 style={{ backgroundImage: `url(${bgImage})` }}
               />
             </div>
           )}
-          <div className="flex flex-col items-center gap-3 text-center">
-            <span className="text-6xl animate-pulse">🧭</span>
-            <h1 className="text-xl font-bold text-text-primary">
-              Fleet deployed, Captain!
-            </h1>
-            <p className="text-sm text-text-muted max-w-sm">
-              Your vessels are in position. The enemy is still plotting their
-              formation. The clash begins once both fleets set sail.
-            </p>
-          </div>
-          <div className="flex items-center gap-2 rounded-full border border-border bg-surface-secondary px-4 py-2">
-            <span className="h-2 w-2 rounded-full bg-warning animate-pulse" />
-            <span className="text-xs text-text-muted font-medium">
-              Opponent preparing fleet…
-            </span>
+
+          {/* Card */}
+          <div className="flex flex-col items-center gap-6 bg-surface/60 backdrop-blur-md border border-border rounded-2xl p-8 max-w-md w-full">
+            {/* Header */}
+            <div className="flex items-center gap-3">
+              <span className="text-3xl animate-pulse">🧭</span>
+              <h1 className="text-xl font-bold text-text-primary">
+                Fleet deployed, Captain!
+              </h1>
+            </div>
+
+            {/* Fleet manifest */}
+            <div className="w-full bg-surface-secondary/50 rounded-lg p-3 border border-border">
+              <div className="flex flex-col gap-2">
+                {gameState.myBoard!.ships.map((ship) => (
+                  <div key={ship.type} className="flex items-center justify-between">
+                    <span className="text-sm text-text-secondary">
+                      {SHIP_DISPLAY_NAMES[ship.type]}
+                    </span>
+                    <div className="flex gap-1">
+                      {Array.from({ length: SHIP_SIZES[ship.type] }).map((_, i) => (
+                        <span
+                          key={i}
+                          className="w-2.5 h-2.5 rounded-full bg-primary"
+                        />
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Status indicator */}
+            <div className="flex items-center gap-2 rounded-full border border-border bg-surface-secondary px-4 py-2">
+              <span className="h-2 w-2 rounded-full bg-warning animate-pulse" />
+              <span className="text-xs text-text-muted font-medium">
+                Opponent preparing fleet…
+              </span>
+            </div>
+
+            {/* Redeploy button */}
+            <button
+              type="button"
+              onClick={() => setIsRedeploying(true)}
+              className="inline-flex items-center gap-2 text-sm text-text-secondary hover:text-primary transition-colors cursor-pointer"
+            >
+              <span>🔄</span>
+              <span>Redeploy Fleet</span>
+            </button>
           </div>
         </div>
       );
@@ -293,18 +368,37 @@ export default function GamePage() {
           ? (gameState.redPlayerName ?? "Unknown")
           : gameState.bluePlayerName;
 
+      const bgImage = getWallpaperPath(myAvatar);
+
       return (
-        <div className="flex flex-1 flex-col items-center justify-center gap-6 px-4 py-6">
-          <div className="flex flex-col items-center gap-3 text-center">
-            <span className="text-5xl">🏳️</span>
+        <div className="flex flex-1 flex-col items-center justify-center px-4 gap-8">
+          {bgImage && (
+            <div className="absolute inset-0 -z-10 opacity-15 pointer-events-none overflow-hidden">
+              <div
+                className="absolute top-1/2 left-1/2 w-[100vh] h-[100vw] -translate-x-1/2 -translate-y-1/2 -rotate-90 bg-cover bg-center"
+                style={{ backgroundImage: `url(${bgImage})` }}
+              />
+            </div>
+          )}
+
+          {/* Card */}
+          <div className="flex flex-col items-center gap-6 bg-surface/60 backdrop-blur-md border border-border rounded-2xl p-8 max-w-md w-full">
+            <span className="text-6xl">🏳️</span>
             <h1 className="text-3xl font-bold text-warning">W.O.</h1>
-            <p className="text-sm text-text-muted max-w-sm">
+            <p className="text-sm text-text-muted max-w-sm text-center">
               The battle against{" "}
-              <span className="font-semibold text-text-primary">
+              <span className="font-bold text-text-primary">
                 {opponentName}
               </span>{" "}
               ended by walkover. No contest recorded, Captain.
             </p>
+            <button
+              type="button"
+              onClick={() => router.push("/")}
+              className="mt-4 px-6 py-3 bg-primary hover:bg-primary-hover text-white font-bold rounded-lg transition-colors cursor-pointer"
+            >
+              Return to Grand Line
+            </button>
           </div>
         </div>
       );
@@ -316,13 +410,31 @@ export default function GamePage() {
   return (
     <div className="relative flex flex-1 flex-col h-full">
       {/* Persistent back link — top-left */}
-      <Link
-        href="/"
-        className="print:hidden absolute top-4 left-4 z-10 inline-flex items-center gap-1.5 text-sm font-semibold text-text-secondary hover:text-primary bg-surface-secondary/80 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-border hover:border-primary transition-all"
-      >
-        <span>←</span>
-        <span>Grand Line</span>
-      </Link>
+      {gameState.phase === "WAITING_OPPONENT" && gameState.bluePlayerName === user.name ? (
+        <button
+          type="button"
+          onClick={async () => {
+            try {
+              await cancelGame(token);
+            } catch {
+              // fire-and-forget — navigate regardless
+            }
+            router.push("/");
+          }}
+          className="print:hidden absolute top-4 left-4 z-10 inline-flex items-center gap-1.5 text-sm font-semibold text-text-secondary hover:text-primary bg-surface-secondary/80 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-border hover:border-primary transition-all cursor-pointer"
+        >
+          <span>←</span>
+          <span>Grand Line</span>
+        </button>
+      ) : (
+        <Link
+          href="/"
+          className="print:hidden absolute top-4 left-4 z-10 inline-flex items-center gap-1.5 text-sm font-semibold text-text-secondary hover:text-primary bg-surface-secondary/80 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-border hover:border-primary transition-all"
+        >
+          <span>←</span>
+          <span>Grand Line</span>
+        </Link>
+      )}
 
       {/* Wallpaper picker — top-right */}
       {myAvatar && (

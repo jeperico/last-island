@@ -1,5 +1,6 @@
 package com.last_island.api.domain.user.service;
 
+import com.last_island.api.domain.haki.service.HakiService;
 import com.last_island.api.domain.user.dto.*;
 import com.last_island.api.domain.user.entity.User;
 import com.last_island.api.domain.user.enums.Avatar;
@@ -20,11 +21,13 @@ public class AuthService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtProvider jwtProvider;
+    private final HakiService hakiService;
 
-    public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtProvider jwtProvider) {
+    public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtProvider jwtProvider, HakiService hakiService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtProvider = jwtProvider;
+        this.hakiService = hakiService;
     }
 
     public AuthResult register(RegisterRequest request) {
@@ -65,6 +68,8 @@ public class AuthService {
                 .build();
 
         user = userRepository.save(user);
+
+        hakiService.createProfile(user.getId());
 
         String accessToken = jwtProvider.generateAccessToken(user);
         String refreshToken = jwtProvider.generateRefreshToken(user);

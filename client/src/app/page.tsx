@@ -253,6 +253,13 @@ export default function Home() {
           </div>
           <div className="flex items-center gap-2">
             <Link
+              href="/haki"
+              className="inline-flex items-center justify-center w-8 h-8 rounded-md text-text-secondary hover:bg-surface-secondary hover:text-primary transition-colors"
+              aria-label="Haki"
+            >
+              👁
+            </Link>
+            <Link
               href="/settings"
               className="inline-flex items-center justify-center w-8 h-8 rounded-md text-text-secondary hover:bg-surface-secondary hover:text-primary transition-colors"
               aria-label="Settings"

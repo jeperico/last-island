@@ -5,6 +5,8 @@ import org.springframework.stereotype.Service;
 import java.util.Map;
 import java.util.UUID;
 
+import com.last_island.api.domain.haki.dto.CounterFireResult;
+
 @Service
 public class GameEventEmitter {
 
@@ -68,5 +70,36 @@ public class GameEventEmitter {
         long id = registry.nextEventId(gameToken);
         GameEvent event = GameEvent.of(id, GameEvent.SURRENDER, Map.of("surrenderedPlayerName", surrenderedPlayerName));
         registry.send(gameToken, targetPlayerId, event);
+    }
+
+    public void emitObservationHakiUsed(String gameToken, UUID opponentId) {
+        long id = registry.nextEventId(gameToken);
+        GameEvent event = GameEvent.of(id, GameEvent.OBSERVATION_HAKI_USED);
+        registry.send(gameToken, opponentId, event);
+    }
+
+    public void emitArmamentHakiTriggered(String gameToken, UUID attackerId, boolean turnSkipped, CounterFireResult counterFire) {
+        long id = registry.nextEventId(gameToken);
+        Map<String, Object> data = new java.util.HashMap<>();
+        data.put("turnSkipped", turnSkipped);
+        if (counterFire != null) {
+            data.put("counterFireRow", counterFire.row());
+            data.put("counterFireCol", counterFire.col());
+            data.put("counterFireResult", counterFire.result().name());
+            if (counterFire.sunkShipType() != null) {
+                data.put("counterFireSunkShipType", counterFire.sunkShipType());
+            }
+        }
+        GameEvent event = GameEvent.of(id, GameEvent.ARMAMENT_HAKI_TRIGGERED, data);
+        registry.send(gameToken, attackerId, event);
+    }
+
+    public void emitConquerorsHakiUsed(String gameToken, UUID opponentId, int skipTurns, String effectLevel) {
+        long id = registry.nextEventId(gameToken);
+        GameEvent event = GameEvent.of(id, GameEvent.CONQUERORS_HAKI_USED, Map.of(
+                "skipTurns", skipTurns,
+                "effectLevel", effectLevel
+        ));
+        registry.send(gameToken, opponentId, event);
     }
 }

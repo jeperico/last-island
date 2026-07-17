@@ -13,7 +13,11 @@ import {
 
 interface SoundContextValue {
   playLaugh: (avatar: string | null) => void;
-  swapSoundtrack: (avatar: string | null) => void;
+  playHit: () => void;
+  playIncomingHit: () => void;
+  playSunk: () => void;
+  playAvatarHover: () => void;
+  swapSoundtrack: () => void;
   resumeGlobalSoundtrack: () => void;
   isMuted: boolean;
   toggleMute: () => void;
@@ -25,15 +29,20 @@ interface SoundContextValue {
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 
-const GLOBAL_SOUNDTRACK = "/audio/binks-sake.mp3";
-const DEFAULT_MUSIC_VOLUME = 0.15;
-const DEFAULT_SFX_VOLUME = 0.5;
+const GLOBAL_SOUNDTRACK = "/audio/soundtracks/binks-sake.mp3";
+const BATTLE_SOUNDTRACK = "/audio/soundtracks/rubber-bazooka.mp3";
+const HIT_SOUND = "/audio/sfx/battle/shot.mp3";
+const INCOMING_HIT_SOUND = "/audio/sfx/battle/hit.mp3";
+const SUNK_SOUND = "/audio/sfx/battle/sunk.mp3";
+const AVATAR_HOVER_SOUND = "/audio/sfx/ui/avatar-selector.mp3";
+const DEFAULT_MUSIC_VOLUME = 0.5;
+const DEFAULT_SFX_VOLUME = 0.8;
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function getAvatarAudioPath(avatar: string | null, type: "laugh" | "soundtrack"): string {
+function getAvatarLaughPath(avatar: string | null): string {
   if (avatar) {
-    return `/avatars/${avatar.toLowerCase()}/${type}.mp3`;
+    return `/avatars/${avatar.toLowerCase()}/laugh.mp3`;
   }
   return GLOBAL_SOUNDTRACK;
 }
@@ -142,20 +151,50 @@ export function SoundProvider({ children }: { children: React.ReactNode }) {
   const playLaugh = useCallback(
     (avatar: string | null) => {
       if (isMuted) return;
-      const audio = new Audio(getAvatarAudioPath(avatar, "laugh"));
+      const audio = new Audio(getAvatarLaughPath(avatar));
       audio.volume = sfxVolume;
       audio.play().catch(() => {});
     },
     [isMuted, sfxVolume],
   );
 
-  // Swap the soundtrack to a battle-specific track
-  const swapSoundtrack = useCallback(
-    (avatar: string | null) => {
-      const newTrack = getAvatarAudioPath(avatar, "soundtrack");
+  // Play hit sound when a cannonball strikes an enemy ship
+  const playHit = useCallback(() => {
+    if (isMuted) return;
+    const audio = new Audio(HIT_SOUND);
+    audio.volume = sfxVolume;
+    audio.play().catch(() => {});
+  }, [isMuted, sfxVolume]);
 
-      // Don't restart if already playing the same track
-      if (currentTrackRef.current === newTrack && soundtrackRef.current && !soundtrackRef.current.paused) {
+  // Play sound when opponent hits your ship
+  const playIncomingHit = useCallback(() => {
+    if (isMuted) return;
+    const audio = new Audio(INCOMING_HIT_SOUND);
+    audio.volume = sfxVolume;
+    audio.play().catch(() => {});
+  }, [isMuted, sfxVolume]);
+
+  // Play sunk sound when a ship is sent to Davy Jones
+  const playSunk = useCallback(() => {
+    if (isMuted) return;
+    const audio = new Audio(SUNK_SOUND);
+    audio.volume = sfxVolume;
+    audio.play().catch(() => {});
+  }, [isMuted, sfxVolume]);
+
+  // Play hover sound on character selection panels
+  const playAvatarHover = useCallback(() => {
+    if (isMuted) return;
+    const audio = new Audio(AVATAR_HOVER_SOUND);
+    audio.volume = sfxVolume;
+    audio.play().catch(() => {});
+  }, [isMuted, sfxVolume]);
+
+  // Swap the soundtrack to the battle track
+  const swapSoundtrack = useCallback(
+    () => {
+      // Don't restart if already playing the battle track
+      if (currentTrackRef.current === BATTLE_SOUNDTRACK && soundtrackRef.current && !soundtrackRef.current.paused) {
         return;
       }
 
@@ -165,10 +204,10 @@ export function SoundProvider({ children }: { children: React.ReactNode }) {
         soundtrackRef.current.src = "";
       }
 
-      // Start new track
-      const audio = createSoundtrackAudio(newTrack, isMuted, musicVolume);
+      // Start battle track
+      const audio = createSoundtrackAudio(BATTLE_SOUNDTRACK, isMuted, musicVolume);
       soundtrackRef.current = audio;
-      currentTrackRef.current = newTrack;
+      currentTrackRef.current = BATTLE_SOUNDTRACK;
 
       audio.play().catch(() => {});
     },
@@ -205,7 +244,7 @@ export function SoundProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <SoundContext value={{ playLaugh, swapSoundtrack, resumeGlobalSoundtrack, isMuted, toggleMute, musicVolume, setMusicVolume, sfxVolume, setSfxVolume }}>
+    <SoundContext value={{ playLaugh, playHit, playIncomingHit, playSunk, playAvatarHover, swapSoundtrack, resumeGlobalSoundtrack, isMuted, toggleMute, musicVolume, setMusicVolume, sfxVolume, setSfxVolume }}>
       {children}
     </SoundContext>
   );

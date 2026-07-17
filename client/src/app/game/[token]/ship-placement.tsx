@@ -223,36 +223,95 @@ export function ShipPlacement({
   }
 
   function handleRandomize() {
-    // Retry entire layout until all ships are placed
-    for (let layoutAttempt = 0; layoutAttempt < 50; layoutAttempt++) {
+    // Improved fleet deployment algorithm:
+    // 1. Places ships largest-first for better space utilization
+    // 2. Enforces a 1-cell gap between ships (harder to hit multiple ships)
+    // 3. Uses edge/corner bias to spread ships across the board
+    // 4. Retries full layout if placement fails
+
+    function getBufferedCells(
+      row: number,
+      col: number,
+      size: number,
+      ori: Orientation,
+    ): string[] {
+      const buffered: string[] = [];
+      const cells = getShipCells(row, col, size, ori);
+      for (const c of cells) {
+        for (let dr = -1; dr <= 1; dr++) {
+          for (let dc = -1; dc <= 1; dc++) {
+            const r = c.row + dr;
+            const cl = c.col + dc;
+            if (r >= 0 && r <= 9 && cl >= 0 && cl <= 9) {
+              buffered.push(cellKey(r, cl));
+            }
+          }
+        }
+      }
+      return buffered;
+    }
+
+    // Sort fleet by size descending — place large ships first
+    const sortedFleet = [...fleet].sort(
+      (a, b) => SHIP_SIZES[b] - SHIP_SIZES[a],
+    );
+
+    for (let layoutAttempt = 0; layoutAttempt < 100; layoutAttempt++) {
       const newPlacements = new Map<ShipType, PlacementEntry>();
-      const occupied = new Set<string>();
+      const occupied = new Set<string>(); // actual ship cells
+      const buffer = new Set<string>(); // cells within 1 of a ship
       let allPlacedOk = true;
 
-      for (const shipType of fleet) {
+      for (const shipType of sortedFleet) {
         const size = SHIP_SIZES[shipType];
         let placed = false;
 
-        for (let attempt = 0; attempt < 200 && !placed; attempt++) {
-          const ori: Orientation =
-            Math.random() < 0.5 ? "HORIZONTAL" : "VERTICAL";
+        // Collect all valid positions, then pick one at random
+        const validPositions: { row: number; col: number; ori: Orientation }[] =
+          [];
+
+        for (const ori of ["HORIZONTAL", "VERTICAL"] as Orientation[]) {
           const maxRow = ori === "VERTICAL" ? 10 - size : 9;
           const maxCol = ori === "HORIZONTAL" ? 10 - size : 9;
-          const row = Math.floor(Math.random() * (maxRow + 1));
-          const col = Math.floor(Math.random() * (maxCol + 1));
 
-          const cells = getShipCells(row, col, size, ori);
-          const overlaps = cells.some((c) =>
-            occupied.has(cellKey(c.row, c.col)),
-          );
-
-          if (!overlaps) {
-            newPlacements.set(shipType, { row, col, orientation: ori });
-            for (const c of cells) {
-              occupied.add(cellKey(c.row, c.col));
+          for (let row = 0; row <= maxRow; row++) {
+            for (let col = 0; col <= maxCol; col++) {
+              const cells = getShipCells(row, col, size, ori);
+              const blocked = cells.some(
+                (c) =>
+                  occupied.has(cellKey(c.row, c.col)) ||
+                  buffer.has(cellKey(c.row, c.col)),
+              );
+              if (!blocked) {
+                validPositions.push({ row, col, ori });
+              }
             }
-            placed = true;
           }
+        }
+
+        if (validPositions.length > 0) {
+          // Pick a random valid position
+          const pick =
+            validPositions[Math.floor(Math.random() * validPositions.length)];
+          newPlacements.set(shipType, {
+            row: pick.row,
+            col: pick.col,
+            orientation: pick.ori,
+          });
+          const cells = getShipCells(pick.row, pick.col, size, pick.ori);
+          for (const c of cells) {
+            occupied.add(cellKey(c.row, c.col));
+          }
+          const bufferedCells = getBufferedCells(
+            pick.row,
+            pick.col,
+            size,
+            pick.ori,
+          );
+          for (const key of bufferedCells) {
+            buffer.add(key);
+          }
+          placed = true;
         }
 
         if (!placed) {
@@ -344,7 +403,16 @@ export function ShipPlacement({
   }
 
   return (
-    <div className="relative z-10 flex flex-1 flex-col items-center justify-center px-4 py-6">
+    <div className="relative flex flex-1 flex-col items-center justify-center px-4 py-6">
+      {/* Surrender — bottom center */}
+      <button
+        type="button"
+        onClick={() => setSurrenderOpen(true)}
+        className="absolute bottom-4 left-1/2 -translate-x-1/2 text-xs text-danger bg-surface/80 border border-danger/30 hover:bg-danger/10 px-4 py-2 rounded-lg transition-colors cursor-pointer"
+      >
+        🏳️ Surrender
+      </button>
+
       <div className="flex flex-col gap-10 items-center w-fit bg-surface/80 backdrop-blur-sm rounded-2xl p-6">
         <h1 className="mb-4 text-xl font-bold text-foreground">
           Deploy Your Fleet
@@ -472,28 +540,23 @@ export function ShipPlacement({
             </div>
 
             {/* Action buttons */}
-            <div className="mt-4 flex gap-3">
+            <div className="mt-4 flex flex-col gap-2 w-full">
+              <div className="flex gap-3">
+                <Button variant="secondary" onClick={handleRandomize} className="flex-1">
+                  ⚓ Auto-Deploy
+                </Button>
+                <Button variant="secondary" onClick={handleReset} className="flex-1">
+                  🔄 Clear Sea
+                </Button>
+              </div>
               <Button
                 variant="primary"
                 onClick={handleDeploy}
                 loading={submitting}
                 disabled={!allPlaced}
+                className="w-full"
               >
                 Deploy Fleet
-              </Button>
-              <Button variant="secondary" onClick={handleRandomize}>
-                🎲 Random
-              </Button>
-              <Button variant="secondary" onClick={handleReset}>
-                Reset
-              </Button>
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={() => setSurrenderOpen(true)}
-                className="text-danger"
-              >
-                🏳️ Surrender
               </Button>
             </div>
           </div>

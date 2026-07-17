@@ -9,7 +9,7 @@ interface CountdownTimerProps {
 
 export function CountdownTimer({
   turnStartedAt,
-  turnDurationSeconds = 120,
+  turnDurationSeconds = 60,
 }: CountdownTimerProps) {
   const [remainingSeconds, setRemainingSeconds] = useState<number>(0);
 

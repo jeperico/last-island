@@ -15,6 +15,9 @@ import com.last_island.api.domain.game.repository.GameRepository;
 import com.last_island.api.domain.game.repository.GameResultRepository;
 import com.last_island.api.domain.user.entity.User;
 import com.last_island.api.domain.user.service.BountyService;
+import com.last_island.api.domain.haki.dto.ArmamentTriggerResult;
+import com.last_island.api.domain.haki.dto.CounterFireResult;
+import com.last_island.api.domain.haki.service.HakiBattleService;
 import com.last_island.api.infrastructure.sse.GameEventEmitter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -32,6 +35,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.*;
 
 @ExtendWith(MockitoExtension.class)
 class BoardServiceFireShotTest {
@@ -47,6 +51,9 @@ class BoardServiceFireShotTest {
 
     @Mock
     private BountyService bountyService;
+
+    @Mock
+    private HakiBattleService hakiBattleService;
 
     @InjectMocks
     private BoardService boardService;
@@ -381,5 +388,120 @@ class BoardServiceFireShotTest {
 
         // Turn should remain with bluePlayer (not switched to redPlayer)
         assertThat(game.getCurrentTurn()).isEqualTo(bluePlayer);
+    }
+
+    // --- Armament Integration Tests ---
+
+    @Test
+    void fireShot_hitArmoredShip_returnsArmamentTriggered() {
+        Game game = buildInProgressGame();
+        when(gameRepository.findByTokenAndIsActiveTrue(TOKEN)).thenReturn(Optional.of(game));
+
+        Ship striker = game.getRedBoard().getShips().get(0);
+        // Add another ship so game doesn't end if sunk
+        Ship redForce = Ship.builder()
+                .board(game.getRedBoard())
+                .type(ShipType.RED_FORCE)
+                .orientation(Orientation.HORIZONTAL)
+                .row(5).col(5).hits(0)
+                .build();
+        redForce.setId(UUID.randomUUID());
+        game.getRedBoard().getShips().add(redForce);
+
+        when(hakiBattleService.checkArmamentTrigger(eq(game.getRedBoard()), eq(striker), eq(0), eq(0), eq(game.getBlueBoard())))
+                .thenReturn(new ArmamentTriggerResult(true, null));
+
+        ShotResponse response = boardService.fireShot(TOKEN, bluePlayer.getId(), new ShotRequest(0, 0));
+
+        assertThat(response.result()).isEqualTo(ShotResult.HIT);
+        assertThat(response.armamentTriggered()).isTrue();
+        assertThat(response.counterFire()).isNull();
+    }
+
+    @Test
+    void fireShot_hitArmoredShip_lv3_returnsCounterFire() {
+        Game game = buildInProgressGame();
+        when(gameRepository.findByTokenAndIsActiveTrue(TOKEN)).thenReturn(Optional.of(game));
+
+        Ship striker = game.getRedBoard().getShips().get(0);
+        // Add another ship so game doesn't end
+        Ship redForce = Ship.builder()
+                .board(game.getRedBoard())
+                .type(ShipType.RED_FORCE)
+                .orientation(Orientation.HORIZONTAL)
+                .row(5).col(5).hits(0)
+                .build();
+        redForce.setId(UUID.randomUUID());
+        game.getRedBoard().getShips().add(redForce);
+
+        CounterFireResult counterFire = new CounterFireResult(ShotResult.MISS, 0, 0, null);
+        when(hakiBattleService.checkArmamentTrigger(eq(game.getRedBoard()), eq(striker), eq(0), eq(0), eq(game.getBlueBoard())))
+                .thenReturn(new ArmamentTriggerResult(true, counterFire));
+
+        ShotResponse response = boardService.fireShot(TOKEN, bluePlayer.getId(), new ShotRequest(0, 0));
+
+        assertThat(response.armamentTriggered()).isTrue();
+        assertThat(response.counterFire()).isNotNull();
+        assertThat(response.counterFire().result()).isEqualTo(ShotResult.MISS);
+    }
+
+    @Test
+    void fireShot_miss_noArmamentTrigger() {
+        Game game = buildInProgressGame();
+        when(gameRepository.findByTokenAndIsActiveTrue(TOKEN)).thenReturn(Optional.of(game));
+
+        ShotResponse response = boardService.fireShot(TOKEN, bluePlayer.getId(), new ShotRequest(5, 5));
+
+        assertThat(response.armamentTriggered()).isFalse();
+        assertThat(response.counterFire()).isNull();
+        // checkArmamentTrigger should not be called on MISS
+        verify(hakiBattleService, never()).checkArmamentTrigger(any(), any(), anyInt(), anyInt(), any());
+    }
+
+    @Test
+    void fireShot_miss_turnSkipConsumed_turnGoesBackToAttacker() {
+        Game game = buildInProgressGame();
+        when(gameRepository.findByTokenAndIsActiveTrue(TOKEN)).thenReturn(Optional.of(game));
+        // When turn would switch to defender (redPlayer), check if defender owes skips
+        // consumeSkipTurn(playerBoard=blueBoard) checks blueBoard.state.opponentSkipTurns
+        when(hakiBattleService.consumeSkipTurn(game.getBlueBoard())).thenReturn(true);
+
+        boardService.fireShot(TOKEN, bluePlayer.getId(), new ShotRequest(5, 5)); // MISS
+
+        // Turn should go back to attacker (bluePlayer) because defender's turn was skipped
+        assertThat(game.getCurrentTurn()).isEqualTo(bluePlayer);
+    }
+
+    // --- Conqueror's Haki Integration Tests ---
+
+    @Test
+    void fireShot_duringConquerorsWindow_turnStaysWithAttacker() {
+        Game game = buildInProgressGame();
+        when(gameRepository.findByTokenAndIsActiveTrue(TOKEN)).thenReturn(Optional.of(game));
+        // Simulate Conqueror's window: when attacker misses and turn goes to defender,
+        // consumeSkipTurn returns true (defender owes skips), so turn goes back to attacker
+        when(hakiBattleService.consumeSkipTurn(game.getBlueBoard())).thenReturn(true);
+
+        ShotResponse response = boardService.fireShot(TOKEN, bluePlayer.getId(), new ShotRequest(9, 9)); // MISS
+
+        assertThat(response.result()).isEqualTo(ShotResult.MISS);
+        assertThat(game.getCurrentTurn()).isEqualTo(bluePlayer); // Turn stays with attacker
+        // resetHakiUsedThisTurn should be called for playerBoard (attacker gets another turn)
+        verify(hakiBattleService).resetHakiUsedThisTurn(game.getBlueBoard().getId());
+    }
+
+    @Test
+    void fireShot_conquerorsCooldownDecrementsAfterNormalTurnSwitch() {
+        Game game = buildInProgressGame();
+        when(gameRepository.findByTokenAndIsActiveTrue(TOKEN)).thenReturn(Optional.of(game));
+        // No skip turns active — normal turn switch
+        when(hakiBattleService.consumeSkipTurn(game.getBlueBoard())).thenReturn(false);
+
+        boardService.fireShot(TOKEN, bluePlayer.getId(), new ShotRequest(9, 9)); // MISS
+
+        // Turn switches to red player, resetHakiUsedThisTurn called on opponent's board
+        assertThat(game.getCurrentTurn()).isEqualTo(redPlayer);
+        verify(hakiBattleService).resetHakiUsedThisTurn(game.getRedBoard().getId());
+        // Cooldown decrement happens inside resetHakiUsedThisTurn (tested separately)
     }
 }

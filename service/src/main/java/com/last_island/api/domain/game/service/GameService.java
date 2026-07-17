@@ -256,6 +256,33 @@ public class GameService {
         }
     }
 
+    @Transactional
+    public void cancelGame(String token, UUID userId) {
+        Game game = gameRepository.findByTokenAndIsActiveTrue(token)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Battle not found"));
+
+        if (!game.getBlueBoard().getOwner().getId().equals(userId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Only the battle creator can cancel");
+        }
+
+        if (game.getPhase() != GamePhase.WAITING_OPPONENT) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Battle cannot be cancelled — opponent already joined");
+        }
+
+        game.setPhase(GamePhase.CANCELLED);
+        game.setEndedAt(LocalDateTime.now());
+        gameRepository.save(game);
+
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    lobbyEventEmitter.emitGameRemoved(token);
+                }
+            });
+        }
+    }
+
     private String generateUniqueToken() {
         for (int i = 0; i < 10; i++) {
             int n = ThreadLocalRandom.current().nextInt(100000, 1000000);

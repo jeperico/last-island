@@ -12,8 +12,12 @@ import com.last_island.api.domain.game.dto.GameStateResponse;
 import com.last_island.api.domain.game.entity.Game;
 import com.last_island.api.domain.game.enums.GamePhase;
 import com.last_island.api.domain.game.repository.GameRepository;
+import com.last_island.api.domain.game.repository.GameResultRepository;
 import com.last_island.api.domain.user.entity.User;
 import com.last_island.api.domain.user.repository.UserRepository;
+import com.last_island.api.domain.user.service.BountyService;
+import com.last_island.api.infrastructure.sse.GameEventEmitter;
+import com.last_island.api.infrastructure.sse.LobbyEventEmitter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -38,7 +42,19 @@ class GameServiceTest {
     private GameRepository gameRepository;
 
     @Mock
+    private GameResultRepository gameResultRepository;
+
+    @Mock
     private UserRepository userRepository;
+
+    @Mock
+    private GameEventEmitter gameEventEmitter;
+
+    @Mock
+    private LobbyEventEmitter lobbyEventEmitter;
+
+    @Mock
+    private BountyService bountyService;
 
     @InjectMocks
     private GameService gameService;
@@ -223,5 +239,55 @@ class GameServiceTest {
 
         assertThat(ex.getStatusCode().value()).isEqualTo(403);
         assertThat(ex.getReason()).contains("not a participant");
+    }
+
+    // --- Cancel Game Tests ---
+
+    @Test
+    void cancelGame_success_setsPhaseAndEndedAt() {
+        Game game = buildWaitingGame();
+        when(gameRepository.findByTokenAndIsActiveTrue("123456")).thenReturn(Optional.of(game));
+
+        gameService.cancelGame("123456", bluePlayer.getId());
+
+        assertThat(game.getPhase()).isEqualTo(GamePhase.CANCELLED);
+        assertThat(game.getEndedAt()).isNotNull();
+        verify(gameRepository).save(game);
+    }
+
+    @Test
+    void cancelGame_rejectsNonCreator() {
+        Game game = buildWaitingGame();
+        when(gameRepository.findByTokenAndIsActiveTrue("123456")).thenReturn(Optional.of(game));
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> gameService.cancelGame("123456", redPlayer.getId()));
+
+        assertThat(ex.getStatusCode().value()).isEqualTo(403);
+        assertThat(ex.getReason()).contains("Only the battle creator can cancel");
+    }
+
+    @Test
+    void cancelGame_rejectsWrongPhase() {
+        Game game = buildWaitingGame();
+        game.setPhase(GamePhase.PLACING_SHIPS);
+        when(gameRepository.findByTokenAndIsActiveTrue("123456")).thenReturn(Optional.of(game));
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> gameService.cancelGame("123456", bluePlayer.getId()));
+
+        assertThat(ex.getStatusCode().value()).isEqualTo(400);
+        assertThat(ex.getReason()).contains("cannot be cancelled");
+    }
+
+    @Test
+    void cancelGame_rejectsNotFound() {
+        when(gameRepository.findByTokenAndIsActiveTrue("999999")).thenReturn(Optional.empty());
+
+        ResponseStatusException ex = assertThrows(ResponseStatusException.class,
+                () -> gameService.cancelGame("999999", bluePlayer.getId()));
+
+        assertThat(ex.getStatusCode().value()).isEqualTo(404);
+        assertThat(ex.getReason()).contains("Battle not found");
     }
 }

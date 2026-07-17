@@ -1,51 +1,203 @@
-# Frontend: Remove 'Join by Token' functionality
+# Plan #6a: Frontend Battle Haki — Foundation (Types, API, SSE Wiring)
 
 ## Objective
 
-Remove the manual token-input join flow from the client UI, keeping lobby-list joining intact.
+Add Haki battle types, API client functions, and SSE event wiring as the foundation layer for the Battle Haki UI.
 
 ## Files to touch
 
-- **modify** `client/src/app/page.tsx` — Remove `joinGameSchema`/`JoinGameFormData` imports, `useForm` setup, `onJoin` handler, "Join by Token" form section, and `Token: {game.token}` text from game cards.
-- **modify** `client/src/app/game/[token]/page.tsx` — Replace WAITING_OPPONENT token-sharing message and Badge with a simple "Waiting for an opponent from the Grand Line…" message.
-- **delete** `client/src/lib/validations/join-game.ts` — Entire file (only served the token input form).
+- modify `client/src/interfaces/api.ts` — Add Haki battle request/response interfaces (ObservationRequest, ObservationResponse, RevealedCell, ConquerorsActivationRequest, ConquerorsActivationResponse, XPatternShotResult, ArmamentAssignmentRequest); add `id: string` to `ShipResponse`; add `armamentTriggered` and `counterFire` fields to `ShotResponse`
+- modify `client/src/types/game-events.ts` — Add `OBSERVATION_HAKI_USED`, `ARMAMENT_HAKI_TRIGGERED`, `CONQUERORS_HAKI_USED` to `GameEventType`; add data interfaces (`ObservationHakiUsedEventData`, `ArmamentHakiTriggeredEventData`, `ConquerorsHakiUsedEventData`); extend `GameEventHandlers` with new callbacks
+- modify `client/src/lib/game/use-game-events.ts` — Register event listeners for the 3 new Haki SSE events
+- modify `client/src/lib/api/haki.ts` — Add `activateObservation`, `activateConquerors`, `assignArmament` functions
+- modify `client/src/lib/api/index.ts` — Re-export new haki API functions and new types
 
 ## Steps
 
-1. **Delete `client/src/lib/validations/join-game.ts`** — the Zod schema and type are no longer needed.
+1. **Add Haki battle interfaces to `client/src/interfaces/api.ts`**:
+   ```typescript
+   // After existing HakiUpgradeRequest interface:
 
-2. **Modify `client/src/app/page.tsx`:**
-   - Remove import of `joinGameSchema` and `JoinGameFormData` from `@/lib/validations/join-game`.
-   - Remove imports of `useForm` from `react-hook-form` and `zodResolver` from `@hookform/resolvers/zod` (only used by the token form).
-   - Remove the `useForm<JoinGameFormData>` call (`register`, `handleSubmit`, `formState: { errors }`).
-   - Remove the `onJoin` async function (lines ~168–182).
-   - Remove the "Join by Token" form section (the `<div className="mt-4 pt-4 border-t ...">` containing the label, form, Input, and submit Button).
-   - In the game card text, change `Token: {game.token} · {formatDate(game.createdAt)}` to just `{formatDate(game.createdAt)}`.
-   - Remove the `Input` import from `@/components/ui` if it's no longer used elsewhere in the file.
+   // ─── Haki Battle ──────────────────────────────────────────────────────────────
 
-3. **Modify `client/src/app/game/[token]/page.tsx`:**
-   - In the WAITING_OPPONENT block (lines 206–217), replace the `<p>` text and the "Battle Token" `<div>` with a single paragraph: `<p className="text-sm text-text-muted max-w-sm">Waiting for an opponent from the Grand Line…</p>`.
-   - Keep the sailing emoji animation (`⛵` with bounce), the background wallpaper, and the "Scanning the horizon…" heading.
-   - Remove the `<div className="flex flex-col items-center gap-2">` block that shows "Battle Token" label and `<Badge>` with the token.
+   export type CellRevealStatus = "HAS_SHIP" | "EMPTY";
+
+   export interface RevealedCell {
+     row: number;
+     col: number;
+     status: CellRevealStatus;
+   }
+
+   export interface ObservationRequest {
+     row: number;
+     col: number;
+     revealRowIndex?: number | null;
+     revealColIndex?: number | null;
+   }
+
+   export interface ObservationResponse {
+     revealedCells: RevealedCell[];
+     effectLevel: string;
+   }
+
+   export interface ConquerorsActivationRequest {
+     row?: number | null;
+     col?: number | null;
+   }
+
+   export interface XPatternShotResult {
+     row: number;
+     col: number;
+     result: ShotResult;
+     sunkShipType: string | null;
+   }
+
+   export interface ConquerorsActivationResponse {
+     skipTurns: number;
+     effectLevel: string;
+     xPatternShots: XPatternShotResult[] | null;
+   }
+
+   export interface ArmamentAssignmentRequest {
+     ship1Id: string;
+     ship2Id: string | null;
+   }
+
+   export interface CounterFireResult {
+     row: number;
+     col: number;
+     result: ShotResult;
+     sunkShipType: string | null;
+   }
+   ```
+
+2. **Add `id` field to `ShipResponse`** in `client/src/interfaces/api.ts`:
+   ```typescript
+   export interface ShipResponse {
+     id: string;  // ← NEW
+     type: ShipType;
+     orientation: Orientation;
+     row: number;
+     col: number;
+     size: number;
+   }
+   ```
+
+3. **Add armament fields to `ShotResponse`** in `client/src/interfaces/api.ts`:
+   ```typescript
+   export interface ShotResponse {
+     row: number;
+     col: number;
+     result: ShotResult;
+     sunkShipType: string | null;
+     gameOver: boolean;
+     winnerName: string | null;
+     armamentTriggered: boolean;       // ← NEW
+     counterFire: CounterFireResult | null;  // ← NEW
+   }
+   ```
+
+4. **Add SSE event types to `client/src/types/game-events.ts`**:
+   - Extend `GameEventType` union with `| "OBSERVATION_HAKI_USED" | "ARMAMENT_HAKI_TRIGGERED" | "CONQUERORS_HAKI_USED"`
+   - Add data interfaces:
+     ```typescript
+     export interface ObservationHakiUsedEventData {}
+
+     export interface ArmamentHakiTriggeredEventData {
+       turnSkipped: boolean;
+       counterFireRow?: number | null;
+       counterFireCol?: number | null;
+       counterFireResult?: ShotResult | null;
+       counterFireSunkShipType?: string | null;
+     }
+
+     export interface ConquerorsHakiUsedEventData {
+       skipTurns: number;
+       effectLevel: string;
+     }
+     ```
+   - Extend `GameEventHandlers`:
+     ```typescript
+     onObservationHakiUsed?: (data: ObservationHakiUsedEventData) => void;
+     onArmamentHakiTriggered?: (data: ArmamentHakiTriggeredEventData) => void;
+     onConquerorsHakiUsed?: (data: ConquerorsHakiUsedEventData) => void;
+     ```
+
+5. **Wire SSE listeners in `client/src/lib/game/use-game-events.ts`**:
+   - Import the 3 new event data types
+   - Add handler functions following the existing pattern (parse JSON, call handlersRef):
+     ```typescript
+     function handleObservationHakiUsed(event: MessageEvent) {
+       const data: ObservationHakiUsedEventData = event.data ? JSON.parse(event.data) : {};
+       handlersRef.current.onObservationHakiUsed?.(data);
+     }
+
+     function handleArmamentHakiTriggered(event: MessageEvent) {
+       const data: ArmamentHakiTriggeredEventData = JSON.parse(event.data);
+       handlersRef.current.onArmamentHakiTriggered?.(data);
+     }
+
+     function handleConquerorsHakiUsed(event: MessageEvent) {
+       const data: ConquerorsHakiUsedEventData = JSON.parse(event.data);
+       handlersRef.current.onConquerorsHakiUsed?.(data);
+     }
+     ```
+   - Add `addEventListener` calls:
+     ```typescript
+     es.addEventListener("OBSERVATION_HAKI_USED", handleObservationHakiUsed);
+     es.addEventListener("ARMAMENT_HAKI_TRIGGERED", handleArmamentHakiTriggered);
+     es.addEventListener("CONQUERORS_HAKI_USED", handleConquerorsHakiUsed);
+     ```
+
+6. **Add battle API functions to `client/src/lib/api/haki.ts`**:
+   ```typescript
+   import type {
+     ObservationRequest,
+     ObservationResponse,
+     ConquerorsActivationRequest,
+     ConquerorsActivationResponse,
+     ArmamentAssignmentRequest,
+   } from "./types";
+
+   export function activateObservation(
+     gameToken: string,
+     data: ObservationRequest,
+   ): Promise<ObservationResponse> {
+     return apiPost<ObservationResponse>(`/api/games/${gameToken}/haki/observation`, data);
+   }
+
+   export function activateConquerors(
+     gameToken: string,
+     data: ConquerorsActivationRequest,
+   ): Promise<ConquerorsActivationResponse> {
+     return apiPost<ConquerorsActivationResponse>(`/api/games/${gameToken}/haki/conquerors`, data);
+   }
+
+   export function assignArmament(
+     gameToken: string,
+     data: ArmamentAssignmentRequest,
+   ): Promise<void> {
+     return apiPost<void>(`/api/games/${gameToken}/haki/armament`, data);
+   }
+   ```
+
+7. **Update barrel exports in `client/src/lib/api/index.ts`**:
+   - Add `activateObservation, activateConquerors, assignArmament` to the haki re-export line
+   - Add new types to the type re-export block: `ObservationRequest, ObservationResponse, RevealedCell, CellRevealStatus, ConquerorsActivationRequest, ConquerorsActivationResponse, XPatternShotResult, ArmamentAssignmentRequest, CounterFireResult`
 
 ## Verification
 
 ```bash
-cd /home/perico/work/last-island/client && npm run build && npm run lint
+cd client && npx next build
+cd client && npx eslint src/
+grep -r "OBSERVATION_HAKI_USED\|ARMAMENT_HAKI_TRIGGERED\|CONQUERORS_HAKI_USED" client/src/types/game-events.ts client/src/lib/game/use-game-events.ts
+grep -r "activateObservation\|activateConquerors\|assignArmament" client/src/lib/api/haki.ts client/src/lib/api/index.ts
+grep "armamentTriggered" client/src/interfaces/api.ts
+grep "id: string" client/src/interfaces/api.ts | grep -i ship
 ```
-
-Grep for removed concepts (all should return 0 matches):
-```bash
-grep -r "joinGameSchema\|JoinGameFormData" client/src/
-grep -r "join-game" client/src/
-grep -r "Share the token\|Battle Token\|Enter game token" client/src/
-```
-
-Manual check: confirm `joinGame` function in `client/src/lib/api/games.ts` is still present (used by lobby list join).
 
 ## Rollback
 
 ```bash
-git checkout -- client/src/app/page.tsx client/src/app/game/\[token\]/page.tsx
-git checkout -- client/src/lib/validations/join-game.ts
+git checkout -- client/src/interfaces/api.ts client/src/types/game-events.ts client/src/lib/game/use-game-events.ts client/src/lib/api/haki.ts client/src/lib/api/index.ts
 ```
