@@ -24,8 +24,9 @@ import java.util.stream.Collectors;
 @Service
 public class GameExpirationService {
 
-    private static final int TURN_TIMEOUT_SECONDS = 120;
-    private static final int GAME_TIMEOUT_MINUTES = 30;
+    private static final int TURN_TIMEOUT_SECONDS = 60;
+    private static final int GAME_TIMEOUT_MINUTES = 5;
+    private static final int PLACING_SHIPS_TIMEOUT_MINUTES = 5;
 
     private final GameRepository gameRepository;
     private final GameResultRepository gameResultRepository;
@@ -44,6 +45,13 @@ public class GameExpirationService {
     public void checkExpirations() {
         LocalDateTime turnDeadline = LocalDateTime.now().minusSeconds(TURN_TIMEOUT_SECONDS);
         LocalDateTime gameDeadline = LocalDateTime.now().minusMinutes(GAME_TIMEOUT_MINUTES);
+        LocalDateTime placingDeadline = LocalDateTime.now().minusMinutes(PLACING_SHIPS_TIMEOUT_MINUTES);
+
+        // PLACING_SHIPS expiration
+        List<Game> expiredPlacingGames = gameRepository.findExpiredPlacingShipsGames(placingDeadline);
+        for (Game game : expiredPlacingGames) {
+            handleGameExpiration(game);
+        }
 
         // Game expiration takes priority
         List<Game> expiredGames = gameRepository.findExpiredGames(gameDeadline);

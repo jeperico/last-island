@@ -45,3 +45,7 @@ export function getBattleLog(params?: { page?: number; size?: number }): Promise
 export function surrender(token: string): Promise<void> {
   return apiPost<void>(`/api/games/${token}/surrender`);
 }
+
+export function cancelGame(token: string): Promise<void> {
+  return apiPost<void>(`/api/games/${token}/cancel`);
+}

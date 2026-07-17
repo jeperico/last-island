@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useRequireAuth, useAuth } from "@/lib/auth";
-import { getGame } from "@/lib/api";
+import { getGame, cancelGame } from "@/lib/api";
 import type { GamePhase, GameStateResponse } from "@/lib/api/types";
 import { useGameEvents } from "@/lib/game";
 import { useSound } from "@/lib/sound";
@@ -388,13 +388,31 @@ export default function GamePage() {
   return (
     <div className="relative flex flex-1 flex-col h-full">
       {/* Persistent back link — top-left */}
-      <Link
-        href="/"
-        className="print:hidden absolute top-4 left-4 z-10 inline-flex items-center gap-1.5 text-sm font-semibold text-text-secondary hover:text-primary bg-surface-secondary/80 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-border hover:border-primary transition-all"
-      >
-        <span>←</span>
-        <span>Grand Line</span>
-      </Link>
+      {gameState.phase === "WAITING_OPPONENT" && gameState.bluePlayerName === user.name ? (
+        <button
+          type="button"
+          onClick={async () => {
+            try {
+              await cancelGame(token);
+            } catch {
+              // fire-and-forget — navigate regardless
+            }
+            router.push("/");
+          }}
+          className="print:hidden absolute top-4 left-4 z-10 inline-flex items-center gap-1.5 text-sm font-semibold text-text-secondary hover:text-primary bg-surface-secondary/80 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-border hover:border-primary transition-all cursor-pointer"
+        >
+          <span>←</span>
+          <span>Grand Line</span>
+        </button>
+      ) : (
+        <Link
+          href="/"
+          className="print:hidden absolute top-4 left-4 z-10 inline-flex items-center gap-1.5 text-sm font-semibold text-text-secondary hover:text-primary bg-surface-secondary/80 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-border hover:border-primary transition-all"
+        >
+          <span>←</span>
+          <span>Grand Line</span>
+        </Link>
+      )}
 
       {/* Wallpaper picker — top-right */}
       {myAvatar && (

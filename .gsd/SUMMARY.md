@@ -71,3 +71,19 @@ Implementer: modified `service/src/main/java/com/last_island/api/domain/user/ser
 Reviewer: PASS — 7/7 BountyServiceTest green, 73/73 full suite green, client build clean, gain*=3 after ratio block & before newWinnerBounty, loss variable untouched by multiplier
 
 Commit: uncommitted
+
+## 2026-07-17T15:10 — Cancel WAITING_OPPONENT game when creator clicks Grand Line
+
+Implementer: modified `service/src/main/java/com/last_island/api/domain/game/service/GameService.java` (+27): added `cancelGame` method; modified `service/src/main/java/com/last_island/api/domain/game/controller/GameController.java` (+7): added `POST /{token}/cancel` endpoint; modified `service/src/test/java/com/last_island/api/domain/game/service/GameServiceTest.java` (+52): added 4 cancel tests + mocks for LobbyEventEmitter/GameEventEmitter/GameResultRepository/BountyService; modified `client/src/lib/api/games.ts` (+4): added `cancelGame` function; modified `client/src/lib/api/index.ts` (+1/-1): added `cancelGame` to barrel export; modified `client/src/app/game/[token]/page.tsx` (+16/-6): conditional cancel button during WAITING_OPPONENT + cancelGame import
+
+Reviewer: PASS — 77/77 tests green, client build+lint clean, cancelGame sets CANCELLED phase with no bounty changes, frontend calls cancel before router.push when WAITING_OPPONENT+creator, 4 backend tests cover happy path+403+400+404
+
+Commit: uncommitted
+
+## 2026-07-17T15:21 — Change game expiration timers
+
+Implementer: modified `service/src/main/java/com/last_island/api/domain/game/service/GameExpirationService.java` (+8/-2): changed TURN_TIMEOUT_SECONDS 120→60, GAME_TIMEOUT_MINUTES 30→5, added PLACING_SHIPS_TIMEOUT_MINUTES=5 constant + handler call in checkExpirations; modified `service/src/main/java/com/last_island/api/domain/game/repository/GameRepository.java` (+3): added findExpiredPlacingShipsGames query; modified `service/src/test/java/com/last_island/api/domain/game/service/GameExpirationServiceTest.java` (+34/-8): updated timing values in 4 existing tests, added mock for new query, added placingShipsExpired test; modified `client/src/components/ui/countdown-timer.tsx` (+1/-1): turnDurationSeconds default 120→60
+
+Reviewer: PASS — 78/78 tests green, client build+lint clean (0 new errors, 5 pre-existing), grep 0 hits for old values (120/30), constants verified: TURN=60s, GAME=5min, PLACING_SHIPS=5min, frontend default=60
+
+Commit: uncommitted

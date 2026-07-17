@@ -85,6 +85,13 @@ public class GameController {
         return boardService.fireShot(token, principal.getId(), request);
     }
 
+    @PostMapping("/{token}/cancel")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void cancelGame(@PathVariable String token,
+                           @AuthenticationPrincipal AuthenticatedUser principal) {
+        gameService.cancelGame(token, principal.getId());
+    }
+
     @PostMapping("/{token}/surrender")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void surrender(@PathVariable String token,

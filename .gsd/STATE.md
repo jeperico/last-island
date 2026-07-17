@@ -2,7 +2,7 @@
 
 ## Position
 
-Plan written — 3x bounty gain multiplier for wins
+Plan written — Change game expiration timers (turn 60s, game 5min, placing 5min)
 
 ## Decisions
 
@@ -18,4 +18,4 @@ Plan written — 3x bounty gain multiplier for wins
 
 ## Last verification
 
-PASS at 2026-07-17T14:34 — 7/7 BountyServiceTest green, 73/73 full suite green, client build clean, gain*=3 placed correctly, loss values unchanged
+PASS at 2026-07-17T15:25 — 78/78 tests green, client build+lint clean (0 new errors), grep confirms no old timeout values (120/30) remain, TURN_TIMEOUT_SECONDS=60, GAME_TIMEOUT_MINUTES=5, PLACING_SHIPS_TIMEOUT_MINUTES=5, frontend default=60

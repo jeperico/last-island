@@ -56,13 +56,14 @@ class GameExpirationServiceTest {
 
     @Test
     void checkExpirations_turnExpired_loserIsTimedOutPlayer() {
-        // Given: a game with turn started 121 seconds ago (blue's turn)
+        // Given: a game with turn started 61 seconds ago (blue's turn)
         Game game = buildInProgressGame();
         game.setCurrentTurn(bluePlayer);
-        game.setTurnStartedAt(LocalDateTime.now().minusSeconds(121));
+        game.setTurnStartedAt(LocalDateTime.now().minusSeconds(61));
 
         when(gameRepository.findExpiredGames(any())).thenReturn(Collections.emptyList());
         when(gameRepository.findGamesWithExpiredTurns(any())).thenReturn(List.of(game));
+        when(gameRepository.findExpiredPlacingShipsGames(any())).thenReturn(Collections.emptyList());
 
         // When
         gameExpirationService.checkExpirations();
@@ -84,13 +85,14 @@ class GameExpirationServiceTest {
 
     @Test
     void checkExpirations_gameExpired_setsPhaseToCancel() {
-        // Given: a game started 31 minutes ago
+        // Given: a game started 6 minutes ago
         Game game = buildInProgressGame();
-        game.setStartedAt(LocalDateTime.now().minusMinutes(31));
-        game.setTurnStartedAt(LocalDateTime.now().minusSeconds(60));
+        game.setStartedAt(LocalDateTime.now().minusMinutes(6));
+        game.setTurnStartedAt(LocalDateTime.now().minusSeconds(30));
 
         when(gameRepository.findExpiredGames(any())).thenReturn(List.of(game));
         when(gameRepository.findGamesWithExpiredTurns(any())).thenReturn(Collections.emptyList());
+        when(gameRepository.findExpiredPlacingShipsGames(any())).thenReturn(Collections.emptyList());
 
         // When
         gameExpirationService.checkExpirations();
@@ -106,6 +108,7 @@ class GameExpirationServiceTest {
         // Given: no expired games or turns
         when(gameRepository.findExpiredGames(any())).thenReturn(Collections.emptyList());
         when(gameRepository.findGamesWithExpiredTurns(any())).thenReturn(Collections.emptyList());
+        when(gameRepository.findExpiredPlacingShipsGames(any())).thenReturn(Collections.emptyList());
 
         // When
         gameExpirationService.checkExpirations();
@@ -119,12 +122,13 @@ class GameExpirationServiceTest {
     void checkExpirations_gameInBothQueries_onlyCancelsGame() {
         // Given: a game that appears in both expired-game and expired-turn queries
         Game game = buildInProgressGame();
-        game.setStartedAt(LocalDateTime.now().minusMinutes(31));
+        game.setStartedAt(LocalDateTime.now().minusMinutes(6));
         game.setCurrentTurn(bluePlayer);
-        game.setTurnStartedAt(LocalDateTime.now().minusSeconds(121));
+        game.setTurnStartedAt(LocalDateTime.now().minusSeconds(61));
 
         when(gameRepository.findExpiredGames(any())).thenReturn(List.of(game));
         when(gameRepository.findGamesWithExpiredTurns(any())).thenReturn(List.of(game));
+        when(gameRepository.findExpiredPlacingShipsGames(any())).thenReturn(Collections.emptyList());
 
         // When
         gameExpirationService.checkExpirations();
@@ -136,6 +140,37 @@ class GameExpirationServiceTest {
         assertThat(game.getCurrentTurn()).isEqualTo(bluePlayer);
         // save called once for game expiration only
         verify(gameRepository, times(1)).save(game);
+    }
+
+    @Test
+    void checkExpirations_placingShipsExpired_setsPhaseToCancel() {
+        // Given: a game in PLACING_SHIPS phase with updatedAt 6 minutes ago
+        Board redBoard = Board.builder()
+                .owner(redPlayer)
+                .ships(new ArrayList<>())
+                .shots(new ArrayList<>())
+                .build();
+        redBoard.setId(UUID.randomUUID());
+
+        Game game = Game.builder()
+                .redBoard(redBoard)
+                .phase(GamePhase.PLACING_SHIPS)
+                .token("PLACING1")
+                .build();
+        game.setId(UUID.randomUUID());
+        game.setUpdatedAt(LocalDateTime.now().minusMinutes(6));
+
+        when(gameRepository.findExpiredPlacingShipsGames(any())).thenReturn(List.of(game));
+        when(gameRepository.findExpiredGames(any())).thenReturn(Collections.emptyList());
+        when(gameRepository.findGamesWithExpiredTurns(any())).thenReturn(Collections.emptyList());
+
+        // When
+        gameExpirationService.checkExpirations();
+
+        // Then
+        verify(gameRepository).save(game);
+        assertThat(game.getPhase()).isEqualTo(GamePhase.CANCELLED);
+        assertThat(game.getEndedAt()).isNotNull();
     }
 
     // ─── Helpers ─────────────────────────────────────────────────────────────
@@ -177,8 +212,8 @@ class GameExpirationServiceTest {
                 .token("ABC123")
                 .build();
         game.setId(UUID.randomUUID());
-        game.setStartedAt(LocalDateTime.now().minusMinutes(10));
-        game.setTurnStartedAt(LocalDateTime.now().minusSeconds(60));
+        game.setStartedAt(LocalDateTime.now().minusMinutes(2));
+        game.setTurnStartedAt(LocalDateTime.now().minusSeconds(30));
 
         return game;
     }
