@@ -35,8 +35,8 @@ const HIT_SOUND = "/audio/sfx/battle/shot.mp3";
 const INCOMING_HIT_SOUND = "/audio/sfx/battle/hit.mp3";
 const SUNK_SOUND = "/audio/sfx/battle/sunk.mp3";
 const AVATAR_HOVER_SOUND = "/audio/sfx/ui/avatar-selector.mp3";
-const DEFAULT_MUSIC_VOLUME = 0.15;
-const DEFAULT_SFX_VOLUME = 0.5;
+const DEFAULT_MUSIC_VOLUME = 0.5;
+const DEFAULT_SFX_VOLUME = 0.8;
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 

@@ -2,7 +2,7 @@
 
 ## Position
 
-Plan written — Allow fleet redeployment during PLACING_SHIPS phase
+Plan written — Improve game waiting pages (WAITING_OPPONENT and Fleet deployed) UI
 
 ## Decisions
 
@@ -18,4 +18,4 @@ Plan written — Allow fleet redeployment during PLACING_SHIPS phase
 
 ## Last verification
 
-PASS at 2026-07-15T16:38 — build ✓, lint 0 new errors (4 pre-existing errors same as before), grep 0 matches for joinGameSchema/JoinGameFormData/join-game/Battle Token/Enter game token/Share the token/Join by Token, handleJoinFromList+joinGame still present in lobby, WAITING_OPPONENT shows only "Waiting for an opponent from the Grand Line…"
+PASS at 2026-07-16T14:46 — build ✓, lint 0 errors, WAITING_OPPONENT shows avatar/name/rank/bounty/wins + waiting animation, Fleet deployed shows ship manifest with SHIP_DISPLAY_NAMES + size dots + Redeploy button, wallpaper backgrounds render on both screens

@@ -1,49 +1,57 @@
-# Allow fleet redeployment during PLACING_SHIPS phase
+# Improve game waiting pages (WAITING_OPPONENT and Fleet deployed) UI
 
 ## Objective
 
-Allow players to redeploy their fleet (clear + re-place ships) while the game is still in PLACING_SHIPS phase, with a "Redeploy Fleet" button on the waiting screen.
+Redesign the WAITING_OPPONENT and 'Fleet deployed' waiting screens with richer content — player avatar/stats, fleet manifest, and better visual hierarchy — while keeping the existing layout constraints and One Piece nautical theme.
 
 ## Files to touch
 
-- modify `service/src/main/java/com/last_island/api/domain/board/service/BoardService.java` — replace 409 throw with `board.getShips().clear()`
-- modify `service/src/test/java/com/last_island/api/domain/board/service/BoardServicePlaceShipsTest.java` — rewrite `placeShips_fleetAlreadyDeployed_rejects` to assert successful redeployment
-- modify `client/src/app/game/[token]/page.tsx` — add `isRedeploying` state and "Redeploy Fleet" button on the waiting screen
+- modify `client/src/app/game/[token]/page.tsx`
 
 ## Steps
 
-1. In `BoardService.java` (lines 73–76), replace the `if (!board.getShips().isEmpty())` block that throws `ResponseStatusException(HttpStatus.CONFLICT, "Fleet already deployed")` with `board.getShips().clear()` — orphanRemoval on the Board→Ship relationship handles DB deletion.
+1. Add imports at the top of the file:
+   - `AvatarIcon` from `@/components/ui`
+   - `formatBounty` from `@/lib/format`
+   - `SHIP_DISPLAY_NAMES, SHIP_SIZES` from `@/lib/game/ship-config`
 
-2. In `BoardServicePlaceShipsTest.java`, rename `placeShips_fleetAlreadyDeployed_rejects` to `placeShips_fleetAlreadyDeployed_clearsAndRedeploys` and rewrite it to:
-   - Set up a board with an existing ship (as before).
-   - Call `boardService.placeShips(...)` with a valid full fleet.
-   - Assert no exception is thrown.
-   - Assert `board.getShips().size() == 5` (old ship cleared, new fleet placed).
-   - Assert old ship type is not present if it wasn't in the new fleet (or verify all 5 new types are present).
+2. Redesign the **WAITING_OPPONENT** section (inside `renderPhaseContent`):
+   - Keep the outer `div` structure, wallpaper background, and `-z-10` layer unchanged
+   - Replace the single card with a wider card (`max-w-md`) containing:
+     - **Player identity section**: `AvatarIcon` (size `lg`) with the user's avatar and rank, the player name in `text-lg font-bold`, rank text below in `text-text-secondary text-sm`, and bounty formatted with `formatBounty` + ₿ suffix in `text-primary`
+     - **Divider**: a `border-t border-border` with some vertical margin
+     - **Waiting message section**: Keep the ⛵ emoji (smaller, `text-4xl`) with bounce animation, the "Scanning the horizon…" title (`text-lg`), and the description text
+     - **Status pill**: Keep the pulsing dot + "Searching for opponents…" at the bottom
+   - Add a subtle stats row between the avatar and divider: wins count and bounty in a `flex gap-6` row with labels
 
-3. In `client/src/app/game/[token]/page.tsx`, in the PLACING_SHIPS section:
-   - Add a `const [isRedeploying, setIsRedeploying] = useState(false)` state variable near the top of the component (with other state).
-   - Change the condition that shows `ShipPlacement` from `if (!hasPlacedShips)` to `if (!hasPlacedShips || isRedeploying)`.
-   - Wrap `handlePlacementComplete` or create a new wrapper that also calls `setIsRedeploying(false)` after placement succeeds.
-   - In the "Fleet deployed, Captain!" waiting screen, add a "Redeploy Fleet" button (styled consistently with existing buttons) that calls `setIsRedeploying(true)`. Place it below the "Opponent preparing fleet…" status pill.
+3. Redesign the **Fleet deployed** section (PLACING_SHIPS, hasPlacedShips=true, isRedeploying=false):
+   - Keep the outer `div` structure, wallpaper background unchanged
+   - Replace the single card with a wider card (`max-w-md`) containing:
+     - **Header**: 🧭 emoji (text-3xl, animate-pulse) + "Fleet deployed, Captain!" title side by side in a row
+     - **Fleet manifest**: A compact list of deployed ships from `gameState.myBoard.ships`, each row showing ship name (from `SHIP_DISPLAY_NAMES`) and size dots (filled circles representing cells). Use `text-text-secondary` for names and `bg-primary` circles for size visualization. Wrap in a bordered section with `bg-surface-secondary/50 rounded-lg p-3`
+     - **Status pill**: Keep the pulsing dot + "Opponent preparing fleet…" text
+     - **Redeploy button**: Keep the existing ghost-style button with 🔄 icon, unchanged
+
+4. Ensure no new TypeScript errors or lint violations:
+   - All referenced props from `GameStateResponse` exist (`bluePlayerAvatar`, `bluePlayerRank`, `bluePlayerBounty`, `bluePlayerWins`, `myBoard.ships`)
+   - Use `user.name`, `user.rank`, `user.bounty`, `user.wins` from the auth context where appropriate
+   - Guard `myBoard` access with existing `gameState.myBoard !== null` checks
 
 ## Verification
 
 ```bash
-make service-test
-make client-build
-make client-lint
+cd client && npm run build
+cd client && npx eslint src/app/game/\[token\]/page.tsx --max-warnings 999
 ```
 
-- `service-test`: all tests green, including the rewritten redeployment test.
-- `client-build`: TypeScript compiles with no errors.
-- `client-lint`: no new lint errors introduced.
-- Manual grep: `grep -r "Fleet already deployed" service/src/main/` returns 0 results.
+Manual checks:
+- Verify WAITING_OPPONENT shows avatar, name, rank, bounty, wins, and the waiting animation
+- Verify Fleet deployed shows the ship manifest with names and size dots, plus the Redeploy button
+- Verify wallpaper background still renders correctly on both screens
+- Verify existing behavior (SSE transitions, redeploy flow) is unaffected
 
 ## Rollback
 
 ```bash
-git checkout -- service/src/main/java/com/last_island/api/domain/board/service/BoardService.java
-git checkout -- service/src/test/java/com/last_island/api/domain/board/service/BoardServicePlaceShipsTest.java
 git checkout -- client/src/app/game/\[token\]/page.tsx
 ```

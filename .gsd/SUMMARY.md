@@ -39,3 +39,19 @@ Implementer: deleted `client/src/lib/validations/join-game.ts` (-5); modified `c
 Reviewer: PASS — build ✓, lint 0 new errors (4 pre-existing errors same as before), grep 0 matches for joinGameSchema/JoinGameFormData/join-game/Battle Token/Enter game token/Share the token/Join by Token, handleJoinFromList+joinGame still present in lobby, WAITING_OPPONENT shows only "Waiting for an opponent from the Grand Line…"
 
 Commit: uncommitted
+
+## 2026-07-16T14:32 — Allow fleet redeployment during PLACING_SHIPS phase
+
+Implementer: modified `service/src/main/java/com/last_island/api/domain/board/service/BoardService.java` (+2/-2), `service/src/test/java/com/last_island/api/domain/board/service/BoardServicePlaceShipsTest.java` (+17/-10), `client/src/app/game/[token]/page.tsx` (+13/-3)
+
+Reviewer: pending
+
+Commit: uncommitted
+
+## 2026-07-16T14:43 — Improve game waiting pages (WAITING_OPPONENT and Fleet deployed) UI
+
+Implementer: modified `client/src/app/game/[token]/page.tsx` (+45/-20): added AvatarIcon/formatBounty/SHIP_DISPLAY_NAMES/SHIP_SIZES imports, redesigned WAITING_OPPONENT card with player avatar, name, rank, bounty, stats row, divider, and waiting animation; redesigned Fleet deployed card with header row, fleet manifest (ship names + size dots), status pill, and redeploy button
+
+Reviewer: PASS — build ✓, lint 0 errors, all plan elements verified present (avatar, stats, fleet manifest with size dots, wallpaper bg, redeploy button)
+
+Commit: uncommitted

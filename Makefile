@@ -149,12 +149,12 @@ client-lint: ## Lint client code
 
 .PHONY: normalize-audio
 
-normalize-audio: ## Normalize all mp3 files to -16 LUFS (requires ffmpeg)
+normalize-audio: ## Normalize all mp3 files to -32 LUFS (requires ffmpeg)
 	@command -v ffmpeg >/dev/null 2>&1 || { echo "Error: ffmpeg is required but not installed."; exit 1; }; \
-	echo "Normalizing audio files to -16 LUFS..."; \
+	echo "Normalizing audio files to -32 LUFS..."; \
 	find client/public -name '*.mp3' -print0 | while IFS= read -r -d '' f; do \
 		echo "  ⟳ $$f"; \
-		ffmpeg -nostdin -y -i "./$$f" -af loudnorm=I=-16:TP=-1.5:LRA=11 -loglevel error "./$${f%.mp3}_norm.mp3" && \
+		ffmpeg -nostdin -y -i "./$$f" -af loudnorm=I=-32:TP=-1.5:LRA=11 -loglevel error "./$${f%.mp3}_norm.mp3" && \
 		mv "./$${f%.mp3}_norm.mp3" "./$$f"; \
 	done; \
 	echo "Done ✔"
