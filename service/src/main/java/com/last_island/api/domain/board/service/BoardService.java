@@ -19,6 +19,7 @@ import com.last_island.api.domain.game.repository.GameRepository;
 import com.last_island.api.domain.game.repository.GameResultRepository;
 import com.last_island.api.domain.user.entity.User;
 import com.last_island.api.domain.user.service.BountyService;
+import com.last_island.api.domain.haki.dto.ArmamentTriggerResult;
 import com.last_island.api.domain.haki.service.HakiBattleService;
 import com.last_island.api.infrastructure.sse.GameEventEmitter;
 import org.springframework.http.HttpStatus;
@@ -143,18 +144,20 @@ public class BoardService {
             board.getShips().add(ship);
         }
 
-        // 10. Check if both players have placed → transition to IN_PROGRESS
+        // 10. Initialize HakiBattleState for this board (early, per-board)
+        hakiBattleService.initializeForBoard(board);
+
+        // 11. Check if both players have placed → transition to IN_PROGRESS
         if (opponentBoard != null && !opponentBoard.getShips().isEmpty()) {
             game.setPhase(GamePhase.IN_PROGRESS);
             game.setStartedAt(LocalDateTime.now());
             game.setTurnStartedAt(LocalDateTime.now());
-            hakiBattleService.initializeHakiBattleStates(game);
         }
 
-        // 11. Save game (cascades board + ships)
+        // 12. Save game (cascades board + ships)
         gameRepository.save(game);
 
-        // 12. Emit SSE events after commit
+        // 13. Emit SSE events after commit
         boolean gameStarted = game.getPhase() == GamePhase.IN_PROGRESS;
         UUID opponentUserId = opponentBoard.getOwner().getId();
         if (TransactionSynchronizationManager.isSynchronizationActive()) {
@@ -170,7 +173,7 @@ public class BoardService {
             });
         }
 
-        // 13. Return response
+        // 14. Return response
         return BoardMapper.toResponse(board, game.getPhase().name());
     }
 
@@ -252,6 +255,13 @@ public class BoardService {
                 .build();
         opponentBoard.getShots().add(shot);
 
+        // 8b. Check Armament trigger
+        ArmamentTriggerResult armamentResult = null;
+        if (hitShip != null && (result == ShotResult.HIT || result == ShotResult.SUNK)) {
+            armamentResult = hakiBattleService.checkArmamentTrigger(
+                    opponentBoard, hitShip, request.row(), request.col(), playerBoard);
+        }
+
         // 9. Update attacker stats
         User attacker = playerBoard.getOwner();
         attacker.setTotalShots(attacker.getTotalShots() + 1);
@@ -302,11 +312,34 @@ public class BoardService {
 
         // 11. Switch turn only on MISS (player keeps firing on HIT/SUNK)
         boolean turnSwitched = false;
+        boolean turnSkippedByArmament = false;
         if (result == ShotResult.MISS) {
             game.setCurrentTurn(opponentBoard.getOwner());
             game.setTurnStartedAt(LocalDateTime.now());
             turnSwitched = true;
             hakiBattleService.resetHakiUsedThisTurn(opponentBoard.getId());
+
+            // 11b. Check if the player who just missed (attacker) owes skip turns.
+            // opponentSkipTurns on the DEFENDER's (opponentBoard) state means
+            // "the attacker of this board owes N skipped turns."
+            // But here the attacker already MISSED and turn went to defender.
+            // The skip is consumed when the attacker's turn would START again.
+            // So we DON'T consume here — the skip will be consumed when the NEW current
+            // player (defender/opponent) fires and misses, switching turn back to attacker.
+            // At THAT point, the code below handles it.
+
+            // However, we must also check: is the RECEIVER (opponentBoard.owner = defender)
+            // owed any skips from the OTHER direction? I.e., does playerBoard.state have
+            // opponentSkipTurns > 0 meaning "the opponent of playerBoard (= defender) owes skips"?
+            // If so, defender's turn is skipped and turn goes back to attacker.
+            if (hakiBattleService.consumeSkipTurn(playerBoard)) {
+                // The defender (who just received the turn) owes a skip.
+                // Switch turn BACK to attacker.
+                game.setCurrentTurn(playerBoard.getOwner());
+                game.setTurnStartedAt(LocalDateTime.now());
+                turnSkippedByArmament = true;
+                hakiBattleService.resetHakiUsedThisTurn(playerBoard.getId());
+            }
         } else {
             // HIT or SUNK — same player continues, reset turn timer
             game.setTurnStartedAt(LocalDateTime.now());
@@ -322,16 +355,27 @@ public class BoardService {
         String shotResult = result.name();
         String sunkType = sunkShipType;
         boolean isOpponentTurn = turnSwitched;
+        final ArmamentTriggerResult finalArmamentResult = armamentResult;
+        final boolean finalTurnSkippedByArmament = turnSkippedByArmament;
         if (TransactionSynchronizationManager.isSynchronizationActive()) {
             TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
                 @Override
                 public void afterCommit() {
                     gameEventEmitter.emitShotReceived(token, targetPlayerId, shotRow, shotCol, shotResult, sunkType, isOpponentTurn);
+                    if (finalArmamentResult != null) {
+                        gameEventEmitter.emitArmamentHakiTriggered(token, userId, finalArmamentResult.turnSkipped(),
+                                finalArmamentResult.counterFire());
+                    }
+                    if (finalTurnSkippedByArmament) {
+                        gameEventEmitter.emitArmamentHakiTriggered(token, targetPlayerId, true, null);
+                    }
                 }
             });
         }
 
         // 14. Return response
-        return new ShotResponse(result, sunkShipType, request.row(), request.col(), false, null);
+        boolean armamentTriggered = armamentResult != null;
+        return new ShotResponse(result, sunkShipType, request.row(), request.col(), false, null,
+                armamentTriggered, armamentResult != null ? armamentResult.counterFire() : null);
     }
 }

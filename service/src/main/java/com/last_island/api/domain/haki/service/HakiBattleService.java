@@ -2,13 +2,13 @@ package com.last_island.api.domain.haki.service;
 
 import com.last_island.api.domain.board.entity.Board;
 import com.last_island.api.domain.board.entity.Ship;
+import com.last_island.api.domain.board.entity.Shot;
 import com.last_island.api.domain.board.enums.Orientation;
+import com.last_island.api.domain.board.enums.ShotResult;
 import com.last_island.api.domain.game.entity.Game;
 import com.last_island.api.domain.game.enums.GamePhase;
 import com.last_island.api.domain.game.repository.GameRepository;
-import com.last_island.api.domain.haki.dto.ObservationRequest;
-import com.last_island.api.domain.haki.dto.ObservationResponse;
-import com.last_island.api.domain.haki.dto.RevealedCell;
+import com.last_island.api.domain.haki.dto.*;
 import com.last_island.api.domain.haki.entity.HakiBattleState;
 import com.last_island.api.domain.haki.entity.HakiProfile;
 import com.last_island.api.domain.haki.enums.CellRevealStatus;
@@ -46,13 +46,20 @@ public class HakiBattleService {
         initializeForBoard(game.getRedBoard());
     }
 
-    private void initializeForBoard(Board board) {
+    @Transactional
+    public void initializeForBoard(Board board) {
+        // If state already exists (e.g., from early initialization), skip
+        if (hakiBattleStateRepository.findByBoardId(board.getId()).isPresent()) {
+            return;
+        }
+
         UUID ownerId = board.getOwner().getId();
         HakiProfile profile = hakiProfileRepository.findByUserId(ownerId)
                 .orElse(null);
 
         int observationLevel = (profile != null) ? profile.getObservationLevel() : 0;
         int usesRemaining = computeUsesRemaining(observationLevel);
+        int armamentLevel = (profile != null) ? profile.getArmamentLevel() : 0;
 
         HakiBattleState state = HakiBattleState.builder()
                 .boardId(board.getId())
@@ -61,6 +68,12 @@ public class HakiBattleService {
                 .observationLevel(observationLevel)
                 .conquerorsUsesRemaining(0)
                 .hakiUsedThisTurn(false)
+                .armamentLevel(armamentLevel)
+                .armamentShip1Id(null)
+                .armamentShip2Id(null)
+                .armamentShip1HitsAbsorbed(0)
+                .armamentShip2HitsAbsorbed(0)
+                .opponentSkipTurns(0)
                 .build();
 
         hakiBattleStateRepository.save(state);
@@ -73,6 +86,245 @@ public class HakiBattleService {
             default -> 0;
         };
     }
+
+    // --- Armament Haki: Assignment ---
+
+    @Transactional
+    public void assignArmament(String token, UUID userId, ArmamentAssignmentRequest request) {
+        // Fetch game
+        Game game = gameRepository.findByTokenAndIsActiveTrue(token)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Battle not found"));
+
+        // Validate phase
+        if (game.getPhase() != GamePhase.PLACING_SHIPS) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Armament can only be assigned during fleet deployment");
+        }
+
+        // Identify player's board
+        Board board;
+        if (game.getBlueBoard().getOwner().getId().equals(userId)) {
+            board = game.getBlueBoard();
+        } else if (game.getRedBoard().getOwner().getId().equals(userId)) {
+            board = game.getRedBoard();
+        } else {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You are not a participant in this battle");
+        }
+
+        // Validate ships placed
+        if (board.getShips().isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "You must place your fleet before assigning Armament Haki");
+        }
+
+        // Fetch HakiBattleState
+        HakiBattleState state = hakiBattleStateRepository.findByBoardId(board.getId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Haki battle state not found"));
+
+        // Validate armament level
+        if (state.getArmamentLevel() <= 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Armament Haki not unlocked");
+        }
+
+        // Validate ship1Id belongs to board
+        if (request.ship1Id() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "ship1Id is required");
+        }
+        boolean ship1OnBoard = board.getShips().stream()
+                .anyMatch(s -> s.getId().equals(request.ship1Id()));
+        if (!ship1OnBoard) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "ship1Id does not belong to your board");
+        }
+
+        // Lv1: ship2Id must be null
+        if (state.getArmamentLevel() == 1) {
+            if (request.ship2Id() != null) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Level 1 Armament only supports one ship");
+            }
+        }
+
+        // Lv2+: ship2Id validation
+        if (state.getArmamentLevel() >= 2) {
+            if (request.ship2Id() == null) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Level 2+ Armament requires two ships");
+            }
+            if (request.ship2Id().equals(request.ship1Id())) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "ship1Id and ship2Id must be different ships");
+            }
+            boolean ship2OnBoard = board.getShips().stream()
+                    .anyMatch(s -> s.getId().equals(request.ship2Id()));
+            if (!ship2OnBoard) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "ship2Id does not belong to your board");
+            }
+        }
+
+        // Set armament ship IDs
+        state.setArmamentShip1Id(request.ship1Id());
+        state.setArmamentShip2Id(state.getArmamentLevel() >= 2 ? request.ship2Id() : null);
+        // Reset absorbed hits in case of reassignment
+        state.setArmamentShip1HitsAbsorbed(0);
+        state.setArmamentShip2HitsAbsorbed(0);
+        state.setOpponentSkipTurns(0);
+
+        hakiBattleStateRepository.save(state);
+    }
+
+    // --- Armament Haki: Trigger Check ---
+
+    @Transactional
+    public ArmamentTriggerResult checkArmamentTrigger(Board defenderBoard, Ship hitShip, int hitRow, int hitCol, Board attackerBoard) {
+        HakiBattleState state = hakiBattleStateRepository.findByBoardId(defenderBoard.getId())
+                .orElse(null);
+
+        if (state == null || state.getArmamentLevel() <= 0) {
+            return null;
+        }
+
+        UUID hitShipId = hitShip.getId();
+
+        // Check ship1 (weak buff)
+        if (hitShipId.equals(state.getArmamentShip1Id())) {
+            if (state.getArmamentShip1HitsAbsorbed() < 1) {
+                state.setArmamentShip1HitsAbsorbed(state.getArmamentShip1HitsAbsorbed() + 1);
+                state.setOpponentSkipTurns(state.getOpponentSkipTurns() + 1);
+                hakiBattleStateRepository.save(state);
+                return new ArmamentTriggerResult(true, null);
+            }
+            return null;
+        }
+
+        // Check ship2 (strong/awakened buff) — only for Lv2+
+        if (state.getArmamentLevel() >= 2 && hitShipId.equals(state.getArmamentShip2Id())) {
+            if (state.getArmamentShip2HitsAbsorbed() < 3) {
+                state.setArmamentShip2HitsAbsorbed(state.getArmamentShip2HitsAbsorbed() + 1);
+                state.setOpponentSkipTurns(state.getOpponentSkipTurns() + 1);
+
+                CounterFireResult counterFire = null;
+                if (state.getArmamentLevel() == 3) {
+                    counterFire = resolveCounterFire(attackerBoard, hitRow, hitCol, defenderBoard.getOwner());
+                }
+
+                hakiBattleStateRepository.save(state);
+                return new ArmamentTriggerResult(true, counterFire);
+            }
+            return null;
+        }
+
+        return null;
+    }
+
+    // --- Armament Haki: Counter-fire ---
+
+    CounterFireResult resolveCounterFire(Board attackerBoard, int targetRow, int targetCol, com.last_island.api.domain.user.entity.User defender) {
+        int[] targetCell = findCounterFireCell(attackerBoard, targetRow, targetCol);
+        int fireRow = targetCell[0];
+        int fireCol = targetCell[1];
+
+        // Resolve the shot on attacker's board
+        ShotResult result = ShotResult.MISS;
+        Ship hitShip = null;
+
+        for (Ship ship : attackerBoard.getShips()) {
+            int shipSize = ship.getType().getSize();
+            for (int i = 0; i < shipSize; i++) {
+                int cellRow = ship.getRow() + (ship.getOrientation() == Orientation.VERTICAL ? i : 0);
+                int cellCol = ship.getCol() + (ship.getOrientation() == Orientation.HORIZONTAL ? i : 0);
+
+                if (cellRow == fireRow && cellCol == fireCol) {
+                    ship.setHits(ship.getHits() + 1);
+                    hitShip = ship;
+                    result = ship.isSunk() ? ShotResult.SUNK : ShotResult.HIT;
+                    break;
+                }
+            }
+            if (hitShip != null) {
+                break;
+            }
+        }
+
+        // Create shot on attacker's board (fired by defender)
+        Shot counterShot = Shot.builder()
+                .board(attackerBoard)
+                .attacker(defender)
+                .row(fireRow)
+                .col(fireCol)
+                .result(result)
+                .build();
+        attackerBoard.getShots().add(counterShot);
+
+        String sunkShipType = (result == ShotResult.SUNK && hitShip != null) ? hitShip.getType().name() : null;
+        return new CounterFireResult(result, fireRow, fireCol, sunkShipType);
+    }
+
+    private int[] findCounterFireCell(Board attackerBoard, int targetRow, int targetCol) {
+        // Check if target cell is already hit
+        if (!isCellAlreadyHit(attackerBoard, targetRow, targetCol)) {
+            return new int[]{targetRow, targetCol};
+        }
+
+        // Try adjacent cells (distance 1: orthogonal + diagonal)
+        int[] found = findAvailableCellAtDistance(attackerBoard, targetRow, targetCol, 1);
+        if (found != null) {
+            return found;
+        }
+
+        // Try distance 2
+        found = findAvailableCellAtDistance(attackerBoard, targetRow, targetCol, 2);
+        if (found != null) {
+            return found;
+        }
+
+        // Expand further if needed (should not happen in practice on a 10x10 board)
+        for (int distance = 3; distance <= 9; distance++) {
+            found = findAvailableCellAtDistance(attackerBoard, targetRow, targetCol, distance);
+            if (found != null) {
+                return found;
+            }
+        }
+
+        // Fallback: should never reach here on a 10x10 board
+        return new int[]{targetRow, targetCol};
+    }
+
+    private int[] findAvailableCellAtDistance(Board board, int centerRow, int centerCol, int distance) {
+        for (int dr = -distance; dr <= distance; dr++) {
+            for (int dc = -distance; dc <= distance; dc++) {
+                if (Math.abs(dr) != distance && Math.abs(dc) != distance) {
+                    continue; // Only check cells at exactly this distance (Chebyshev)
+                }
+                int r = centerRow + dr;
+                int c = centerCol + dc;
+                if (r >= 0 && r <= 9 && c >= 0 && c <= 9 && !isCellAlreadyHit(board, r, c)) {
+                    return new int[]{r, c};
+                }
+            }
+        }
+        return null;
+    }
+
+    private boolean isCellAlreadyHit(Board board, int row, int col) {
+        return board.getShots().stream()
+                .anyMatch(s -> s.getRow() == row && s.getCol() == col);
+    }
+
+    // --- Armament Haki: Turn Skip ---
+
+    /**
+     * Checks if the player about to receive the turn owes skip turns.
+     * Called after a turn switch. Returns true if the turn was skipped.
+     */
+    @Transactional
+    public boolean consumeSkipTurn(Board defenderBoard) {
+        HakiBattleState state = hakiBattleStateRepository.findByBoardId(defenderBoard.getId())
+                .orElse(null);
+
+        if (state != null && state.getOpponentSkipTurns() > 0) {
+            state.setOpponentSkipTurns(state.getOpponentSkipTurns() - 1);
+            hakiBattleStateRepository.save(state);
+            return true;
+        }
+        return false;
+    }
+
+    // --- Observation Haki ---
 
     @Transactional
     public ObservationResponse activateObservation(String token, UUID userId, ObservationRequest request) {

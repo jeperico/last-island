@@ -2,7 +2,7 @@
 
 ## Position
 
-Plan written — Observation Haki backend (HakiBattleState entity, service, endpoint, tests)
+Plan written — Armament Haki backend (assignment endpoint, passive trigger in fireShot, counter-fire, turn skip, tests)
 
 ## Decisions
 
@@ -18,4 +18,4 @@ Plan written — Observation Haki backend (HakiBattleState entity, service, endp
 
 ## Last verification
 
-PASS at 2026-07-17T17:43 — 116/116 tests green (20 HakiBattleServiceTest), compile clean, grep confirms HakiBattleState/OBSERVATION_HAKI_USED/observation coverage
+PASS at 2026-07-17T18:06 — 143/143 tests green (23 HakiArmamentServiceTest + 22 BoardServiceFireShotTest + 20 HakiBattleServiceTest), compile clean, all armament rules verified (assignment, trigger, counter-fire adjacency, turn skip, no recursion)

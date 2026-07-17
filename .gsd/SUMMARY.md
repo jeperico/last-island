@@ -111,3 +111,11 @@ Implementer: created `service/src/main/resources/db/migration/V12__create_haki_b
 Reviewer: PASS — 116/116 tests green (20 HakiBattleServiceTest), compile clean, grep confirms HakiBattleState/OBSERVATION_HAKI_USED/observation coverage, all Observation Haki rules correctly enforced (level-based stacking, bounds validation, turn checks, SSE to opponent without location)
 
 Commit: uncommitted
+
+## 2026-07-17T18:04 — Backend: Armament Haki Battle Ability
+
+Implementer: created `service/src/main/resources/db/migration/V13__add_armament_to_haki_battle_state.sql` (+7), `service/src/main/java/com/last_island/api/domain/haki/dto/ArmamentAssignmentRequest.java` (+6), `service/src/main/java/com/last_island/api/domain/haki/dto/ArmamentTriggerResult.java` (+4), `service/src/main/java/com/last_island/api/domain/haki/dto/CounterFireResult.java` (+6), `service/src/test/java/com/last_island/api/domain/haki/service/HakiArmamentServiceTest.java` (+430); modified `service/src/main/java/com/last_island/api/domain/haki/entity/HakiBattleState.java` (+22), `service/src/main/java/com/last_island/api/domain/haki/service/HakiBattleService.java` (+252), `service/src/main/java/com/last_island/api/domain/board/dto/ShotResponse.java` (+8), `service/src/main/java/com/last_island/api/domain/board/service/BoardService.java` (+40/-5), `service/src/main/java/com/last_island/api/domain/game/controller/GameController.java` (+10), `service/src/main/java/com/last_island/api/infrastructure/sse/GameEvent.java` (+1), `service/src/main/java/com/last_island/api/infrastructure/sse/GameEventEmitter.java` (+17), `service/src/test/java/com/last_island/api/domain/board/service/BoardServiceFireShotTest.java` (+75)
+
+Reviewer: PASS — 143/143 tests green (23 HakiArmamentServiceTest + 22 BoardServiceFireShotTest + 20 HakiBattleServiceTest), compile clean, all armament rules verified (assignment during placement, passive trigger on hit, turn skip, counter-fire with adjacency fallback, 3-hit cap on strong ship, no recursion, ShotResponse backward-compatible)
+
+Commit: uncommitted

@@ -16,6 +16,7 @@ public record GameEvent(
     public static final String GAME_EXPIRED = "GAME_EXPIRED";
     public static final String SURRENDER = "SURRENDER";
     public static final String OBSERVATION_HAKI_USED = "OBSERVATION_HAKI_USED";
+    public static final String ARMAMENT_HAKI_TRIGGERED = "ARMAMENT_HAKI_TRIGGERED";
 
     public static GameEvent of(long id, String type, Map<String, Object> data) {
         return new GameEvent(id, type, data);

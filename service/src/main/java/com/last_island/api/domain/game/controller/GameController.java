@@ -13,6 +13,7 @@ import com.last_island.api.domain.game.dto.GameStateResponse;
 import com.last_island.api.domain.game.dto.GameSummaryResponse;
 import com.last_island.api.domain.game.service.BattleLogService;
 import com.last_island.api.domain.game.service.GameService;
+import com.last_island.api.domain.haki.dto.ArmamentAssignmentRequest;
 import com.last_island.api.domain.haki.dto.ObservationRequest;
 import com.last_island.api.domain.haki.dto.ObservationResponse;
 import com.last_island.api.domain.haki.service.HakiBattleService;
@@ -110,6 +111,14 @@ public class GameController {
                                                   @RequestBody ObservationRequest request,
                                                   @AuthenticationPrincipal AuthenticatedUser principal) {
         return hakiBattleService.activateObservation(token, principal.getId(), request);
+    }
+
+    @PostMapping("/{token}/haki/armament")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void assignArmament(@PathVariable String token,
+                               @RequestBody ArmamentAssignmentRequest request,
+                               @AuthenticationPrincipal AuthenticatedUser principal) {
+        hakiBattleService.assignArmament(token, principal.getId(), request);
     }
 
     @GetMapping(value = "/{token}/events", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
