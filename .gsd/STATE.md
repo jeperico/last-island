@@ -2,7 +2,7 @@
 
 ## Position
 
-Plan written — Improve game waiting pages (WAITING_OPPONENT and Fleet deployed) UI
+Plan written — Eliminate GET refetch after player's own shot in BattleScreen
 
 ## Decisions
 
@@ -18,4 +18,4 @@ Plan written — Improve game waiting pages (WAITING_OPPONENT and Fleet deployed
 
 ## Last verification
 
-PASS at 2026-07-16T14:46 — build ✓, lint 0 errors, WAITING_OPPONENT shows avatar/name/rank/bounty/wins + waiting animation, Fleet deployed shows ship manifest with SHIP_DISPLAY_NAMES + size dots + Redeploy button, wallpaper backgrounds render on both screens
+PASS at 2026-07-17T11:14 — build ✓, lint 0 errors, getGame only in game-over+surrender paths, optimistic update appends shot+switches turn correctly, useCallback deps complete

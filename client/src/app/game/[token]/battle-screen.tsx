@@ -113,9 +113,29 @@ export function BattleScreen({
           const updatedState = await getGame(gameToken);
           onGameStateUpdate(updatedState);
         } else {
-          // Turn switches — refetch to get updated currentTurnPlayerName
-          const updatedState = await getGame(gameToken);
-          onGameStateUpdate(updatedState);
+          // Optimistic local state update — no refetch needed
+          const newCurrentTurn =
+            response.result === "MISS"
+              ? gameState.bluePlayerName === user.name
+                ? gameState.redPlayerName
+                : gameState.bluePlayerName
+              : gameState.currentTurnPlayerName;
+
+          const updatedShotsFired: ShotCellResponse[] = [
+            ...(gameState.opponentBoard?.shotsFired ?? []),
+            newShot,
+          ];
+
+          onGameStateUpdate({
+            ...gameState,
+            currentTurnPlayerName: newCurrentTurn,
+            turnStartedAt: new Date().toISOString(),
+            opponentBoard: {
+              ...gameState.opponentBoard!,
+              shotsFired: updatedShotsFired,
+            },
+          });
+          setOptimisticShots([]);
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to fire shot");
@@ -123,7 +143,7 @@ export function BattleScreen({
         setFiring(false);
       }
     },
-    [isMyTurn, firing, allShotsFired, gameToken, onGameStateUpdate, playLaugh, playHit, playSunk, myAvatar],
+    [isMyTurn, firing, allShotsFired, gameToken, onGameStateUpdate, playLaugh, playHit, playSunk, myAvatar, user, gameState],
   );
 
   const handleSurrender = useCallback(async () => {

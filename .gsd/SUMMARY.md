@@ -55,3 +55,11 @@ Implementer: modified `client/src/app/game/[token]/page.tsx` (+45/-20): added Av
 Reviewer: PASS — build ✓, lint 0 errors, all plan elements verified present (avatar, stats, fleet manifest with size dots, wallpaper bg, redeploy button)
 
 Commit: uncommitted
+
+## 2026-07-17T11:10 — Eliminate GET refetch after player's own shot in BattleScreen
+
+Implementer: modified `client/src/app/game/[token]/battle-screen.tsx` (+16/-3): replaced `else` branch's `getGame()` refetch with optimistic local state update (derive `currentTurnPlayerName` from shot result, append shot to `opponentBoard.shotsFired`, reset `turnStartedAt`, clear optimistic shots); added `user` and `gameState` to `useCallback` deps
+
+Reviewer: PASS — build ✓, lint 0 errors, getGame only in game-over+surrender paths, optimistic update appends shot+switches turn correctly, useCallback deps complete
+
+Commit: uncommitted
