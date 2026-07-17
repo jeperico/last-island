@@ -27,9 +27,21 @@ public class HakiBattleState extends BaseEntity {
     @Column(name = "observation_level", nullable = false)
     private int observationLevel;
 
+    @Column(name = "conquerors_level", nullable = false)
+    @Builder.Default
+    private int conquerorsLevel = 0;
+
     @Column(name = "conquerors_uses_remaining", nullable = false)
     @Builder.Default
     private int conquerorsUsesRemaining = 0;
+
+    @Column(name = "conquerors_uses_consumed", nullable = false)
+    @Builder.Default
+    private int conquerorsUsesConsumed = 0;
+
+    @Column(name = "conquerors_cooldown_turns", nullable = false)
+    @Builder.Default
+    private int conquerorsCooldownTurns = 0;
 
     @Column(name = "haki_used_this_turn", nullable = false)
     private boolean hakiUsedThisTurn;

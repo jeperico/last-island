@@ -119,3 +119,11 @@ Implementer: created `service/src/main/resources/db/migration/V13__add_armament_
 Reviewer: PASS — 143/143 tests green (23 HakiArmamentServiceTest + 22 BoardServiceFireShotTest + 20 HakiBattleServiceTest), compile clean, all armament rules verified (assignment during placement, passive trigger on hit, turn skip, counter-fire with adjacency fallback, 3-hit cap on strong ship, no recursion, ShotResponse backward-compatible)
 
 Commit: uncommitted
+
+## 2026-07-17T18:25 — Backend: Conqueror's Haki Battle Ability
+
+Implementer: created `service/src/main/resources/db/migration/V14__add_conquerors_fields_to_haki_battle_state.sql` (+4), `service/src/main/java/com/last_island/api/domain/haki/dto/ConquerorsActivationRequest.java` (+4), `service/src/main/java/com/last_island/api/domain/haki/dto/ConquerorsActivationResponse.java` (+6), `service/src/main/java/com/last_island/api/domain/haki/dto/XPatternShotResult.java` (+6), `service/src/test/java/com/last_island/api/domain/haki/service/HakiConquerorsServiceTest.java` (+530); modified `service/src/main/java/com/last_island/api/domain/haki/entity/HakiBattleState.java` (+12), `service/src/main/java/com/last_island/api/domain/haki/service/HakiBattleService.java` (+180/-15), `service/src/main/java/com/last_island/api/domain/game/controller/GameController.java` (+9), `service/src/main/java/com/last_island/api/infrastructure/sse/GameEvent.java` (+1), `service/src/main/java/com/last_island/api/infrastructure/sse/GameEventEmitter.java` (+7), `service/src/test/java/com/last_island/api/domain/board/service/BoardServiceFireShotTest.java` (+28)
+
+Reviewer: PASS — 167/167 tests green (22 HakiConquerorsServiceTest + 24 BoardServiceFireShotTest + 20 HakiBattleServiceTest + 23 HakiArmamentServiceTest), compile clean, client build clean, all 9 verification steps pass, Conqueror's rules correctly enforced (skip 3/5, cooldown 1/2, X-pattern 4 diagonals only, armament eat-skip interaction, one-haki-per-turn, duplicate-shot skip, win condition check)
+
+Commit: uncommitted

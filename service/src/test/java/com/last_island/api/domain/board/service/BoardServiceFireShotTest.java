@@ -471,4 +471,37 @@ class BoardServiceFireShotTest {
         // Turn should go back to attacker (bluePlayer) because defender's turn was skipped
         assertThat(game.getCurrentTurn()).isEqualTo(bluePlayer);
     }
+
+    // --- Conqueror's Haki Integration Tests ---
+
+    @Test
+    void fireShot_duringConquerorsWindow_turnStaysWithAttacker() {
+        Game game = buildInProgressGame();
+        when(gameRepository.findByTokenAndIsActiveTrue(TOKEN)).thenReturn(Optional.of(game));
+        // Simulate Conqueror's window: when attacker misses and turn goes to defender,
+        // consumeSkipTurn returns true (defender owes skips), so turn goes back to attacker
+        when(hakiBattleService.consumeSkipTurn(game.getBlueBoard())).thenReturn(true);
+
+        ShotResponse response = boardService.fireShot(TOKEN, bluePlayer.getId(), new ShotRequest(9, 9)); // MISS
+
+        assertThat(response.result()).isEqualTo(ShotResult.MISS);
+        assertThat(game.getCurrentTurn()).isEqualTo(bluePlayer); // Turn stays with attacker
+        // resetHakiUsedThisTurn should be called for playerBoard (attacker gets another turn)
+        verify(hakiBattleService).resetHakiUsedThisTurn(game.getBlueBoard().getId());
+    }
+
+    @Test
+    void fireShot_conquerorsCooldownDecrementsAfterNormalTurnSwitch() {
+        Game game = buildInProgressGame();
+        when(gameRepository.findByTokenAndIsActiveTrue(TOKEN)).thenReturn(Optional.of(game));
+        // No skip turns active — normal turn switch
+        when(hakiBattleService.consumeSkipTurn(game.getBlueBoard())).thenReturn(false);
+
+        boardService.fireShot(TOKEN, bluePlayer.getId(), new ShotRequest(9, 9)); // MISS
+
+        // Turn switches to red player, resetHakiUsedThisTurn called on opponent's board
+        assertThat(game.getCurrentTurn()).isEqualTo(redPlayer);
+        verify(hakiBattleService).resetHakiUsedThisTurn(game.getRedBoard().getId());
+        // Cooldown decrement happens inside resetHakiUsedThisTurn (tested separately)
+    }
 }

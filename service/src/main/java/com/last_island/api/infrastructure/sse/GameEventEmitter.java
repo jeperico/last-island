@@ -93,4 +93,13 @@ public class GameEventEmitter {
         GameEvent event = GameEvent.of(id, GameEvent.ARMAMENT_HAKI_TRIGGERED, data);
         registry.send(gameToken, attackerId, event);
     }
+
+    public void emitConquerorsHakiUsed(String gameToken, UUID opponentId, int skipTurns, String effectLevel) {
+        long id = registry.nextEventId(gameToken);
+        GameEvent event = GameEvent.of(id, GameEvent.CONQUERORS_HAKI_USED, Map.of(
+                "skipTurns", skipTurns,
+                "effectLevel", effectLevel
+        ));
+        registry.send(gameToken, opponentId, event);
+    }
 }

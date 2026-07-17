@@ -14,6 +14,8 @@ import com.last_island.api.domain.game.dto.GameSummaryResponse;
 import com.last_island.api.domain.game.service.BattleLogService;
 import com.last_island.api.domain.game.service.GameService;
 import com.last_island.api.domain.haki.dto.ArmamentAssignmentRequest;
+import com.last_island.api.domain.haki.dto.ConquerorsActivationRequest;
+import com.last_island.api.domain.haki.dto.ConquerorsActivationResponse;
 import com.last_island.api.domain.haki.dto.ObservationRequest;
 import com.last_island.api.domain.haki.dto.ObservationResponse;
 import com.last_island.api.domain.haki.service.HakiBattleService;
@@ -119,6 +121,13 @@ public class GameController {
                                @RequestBody ArmamentAssignmentRequest request,
                                @AuthenticationPrincipal AuthenticatedUser principal) {
         hakiBattleService.assignArmament(token, principal.getId(), request);
+    }
+
+    @PostMapping("/{token}/haki/conquerors")
+    public ConquerorsActivationResponse useConquerorsHaki(@PathVariable String token,
+                                                          @RequestBody ConquerorsActivationRequest request,
+                                                          @AuthenticationPrincipal AuthenticatedUser principal) {
+        return hakiBattleService.activateConquerors(token, principal.getId(), request);
     }
 
     @GetMapping(value = "/{token}/events", produces = MediaType.TEXT_EVENT_STREAM_VALUE)

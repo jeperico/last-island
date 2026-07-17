@@ -1,321 +1,382 @@
-# Plan: Armament Haki Backend
+# Plan: Conqueror's Haki Backend — Activation, Cooldown, X-pattern & Tests
 
 ## Objective
 
-Implement the Armament Haki passive ability: ship assignment during placement, automatic triggers on opponent hits (turn skip + Lv3 counter-fire), and full unit test coverage.
+Implement the Conqueror's Haki active ability backend: V14 migration, entity update, activation endpoint with level-based skip turns + X-pattern shot (Lv3), cooldown mechanics, Armament "eats skip" interaction, SSE notification, and full unit tests.
 
 ## Files to touch
 
-- **create** `service/src/main/resources/db/migration/V13__add_armament_to_haki_battle_state.sql`
+- **create** `service/src/main/resources/db/migration/V14__add_conquerors_fields_to_haki_battle_state.sql`
 - **modify** `service/src/main/java/com/last_island/api/domain/haki/entity/HakiBattleState.java`
-- **create** `service/src/main/java/com/last_island/api/domain/haki/dto/ArmamentAssignmentRequest.java`
-- **create** `service/src/main/java/com/last_island/api/domain/haki/dto/ArmamentTriggerResult.java`
-- **create** `service/src/main/java/com/last_island/api/domain/haki/dto/CounterFireResult.java`
-- **modify** `service/src/main/java/com/last_island/api/domain/board/dto/ShotResponse.java`
+- **create** `service/src/main/java/com/last_island/api/domain/haki/dto/ConquerorsActivationRequest.java`
+- **create** `service/src/main/java/com/last_island/api/domain/haki/dto/ConquerorsActivationResponse.java`
+- **create** `service/src/main/java/com/last_island/api/domain/haki/dto/XPatternShotResult.java`
 - **modify** `service/src/main/java/com/last_island/api/domain/haki/service/HakiBattleService.java`
 - **modify** `service/src/main/java/com/last_island/api/domain/board/service/BoardService.java`
 - **modify** `service/src/main/java/com/last_island/api/domain/game/controller/GameController.java`
 - **modify** `service/src/main/java/com/last_island/api/infrastructure/sse/GameEvent.java`
 - **modify** `service/src/main/java/com/last_island/api/infrastructure/sse/GameEventEmitter.java`
-- **create** `service/src/test/java/com/last_island/api/domain/haki/service/HakiArmamentServiceTest.java`
+- **create** `service/src/test/java/com/last_island/api/domain/haki/service/HakiConquerorsServiceTest.java`
 - **modify** `service/src/test/java/com/last_island/api/domain/board/service/BoardServiceFireShotTest.java`
 
 ## Steps
 
-### 1. DB migration — V13
+### 1. V14 Migration
 
-Create `V13__add_armament_to_haki_battle_state.sql`:
+Create `V14__add_conquerors_fields_to_haki_battle_state.sql`:
 
 ```sql
 ALTER TABLE haki_battle_state
-    ADD COLUMN armament_level INT NOT NULL DEFAULT 0,
-    ADD COLUMN armament_ship1_id UUID REFERENCES ships(id),
-    ADD COLUMN armament_ship2_id UUID REFERENCES ships(id),
-    ADD COLUMN armament_ship1_hits_absorbed INT NOT NULL DEFAULT 0,
-    ADD COLUMN armament_ship2_hits_absorbed INT NOT NULL DEFAULT 0,
-    ADD COLUMN opponent_skip_turns INT NOT NULL DEFAULT 0;
+    ADD COLUMN conquerors_level INT NOT NULL DEFAULT 0,
+    ADD COLUMN conquerors_uses_consumed INT NOT NULL DEFAULT 0,
+    ADD COLUMN conquerors_cooldown_turns INT NOT NULL DEFAULT 0;
 ```
 
-- `armament_level` — player's armament level (0-3) at time of game start
-- `armament_ship1_id` — the "weak" ship (Lv1+)
-- `armament_ship2_id` — the "strong" or "awakened" ship (Lv2+, nullable)
-- `armament_ship1_hits_absorbed` — counts how many Armament-triggering hits ship1 has absorbed (max 1 for weak)
-- `armament_ship2_hits_absorbed` — counts how many Armament-triggering hits ship2 has absorbed (max 3 for strong/awakened)
-- `opponent_skip_turns` — accumulated turn-skip debt the board's OPPONENT owes (decremented each time a turn is skipped)
+Fields:
+- `conquerors_level` — cached from HakiProfile at game start (same pattern as `observation_level`, `armament_level`)
+- `conquerors_uses_consumed` — tracks how many uses consumed (0, 1, or 2). Combined with level, determines if weak or strong/awakened was used and what's left.
+- `conquerors_cooldown_turns` — turns remaining before next Conqueror's use is available (1 after weak, 2 after strong/awakened)
 
 ### 2. Update HakiBattleState entity
 
-Add 6 new fields matching the migration columns:
-- `armamentLevel` (int, default 0)
-- `armamentShip1Id` (UUID, nullable)
-- `armamentShip2Id` (UUID, nullable)
-- `armamentShip1HitsAbsorbed` (int, default 0)
-- `armamentShip2HitsAbsorbed` (int, default 0)
-- `opponentSkipTurns` (int, default 0) — how many turns the OPPONENT of this board must skip
+Add three fields with `@Column` annotations and `@Builder.Default`:
+
+```java
+@Column(name = "conquerors_level", nullable = false)
+@Builder.Default
+private int conquerorsLevel = 0;
+
+@Column(name = "conquerors_uses_consumed", nullable = false)
+@Builder.Default
+private int conquerorsUsesConsumed = 0;
+
+@Column(name = "conquerors_cooldown_turns", nullable = false)
+@Builder.Default
+private int conquerorsCooldownTurns = 0;
+```
 
 ### 3. Create DTOs
 
-**ArmamentAssignmentRequest** — record with:
-- `UUID ship1Id` — required; the ship receiving weak buff
-- `UUID ship2Id` — nullable; the ship receiving strong/awakened buff (only for Lv2+)
+**ConquerorsActivationRequest** (record):
+```java
+public record ConquerorsActivationRequest(Integer row, Integer col) {}
+```
+- `row`/`col` are OPTIONAL — only required for Lv3 awakened use (X-pattern center). For Lv1/Lv2, they're null.
 
-**ArmamentTriggerResult** — record with:
-- `boolean turnSkipped` — whether the attacker must skip next turn
-- `CounterFireResult counterFire` — nullable; present only for Lv3 awakened triggers
+**XPatternShotResult** (record):
+```java
+public record XPatternShotResult(int row, int col, ShotResult result, String sunkShipType) {}
+```
 
-**CounterFireResult** — record with:
-- `ShotResult result` (HIT/MISS/SUNK)
-- `int row`
-- `int col`
-- `String sunkShipType` — nullable
+**ConquerorsActivationResponse** (record):
+```java
+public record ConquerorsActivationResponse(int skipTurns, String effectLevel, List<XPatternShotResult> xPatternShots) {}
+```
+- `skipTurns`: 3 (weak) or 5 (strong/awakened)
+- `effectLevel`: "WEAK", "STRONG", or "AWAKENED"
+- `xPatternShots`: null/empty for Lv1/Lv2, list of up to 5 shot results for Lv3 awakened
 
-### 4. Extend ShotResponse
+### 4. Modify HakiBattleService — initializeForBoard
 
-Add two new nullable fields:
-- `boolean armamentTriggered` — true if the shot triggered Armament Haki
-- `CounterFireResult counterFire` — nullable; counter-fire details for Lv3
-
-Update all existing ShotResponse constructor call sites to include the new fields (set `false`/`null` for non-armament paths).
-
-### 5. Implement HakiBattleService — armament methods
-
-**a) `assignArmament(String token, UUID userId, ArmamentAssignmentRequest request)`**
-
-Validates:
-- Game exists and phase == PLACING_SHIPS
-- User is a participant
-- User's board has ships placed (non-empty)
-- User has armament_level >= 1 in their HakiProfile
-- ship1Id belongs to the user's board
-- If Lv2+: ship2Id is provided and belongs to user's board; ship2Id ≠ ship1Id
-- If Lv1: ship2Id must be null
-
-Stores armamentShip1Id / armamentShip2Id on the user's HakiBattleState. If HakiBattleState doesn't exist yet (game hasn't started), create it early or queue assignment. **Resolution:** Since `initializeHakiBattleStates` is called when BOTH players have placed, and the assignment endpoint is called DURING placement (before or after placing but while still in PLACING_SHIPS), the flow is:
-1. Player places ships → ships are persisted (have IDs)
-2. Player calls POST /games/{token}/haki/armament with ship IDs
-3. If HakiBattleState doesn't exist yet (game not started), save assignment to a temporary state or create the HakiBattleState early
-
-**Better approach:** Modify `initializeForBoard` to also set armament_level from HakiProfile but leave ship IDs null. The assignment endpoint writes ship IDs to the existing HakiBattleState (which won't exist until game starts). **Simplest approach:** Create HakiBattleState as part of `placeShips` for EACH board individually (not just when both are ready). Then armament assignment can always find the state.
-
-**Final design:** 
-1. Split `initializeHakiBattleStates` → call `initializeForBoard(board)` immediately after each player places ships (before checking if opponent is ready), instead of only when both are ready.
-2. `assignArmament` then finds the existing HakiBattleState by boardId and sets ship IDs.
-3. The existing observation initialization (uses remaining) is set from HakiProfile during `initializeForBoard` which now happens per-player at placement time.
-
-**b) `checkArmamentTrigger(Board defenderBoard, Ship hitShip, int hitRow, int hitCol, Board attackerBoard)`**
-
-Called from `BoardService.fireShot` after a HIT/SUNK is resolved on a ship. Logic:
-1. Fetch defenderBoard's HakiBattleState
-2. Check if `hitShip.getId()` matches `armamentShip1Id` or `armamentShip2Id`
-3. If no match → return null (no trigger)
-4. If ship1 match (weak): check `armamentShip1HitsAbsorbed < 1`. If so, increment, set `opponentSkipTurns += 1`, return trigger result.
-5. If ship2 match (strong/awakened):
-   - Check `armamentShip2HitsAbsorbed < 3`. If so, increment.
-   - Set `opponentSkipTurns += 1`
-   - If armamentLevel == 3 (awakened): execute counter-fire on attacker's board
-6. Return `ArmamentTriggerResult`
-
-**c) `resolveCounterFire(Board attackerBoard, int targetRow, int targetCol)`**
-
-Fires the same coordinate on the attacker's board:
-1. Check if (targetRow, targetCol) already has a shot on attackerBoard
-2. If not → fire there
-3. If already hit → find adjacent cell (8 neighbors: orthogonal + diagonal) that has no shot. Pick first available.
-4. If ALL 8 adjacent cells already hit → expand to distance 2 (16 possible cells). Pick first available.
-5. Always finds a cell (board is 10x10 = 100 cells; at most ~17 shots could hit a ship so there are always free cells nearby).
-6. Resolve the shot: check attacker's ships for HIT/MISS/SUNK. Create Shot entity on attackerBoard. Update defender stats.
-7. **Guard:** Counter-fire does NOT recursively trigger Armament (even if it hits an armored ship on attacker's board). This is enforced by calling the raw shot resolution logic without the armament check.
-8. Return `CounterFireResult(result, row, col, sunkShipType)`
-
-**d) `consumeSkipTurn(UUID boardId)`** — called from BoardService when turn would switch. Decrements `opponentSkipTurns` and returns true if a skip was consumed.
-
-### 6. Modify BoardService.fireShot — integrate Armament
-
-After step 7 (shot resolved, hitShip identified) and BEFORE step 11 (turn switch):
+In `initializeForBoard`, after reading `armamentLevel`, also read `conquerorsLevel`:
 
 ```java
-// 7b. Check Armament trigger
-ArmamentTriggerResult armamentResult = null;
-if (hitShip != null && (result == ShotResult.HIT || result == ShotResult.SUNK)) {
-    armamentResult = hakiBattleService.checkArmamentTrigger(
-        opponentBoard, hitShip, request.row(), request.col(), playerBoard);
+int conquerorsLevel = (profile != null) ? profile.getConquerorsLevel() : 0;
+int conquerorsUsesRemaining = computeConquerorsUses(conquerorsLevel);
+```
+
+Add to the builder:
+```java
+.conquerorsLevel(conquerorsLevel)
+.conquerorsUsesRemaining(conquerorsUsesRemaining)
+.conquerorsUsesConsumed(0)
+.conquerorsCooldownTurns(0)
+```
+
+Add helper:
+```java
+private int computeConquerorsUses(int conquerorsLevel) {
+    return switch (conquerorsLevel) {
+        case 1 -> 1;
+        case 2, 3 -> 2;
+        default -> 0;
+    };
 }
 ```
 
-Modify step 11 (turn switch) to account for skip turns:
+### 5. Modify HakiBattleService — activateConquerors
+
+New public method following `activateObservation` pattern:
 
 ```java
-// 11. Switch turn — check skip debt
-if (result == ShotResult.MISS) {
-    // Normal: turn goes to opponent
-    game.setCurrentTurn(opponentBoard.getOwner());
-    game.setTurnStartedAt(LocalDateTime.now());
-    hakiBattleService.resetHakiUsedThisTurn(opponentBoard.getId());
+@Transactional
+public ConquerorsActivationResponse activateConquerors(String token, UUID userId, ConquerorsActivationRequest request)
+```
 
-    // But if attacker has accumulated skip debt, opponent gets an extra turn
-    // (skip debt is on the ATTACKER's next turn after this sequence ends)
-    // Actually: opponentSkipTurns is stored on DEFENDER's state meaning
-    // "the attacker owes N skipped turns"
-    // When MISS happens (turn switches to defender), check if DEFENDER's state
-    // has opponentSkipTurns > 0. If so, after defender's turn, attacker will be skipped.
-    // Implementation: when it's attacker's "turn" next and skip > 0, auto-pass.
-    // Simpler: on MISS, if the DEFENDER's HakiBattleState.opponentSkipTurns > 0:
-    //   - decrement opponentSkipTurns
-    //   - DON'T give turn to opponent immediately — instead keep turn with opponent
-    //     (i.e., the attacker's next turn is skipped, defender plays again)
-    //   Wait — that's what normally happens. On MISS, turn goes to opponent (defender).
-    //   The skip means: after the DEFENDER takes their turn and MISSes, turn should
-    //   NOT go back to attacker — it stays with defender for another round.
-    //   
-    //   Better model: opponentSkipTurns on defenderBoard means "the OPPONENT of this
-    //   board (the attacker) must skip N turns". When the ATTACKER's turn would START
-    //   (i.e., defender just MISSed and turn switches to attacker), check if
-    //   defenderBoard.hakiBattleState.opponentSkipTurns > 0. If so, skip the attacker:
-    //   turn stays with defender, decrement counter.
-    //
-    //   So the check goes at the point where turn switches TO a player. If that player
-    //   has skip debt (tracked on their OPPONENT's board state), they lose the turn.
+Logic flow:
+1. Fetch game (active, by token) — 404 if not found
+2. Validate phase = IN_PROGRESS — 400 otherwise
+3. Identify playerBoard / opponentBoard (by userId) — 403 if not participant
+4. Validate turn = userId — 409 "not your turn"
+5. Fetch player's HakiBattleState — 400 if not found
+6. Validate `!hakiUsedThisTurn` — 400 "already used Haki this turn"
+7. Validate `conquerorsLevel > 0` — 400 "Conqueror's Haki not unlocked"
+8. Validate `conquerorsUsesRemaining > 0` — 400 "No Conqueror's uses remaining"
+9. Validate `conquerorsCooldownTurns == 0` — 400 "Conqueror's Haki is on cooldown"
+10. Determine effect level:
+    - If `conquerorsUsesConsumed == 0` → "WEAK" (always first use is weak)
+    - If `conquerorsUsesConsumed == 1` and `conquerorsLevel == 2` → "STRONG"
+    - If `conquerorsUsesConsumed == 1` and `conquerorsLevel == 3` → "AWAKENED"
+11. Compute skip turns: WEAK → 3, STRONG/AWAKENED → 5
+12. For AWAKENED: validate `row`/`col` are provided and within [0,9] — 400 otherwise. Execute X-pattern shot (see step 6 below).
+13. Add skip turns to **playerBoard's** `opponentSkipTurns` (meaning "opponent of playerBoard owes N skips")
+14. Update state: `conquerorsUsesRemaining -= 1`, `conquerorsUsesConsumed += 1`, `hakiUsedThisTurn = true`
+15. Save state
+16. Emit SSE to opponent: `CONQUERORS_HAKI_USED` with `skipTurns` data
+17. Return response
+
+### 6. HakiBattleService — X-pattern shot resolution (Lv3 awakened)
+
+Private method `resolveXPattern(Board opponentBoard, int centerRow, int centerCol, Board playerBoard)`:
+
+1. Compute 5 target cells: center + 4 diagonals `(row±1, col±1)`
+2. Filter out-of-bounds cells (row/col outside 0-9)
+3. Filter cells already hit (duplicate shot check)
+4. For each valid cell, resolve shot:
+   - Iterate opponent's ships → check cell overlap → HIT/MISS/SUNK
+   - Create Shot entity, add to opponentBoard.getShots()
+   - If HIT on armored ship: check if Armament triggers. If it does AND playerBoard's `opponentSkipTurns > 0` (Conqueror's window active), **subtract 1** from playerBoard's `opponentSkipTurns` instead of adding to defender's opponentSkipTurns ("eats one skip turn")
+5. Check win condition after all X-pattern shots resolve (if all ships sunk → game over)
+6. Return `List<XPatternShotResult>`
+
+Note: The X-pattern does NOT replace the normal shot. The player ALSO fires via `fireShot` after activation (per spec "you still fire your shot"). The X-pattern fires on the 4 DIAGONAL cells only. The center cell is left for the player's normal `fireShot` call. This avoids the 5+1=6 problem and aligns with "you still fire your shot" for ALL levels uniformly.
+
+**REVISED INTERPRETATION**: X-pattern fires the 4 diagonals during activation. The center cell is the player's normal shot (fired via regular `fireShot`). Total = 5 cells (4 diagonals + 1 center via normal shot). This is consistent with "5 total cells hit" and "you still fire your shot."
+
+### 7. Modify HakiBattleService — cooldown handling
+
+New method `decrementConquerorsCooldown(UUID boardId)`:
+```java
+@Transactional
+public void decrementConquerorsCooldown(UUID boardId) {
+    hakiBattleStateRepository.findByBoardId(boardId).ifPresent(state -> {
+        if (state.getConquerorsCooldownTurns() > 0 && state.getOpponentSkipTurns() == 0) {
+            state.setConquerorsCooldownTurns(state.getConquerorsCooldownTurns() - 1);
+            hakiBattleStateRepository.save(state);
+        }
+    });
 }
 ```
 
-**Refined turn-skip logic:**
+Cooldown starts when the last skip turn is consumed (opponentSkipTurns hits 0). Decrement happens each time the Conqueror's user's turn starts (in `resetHakiUsedThisTurn` is the wrong place — it's called for the NEW turn owner, not necessarily the Conqueror's user).
 
-The `opponentSkipTurns` field on a board's HakiBattleState means: "the owner of this board has caused the opponent to owe N skipped turns."
-
-When a turn switch occurs (would-be receiver is player X), check if X's OPPONENT board's HakiBattleState has `opponentSkipTurns > 0`. If yes:
-- Decrement `opponentSkipTurns`
-- Do NOT give turn to X — keep turn with the current player (or set turn back to the other player)
-- Emit SSE to X: "Armament Haki — your turn is skipped!"
-
-In practice for `fireShot`:
-- On MISS: turn normally goes to defender. Then check: does the ATTACKER owe skips? (i.e., defender's HakiBattleState.opponentSkipTurns > 0). If yes, after switching to defender, the NEXT time defender MISSes and turn would go to attacker, attacker is skipped. This is a **deferred** mechanism.
-- **Simpler implementation:** When turn switches to a player, immediately check their skip debt. This check lives at the BEGINNING of turn resolution or as a post-switch hook.
-
-**Simplest approach:** After turn switch in `fireShot` (and also in turn expiration), add:
+**Better approach**: Extend `consumeSkipTurn` — when `opponentSkipTurns` decrements to 0, SET the cooldown:
 ```java
-// After setting new current turn to 'nextPlayer':
-UUID nextPlayerBoardId = getPlayerBoard(game, nextPlayer).getId(); // the board of the player receiving the turn
-HakiBattleState opponentState = getOpponentBoardState(game, nextPlayer); // opponent's state that tracks skips owed
-if (opponentState != null && opponentState.getOpponentSkipTurns() > 0) {
-    opponentState.setOpponentSkipTurns(opponentState.getOpponentSkipTurns() - 1);
-    // Skip: switch turn BACK to the other player
-    game.setCurrentTurn(otherPlayer);
-    game.setTurnStartedAt(LocalDateTime.now());
-    // Emit turn-skipped SSE to nextPlayer
+if (state.getOpponentSkipTurns() == 0) {
+    // Skip window just ended. Set cooldown based on last use.
+    // conquerorsUsesConsumed tracks which use was last.
+    // If conquerorsUsesConsumed == 1 (just used weak): cooldown = 1
+    // If conquerorsUsesConsumed == 2 (just used strong/awakened): cooldown = 2
+    if (state.getConquerorsLevel() > 0 && state.getConquerorsUsesConsumed() > 0) {
+        int lastSkipAmount = ... // need to know if last was weak or strong
+    }
 }
 ```
 
-This means the turn skip resolves immediately when the attacker would receive their turn.
+**SIMPLEST approach**: Set cooldown immediately at activation time. The cooldown doesn't START counting down until the skip window ends. Track via: decrement cooldown in `resetHakiUsedThisTurn` ONLY when `opponentSkipTurns == 0`. Since `resetHakiUsedThisTurn` is called for the player who is ABOUT to receive a turn (opponent's board), we need to call it for the Conqueror's user specifically.
 
-### 7. Add SSE event
+**FINAL approach**: 
+- At activation: store the cooldown value in a new "pending cooldown" sense. Use `conquerorsCooldownTurns` for this.
+- Actually simpler: DON'T set cooldown at activation. Instead, modify `consumeSkipTurn`: when `opponentSkipTurns` goes from 1→0 (last skip consumed), set `conquerorsCooldownTurns` based on what level of use was last consumed (if `conquerorsUsesConsumed == 1` and `conquerorsLevel >= 1`, cooldown = 1; if `conquerorsUsesConsumed == 2`, cooldown = 2).
+- Decrement cooldown: In BoardService's turn-switch logic, after the turn switches normally (no skip consumed), call `hakiBattleService.decrementConquerorsCooldown(playerBoard.getId())` — this decrements the Conqueror's user's cooldown when they fire and miss (turn switches away). This ensures cooldown ticks per normal turn cycle.
 
-**GameEvent:** Add `ARMAMENT_HAKI_TRIGGERED` constant.
+**REFINED FINAL**: 
+- When the LAST skip turn is consumed (inside `consumeSkipTurn`, after decrement, if new value == 0): set `conquerorsCooldownTurns` = 1 (if the most recent activation was WEAK i.e. added 3 skips) or 2 (if STRONG/AWAKENED i.e. added 5 skips). To know which: add a field `conquerorsLastSkipAmount` or derive from `conquerorsUsesConsumed`. Since uses are consumed sequentially (first = weak, second = strong/awakened for Lv2/3), we can derive: if `conquerorsUsesConsumed == 1` → last was weak → cooldown 1. If `conquerorsUsesConsumed == 2` → last was strong/awakened → cooldown 2.
+- Cooldown decrements: Each time a full turn cycle completes for the Conqueror's user (they fire, turn goes to opponent, opponent fires, turn comes back to them). Simplest approximation: decrement when `resetHakiUsedThisTurn` is called for the Conqueror's board AND `opponentSkipTurns == 0`. This happens each time the Conqueror's user gets a new turn.
 
-**GameEventEmitter:** Add method:
+**IMPLEMENTATION DECISION**: Decrement cooldown inside `resetHakiUsedThisTurn`:
 ```java
-public void emitArmamentHakiTriggered(String gameToken, UUID attackerId, boolean turnSkipped, CounterFireResult counterFire)
-```
-Sends to the attacker: armament triggered notification with counter-fire details if applicable.
-
-### 8. Add API endpoint
-
-In `GameController`, add:
-```java
-@PostMapping("/{token}/haki/armament")
-@ResponseStatus(HttpStatus.NO_CONTENT)
-public void assignArmament(@PathVariable String token,
-                           @RequestBody ArmamentAssignmentRequest request,
-                           @AuthenticationPrincipal AuthenticatedUser principal) {
-    hakiBattleService.assignArmament(token, principal.getId(), request);
+@Transactional
+public void resetHakiUsedThisTurn(UUID boardId) {
+    hakiBattleStateRepository.findByBoardId(boardId).ifPresent(state -> {
+        state.setHakiUsedThisTurn(false);
+        // Decrement Conqueror's cooldown when this player starts a new normal turn
+        if (state.getConquerorsCooldownTurns() > 0 && state.getOpponentSkipTurns() == 0) {
+            state.setConquerorsCooldownTurns(state.getConquerorsCooldownTurns() - 1);
+        }
+        hakiBattleStateRepository.save(state);
+    });
 }
 ```
 
-### 9. Modify initializeForBoard — early creation
+But `resetHakiUsedThisTurn` is called for the OPPONENT's board when turn switches to them (BoardService line 272: after MISS, reset the opponent's haki flag). So it's called when the opponent STARTS their turn. For cooldown to decrement per Conqueror's-user's-turn, we need to decrement when resetHakiUsedThisTurn is called for the Conqueror's user's own board.
 
-Move `initializeForBoard(board)` call from the "both players ready" block to immediately after a player's ships are built (after step 9 in placeShips). This ensures HakiBattleState exists per-board as soon as ships are placed, allowing armament assignment before the opponent places.
+Looking at BoardService: After a MISS by attacker → `game.setCurrentTurn(opponentBoard.getOwner())` → `resetHakiUsedThisTurn(opponentBoard.getId())`. So it resets the NEW turn holder's haki flag. If skip consumed → turn goes BACK to attacker → `resetHakiUsedThisTurn(playerBoard.getId())`. 
 
-Update `initializeForBoard` to also set `armamentLevel` from HakiProfile:
+So `resetHakiUsedThisTurn` is called for whoever is ABOUT TO take their turn. If the Conqueror's user is about to take a normal turn (opponentSkipTurns == 0 on their state), decrement their cooldown. This works perfectly — place the cooldown decrement inside `resetHakiUsedThisTurn`.
+
+### 8. Modify HakiBattleService — consumeSkipTurn (set cooldown when skips exhausted)
+
+Modify `consumeSkipTurn`:
 ```java
-int armamentLevel = (profile != null) ? profile.getArmamentLevel() : 0;
-// ... add to builder
-.armamentLevel(armamentLevel)
+@Transactional
+public boolean consumeSkipTurn(Board defenderBoard) {
+    HakiBattleState state = hakiBattleStateRepository.findByBoardId(defenderBoard.getId())
+            .orElse(null);
+
+    if (state != null && state.getOpponentSkipTurns() > 0) {
+        state.setOpponentSkipTurns(state.getOpponentSkipTurns() - 1);
+        
+        // If skip window just ended, set Conqueror's cooldown
+        if (state.getOpponentSkipTurns() == 0 && state.getConquerorsLevel() > 0 && state.getConquerorsUsesConsumed() > 0) {
+            int cooldown = (state.getConquerorsUsesConsumed() == 1) ? 1 : 2;
+            state.setConquerorsCooldownTurns(cooldown);
+        }
+        
+        hakiBattleStateRepository.save(state);
+        return true;
+    }
+    return false;
+}
 ```
 
-Handle redeployment: if HakiBattleState already exists for this boardId (player re-placed ships), reset armament fields (clear ship IDs, reset hits absorbed, keep levels).
+### 9. Modify HakiBattleService — Armament "eats skip turn" during Conqueror's window
 
-### 10. Unit tests — HakiArmamentServiceTest
+Modify `checkArmamentTrigger` to accept the attacker's board and check if the Conqueror's window is active on the attacker's side:
 
-Create comprehensive test class covering:
+Current signature: `checkArmamentTrigger(Board defenderBoard, Ship hitShip, int hitRow, int hitCol, Board attackerBoard)`
 
-**Assignment validation tests:**
-- `assignArmament_lv1_setsShip1_succeeds`
-- `assignArmament_lv1_withShip2_throwsBadRequest`
-- `assignArmament_lv2_setsBothShips_succeeds`
-- `assignArmament_lv2_sameShipForBoth_throwsBadRequest`
-- `assignArmament_shipNotOnBoard_throwsBadRequest`
-- `assignArmament_noArmamentLevel_throwsBadRequest`
-- `assignArmament_wrongPhase_throwsBadRequest`
-- `assignArmament_notParticipant_throwsForbidden`
+Add logic: when Armament triggers and `attackerBoard`'s state has `opponentSkipTurns > 0` (meaning the defender owes skips = Conqueror's window active for attacker), subtract 1 from attacker's `opponentSkipTurns` instead of adding to defender's `opponentSkipTurns`:
 
-**Trigger tests:**
-- `checkArmament_lv1_firstHitOnShip1_setsSkipTurn`
-- `checkArmament_lv1_secondHitOnShip1_noTrigger`
-- `checkArmament_lv2_ship2_first3Hits_eachTriggersSkip`
-- `checkArmament_lv2_ship2_fourthHit_noTrigger`
-- `checkArmament_lv3_ship2_triggersSkipAndCounterFire`
-- `checkArmament_hitNonArmoredShip_noTrigger`
+```java
+// Inside checkArmamentTrigger, after determining trigger:
+HakiBattleState attackerState = hakiBattleStateRepository.findByBoardId(attackerBoard.getId()).orElse(null);
+if (attackerState != null && attackerState.getOpponentSkipTurns() > 0) {
+    // Conqueror's window active — "eat" one skip turn
+    attackerState.setOpponentSkipTurns(attackerState.getOpponentSkipTurns() - 1);
+    hakiBattleStateRepository.save(attackerState);
+} else {
+    // Normal Armament behavior — opponent (attacker) owes a skip
+    state.setOpponentSkipTurns(state.getOpponentSkipTurns() + 1);
+}
+```
 
-**Counter-fire tests:**
-- `counterFire_targetCellEmpty_firesOnSameCoordinate`
-- `counterFire_targetCellAlreadyHit_firesAdjacentCell`
-- `counterFire_allAdjacentHit_firesDistance2Cell`
-- `counterFire_hitsShipOnAttackerBoard_resolvesHit`
-- `counterFire_sinksShipOnAttackerBoard_resolvesSunk`
-- `counterFire_doesNotTriggerRecursiveArmament`
+This replaces the current `state.setOpponentSkipTurns(state.getOpponentSkipTurns() + 1)` in both ship1 and ship2 trigger branches.
 
-**Turn skip integration tests:**
-- `turnSkip_afterMiss_attackerTurnSkipped`
-- `turnSkip_multipleStacked_allConsumedSequentially`
+### 10. Modify BoardService — cooldown decrement integration
 
-### 11. Update BoardServiceFireShotTest
+No explicit change needed beyond step 7's modification to `resetHakiUsedThisTurn` — that method already exists and is called at the right time by BoardService.
 
-Add/modify tests to verify armament integration in fireShot:
-- Mock `hakiBattleService.checkArmamentTrigger` returning null (no trigger) for existing tests
-- Add test: fireShot hitting armored ship returns armamentTriggered=true in ShotResponse
-- Add test: turn skip debt properly consumed on MISS
+### 11. Add SSE event
+
+**GameEvent.java** — add constant:
+```java
+public static final String CONQUERORS_HAKI_USED = "CONQUERORS_HAKI_USED";
+```
+
+**GameEventEmitter.java** — add method:
+```java
+public void emitConquerorsHakiUsed(String gameToken, UUID opponentId, int skipTurns, String effectLevel) {
+    long id = registry.nextEventId(gameToken);
+    GameEvent event = GameEvent.of(id, GameEvent.CONQUERORS_HAKI_USED, Map.of(
+        "skipTurns", skipTurns,
+        "effectLevel", effectLevel
+    ));
+    registry.send(gameToken, opponentId, event);
+}
+```
+
+### 12. Add API endpoint
+
+**GameController.java** — add:
+```java
+@PostMapping("/{token}/haki/conquerors")
+public ConquerorsActivationResponse useConquerorsHaki(@PathVariable String token,
+                                                      @RequestBody ConquerorsActivationRequest request,
+                                                      @AuthenticationPrincipal AuthenticatedUser principal) {
+    return hakiBattleService.activateConquerors(token, principal.getId(), request);
+}
+```
+
+### 13. Unit tests — HakiConquerorsServiceTest
+
+Create dedicated test class with tests:
+1. `activateConquerors_lv1_weak_setsSkip3` — happy path Lv1
+2. `activateConquerors_lv2_weak_thenStrong` — two sequential uses
+3. `activateConquerors_lv3_awakened_firesXPattern` — X-pattern resolves 4 diagonals
+4. `activateConquerors_lv3_awakened_xPatternOutOfBounds` — corner center, only valid diagonals fire
+5. `activateConquerors_failsWhenNotYourTurn` — 409
+6. `activateConquerors_failsWhenHakiAlreadyUsed` — 400
+7. `activateConquerors_failsWhenNoUsesRemaining` — 400
+8. `activateConquerors_failsWhenOnCooldown` — 400
+9. `activateConquerors_failsWhenNotUnlocked` — 400
+10. `activateConquerors_failsWhenGameNotInProgress` — 400
+11. `activateConquerors_lv3_awakened_requiresRowCol` — 400 when no coords
+12. `consumeSkipTurn_setsCooldownWhenSkipsExhausted_weak` — cooldown = 1 after weak
+13. `consumeSkipTurn_setsCooldownWhenSkipsExhausted_strong` — cooldown = 2 after strong
+14. `resetHakiUsedThisTurn_decrementsCooldown` — cooldown goes from 2→1→0
+15. `resetHakiUsedThisTurn_noCooldownDecrementDuringSkipWindow` — opponentSkipTurns > 0 blocks decrement
+16. `armamentTrigger_eatsSkipTurn_duringConquerorsWindow` — attacker's opponentSkipTurns reduced by 1
+17. `armamentTrigger_normalBehavior_outsideConquerorsWindow` — defender's opponentSkipTurns increased
+18. `initializeForBoard_setsConquerorsUsesBasedOnLevel` — Lv1→1, Lv2→2, Lv3→2
+19. `activateConquerors_xPattern_triggersArmament_eatsSkip` — X-pattern hit on armored ship eats skip
+20. `activateConquerors_xPattern_skipsDuplicateShots` — already-hit cells skipped
+21. `activateConquerors_xPattern_checksWinCondition` — if all ships sunk by X-pattern → game ends
+
+### 14. Modify BoardServiceFireShotTest
+
+Add 2-3 integration tests:
+1. `fireShot_duringConquerorsWindow_turnStaysWithAttacker` — after Conqueror's activation, attacker fires and misses, consumeSkipTurn keeps them firing
+2. `fireShot_conquerorsCooldownDecrementsAfterNormalTurnSwitch` — after skip window ends, cooldown ticks down
 
 ## Verification
 
 ```bash
-cd service && mvn compile
-cd service && mvn test
-cd service && mvn test -Dtest=HakiArmamentServiceTest
-cd service && mvn test -Dtest=BoardServiceFireShotTest
-cd service && mvn test -Dtest=HakiBattleServiceTest
-grep -r "armamentShip\|armamentLevel\|opponentSkipTurns\|counterFire" service/src/test/
-grep -r "ARMAMENT_HAKI_TRIGGERED" service/src/
-```
+# 1. Full compilation
+cd service && mvn compile -q
 
-Manual checks:
-- V13 SQL syntax is valid ALTER TABLE with correct FK references
-- Counter-fire code path does NOT call `checkArmamentTrigger` (no recursion)
-- `opponentSkipTurns` is decremented exactly once per skipped turn
-- ShotResponse changes are backward-compatible (new fields can be null/false)
+# 2. Full test suite (must include new + existing tests all green)
+cd service && mvn test
+
+# 3. Targeted new test class
+cd service && mvn test -Dtest=HakiConquerorsServiceTest
+
+# 4. Targeted fire-shot integration tests
+cd service && mvn test -Dtest=BoardServiceFireShotTest
+
+# 5. Client still builds (no client changes)
+cd client && npm run build
+
+# 6. Verify migration file exists
+grep -l "conquerors_cooldown_turns" service/src/main/resources/db/migration/V14*.sql
+
+# 7. Verify SSE event constant
+grep "CONQUERORS_HAKI_USED" service/src/main/java/com/last_island/api/infrastructure/sse/GameEvent.java
+
+# 8. Verify endpoint exists
+grep "haki/conquerors" service/src/main/java/com/last_island/api/domain/game/controller/GameController.java
+
+# 9. Verify no leftover TODOs in new code
+grep -rn "TODO\|FIXME" service/src/main/java/com/last_island/api/domain/haki/dto/Conquerors*.java service/src/main/java/com/last_island/api/domain/haki/dto/XPattern*.java
+```
 
 ## Rollback
 
 ```bash
-git checkout -- service/src/main/java/com/last_island/api/domain/haki/entity/HakiBattleState.java
-git checkout -- service/src/main/java/com/last_island/api/domain/haki/service/HakiBattleService.java
-git checkout -- service/src/main/java/com/last_island/api/domain/board/service/BoardService.java
-git checkout -- service/src/main/java/com/last_island/api/domain/board/dto/ShotResponse.java
-git checkout -- service/src/main/java/com/last_island/api/domain/game/controller/GameController.java
-git checkout -- service/src/main/java/com/last_island/api/infrastructure/sse/GameEvent.java
-git checkout -- service/src/main/java/com/last_island/api/infrastructure/sse/GameEventEmitter.java
-git checkout -- service/src/test/java/com/last_island/api/domain/board/service/BoardServiceFireShotTest.java
-rm -f service/src/main/resources/db/migration/V13__add_armament_to_haki_battle_state.sql
-rm -f service/src/main/java/com/last_island/api/domain/haki/dto/ArmamentAssignmentRequest.java
-rm -f service/src/main/java/com/last_island/api/domain/haki/dto/ArmamentTriggerResult.java
-rm -f service/src/main/java/com/last_island/api/domain/haki/dto/CounterFireResult.java
-rm -f service/src/test/java/com/last_island/api/domain/haki/service/HakiArmamentServiceTest.java
+# Remove created files
+rm -f service/src/main/resources/db/migration/V14__add_conquerors_fields_to_haki_battle_state.sql
+rm -f service/src/main/java/com/last_island/api/domain/haki/dto/ConquerorsActivationRequest.java
+rm -f service/src/main/java/com/last_island/api/domain/haki/dto/ConquerorsActivationResponse.java
+rm -f service/src/main/java/com/last_island/api/domain/haki/dto/XPatternShotResult.java
+rm -f service/src/test/java/com/last_island/api/domain/haki/service/HakiConquerorsServiceTest.java
+
+# Restore modified files
+git checkout -- \
+  service/src/main/java/com/last_island/api/domain/haki/entity/HakiBattleState.java \
+  service/src/main/java/com/last_island/api/domain/haki/service/HakiBattleService.java \
+  service/src/main/java/com/last_island/api/domain/board/service/BoardService.java \
+  service/src/main/java/com/last_island/api/domain/game/controller/GameController.java \
+  service/src/main/java/com/last_island/api/infrastructure/sse/GameEvent.java \
+  service/src/main/java/com/last_island/api/infrastructure/sse/GameEventEmitter.java \
+  service/src/test/java/com/last_island/api/domain/board/service/BoardServiceFireShotTest.java
 ```

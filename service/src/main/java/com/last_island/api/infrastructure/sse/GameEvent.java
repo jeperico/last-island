@@ -17,6 +17,7 @@ public record GameEvent(
     public static final String SURRENDER = "SURRENDER";
     public static final String OBSERVATION_HAKI_USED = "OBSERVATION_HAKI_USED";
     public static final String ARMAMENT_HAKI_TRIGGERED = "ARMAMENT_HAKI_TRIGGERED";
+    public static final String CONQUERORS_HAKI_USED = "CONQUERORS_HAKI_USED";
 
     public static GameEvent of(long id, String type, Map<String, Object> data) {
         return new GameEvent(id, type, data);

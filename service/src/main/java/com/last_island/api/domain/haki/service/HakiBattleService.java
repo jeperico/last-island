@@ -60,13 +60,18 @@ public class HakiBattleService {
         int observationLevel = (profile != null) ? profile.getObservationLevel() : 0;
         int usesRemaining = computeUsesRemaining(observationLevel);
         int armamentLevel = (profile != null) ? profile.getArmamentLevel() : 0;
+        int conquerorsLevel = (profile != null) ? profile.getConquerorsLevel() : 0;
+        int conquerorsUsesRemaining = computeConquerorsUses(conquerorsLevel);
 
         HakiBattleState state = HakiBattleState.builder()
                 .boardId(board.getId())
                 .observationUsesRemaining(usesRemaining)
                 .observationUsesConsumed(0)
                 .observationLevel(observationLevel)
-                .conquerorsUsesRemaining(0)
+                .conquerorsLevel(conquerorsLevel)
+                .conquerorsUsesRemaining(conquerorsUsesRemaining)
+                .conquerorsUsesConsumed(0)
+                .conquerorsCooldownTurns(0)
                 .hakiUsedThisTurn(false)
                 .armamentLevel(armamentLevel)
                 .armamentShip1Id(null)
@@ -81,6 +86,14 @@ public class HakiBattleService {
 
     private int computeUsesRemaining(int observationLevel) {
         return switch (observationLevel) {
+            case 1 -> 1;
+            case 2, 3 -> 2;
+            default -> 0;
+        };
+    }
+
+    private int computeConquerorsUses(int conquerorsLevel) {
+        return switch (conquerorsLevel) {
             case 1 -> 1;
             case 2, 3 -> 2;
             default -> 0;
@@ -184,7 +197,7 @@ public class HakiBattleService {
         if (hitShipId.equals(state.getArmamentShip1Id())) {
             if (state.getArmamentShip1HitsAbsorbed() < 1) {
                 state.setArmamentShip1HitsAbsorbed(state.getArmamentShip1HitsAbsorbed() + 1);
-                state.setOpponentSkipTurns(state.getOpponentSkipTurns() + 1);
+                applyArmamentSkipOrEat(state, attackerBoard);
                 hakiBattleStateRepository.save(state);
                 return new ArmamentTriggerResult(true, null);
             }
@@ -195,7 +208,7 @@ public class HakiBattleService {
         if (state.getArmamentLevel() >= 2 && hitShipId.equals(state.getArmamentShip2Id())) {
             if (state.getArmamentShip2HitsAbsorbed() < 3) {
                 state.setArmamentShip2HitsAbsorbed(state.getArmamentShip2HitsAbsorbed() + 1);
-                state.setOpponentSkipTurns(state.getOpponentSkipTurns() + 1);
+                applyArmamentSkipOrEat(state, attackerBoard);
 
                 CounterFireResult counterFire = null;
                 if (state.getArmamentLevel() == 3) {
@@ -209,6 +222,24 @@ public class HakiBattleService {
         }
 
         return null;
+    }
+
+    /**
+     * Applies the Armament skip-turn effect. If the attacker has an active Conqueror's window
+     * (opponentSkipTurns > 0 on attacker's state), Armament "eats" one skip turn instead of
+     * adding to defender's skip counter.
+     */
+    private void applyArmamentSkipOrEat(HakiBattleState defenderState, Board attackerBoard) {
+        HakiBattleState attackerState = hakiBattleStateRepository.findByBoardId(attackerBoard.getId())
+                .orElse(null);
+        if (attackerState != null && attackerState.getOpponentSkipTurns() > 0) {
+            // Conqueror's window active — "eat" one skip turn
+            attackerState.setOpponentSkipTurns(attackerState.getOpponentSkipTurns() - 1);
+            hakiBattleStateRepository.save(attackerState);
+        } else {
+            // Normal Armament behavior — opponent (attacker) owes a skip
+            defenderState.setOpponentSkipTurns(defenderState.getOpponentSkipTurns() + 1);
+        }
     }
 
     // --- Armament Haki: Counter-fire ---
@@ -318,10 +349,203 @@ public class HakiBattleService {
 
         if (state != null && state.getOpponentSkipTurns() > 0) {
             state.setOpponentSkipTurns(state.getOpponentSkipTurns() - 1);
+
+            // If skip window just ended, set Conqueror's cooldown
+            if (state.getOpponentSkipTurns() == 0 && state.getConquerorsLevel() > 0 && state.getConquerorsUsesConsumed() > 0) {
+                int cooldown = (state.getConquerorsUsesConsumed() == 1) ? 1 : 2;
+                state.setConquerorsCooldownTurns(cooldown);
+            }
+
             hakiBattleStateRepository.save(state);
             return true;
         }
         return false;
+    }
+
+    // --- Conqueror's Haki: Activation ---
+
+    @Transactional
+    public ConquerorsActivationResponse activateConquerors(String token, UUID userId, ConquerorsActivationRequest request) {
+        // Fetch game
+        Game game = gameRepository.findByTokenAndIsActiveTrue(token)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Battle not found"));
+
+        // Validate phase
+        if (game.getPhase() != GamePhase.IN_PROGRESS) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "This battle is not in progress");
+        }
+
+        // Identify player/opponent boards
+        Board playerBoard;
+        Board opponentBoard;
+        if (game.getBlueBoard().getOwner().getId().equals(userId)) {
+            playerBoard = game.getBlueBoard();
+            opponentBoard = game.getRedBoard();
+        } else if (game.getRedBoard().getOwner().getId().equals(userId)) {
+            playerBoard = game.getRedBoard();
+            opponentBoard = game.getBlueBoard();
+        } else {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You are not a participant in this battle");
+        }
+
+        // Validate turn
+        if (!game.getCurrentTurn().getId().equals(userId)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "It's not your turn, wait for your opponent");
+        }
+
+        // Fetch player's HakiBattleState
+        HakiBattleState state = hakiBattleStateRepository.findByBoardId(playerBoard.getId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Haki battle state not found"));
+
+        // Validate haki not already used this turn
+        if (state.isHakiUsedThisTurn()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "You already used Haki this turn");
+        }
+
+        // Validate conquerors unlocked
+        if (state.getConquerorsLevel() <= 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Conqueror's Haki not unlocked");
+        }
+
+        // Validate uses remaining
+        if (state.getConquerorsUsesRemaining() <= 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "No Conqueror's uses remaining");
+        }
+
+        // Validate cooldown
+        if (state.getConquerorsCooldownTurns() > 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Conqueror's Haki is on cooldown");
+        }
+
+        // Determine effect level
+        String effectLevel;
+        if (state.getConquerorsUsesConsumed() == 0) {
+            effectLevel = "WEAK";
+        } else if (state.getConquerorsLevel() == 2) {
+            effectLevel = "STRONG";
+        } else {
+            effectLevel = "AWAKENED";
+        }
+
+        // Compute skip turns
+        int skipTurns = "WEAK".equals(effectLevel) ? 3 : 5;
+
+        // Add skip turns to playerBoard's opponentSkipTurns BEFORE X-pattern resolution
+        // (so Armament eat-skip mechanic can detect the active Conqueror's window)
+        HakiBattleState playerState = hakiBattleStateRepository.findByBoardId(playerBoard.getId())
+                .orElse(state);
+        playerState.setOpponentSkipTurns(playerState.getOpponentSkipTurns() + skipTurns);
+
+        // For AWAKENED: validate row/col and resolve X-pattern
+        List<XPatternShotResult> xPatternShots = null;
+        if ("AWAKENED".equals(effectLevel)) {
+            if (request.row() == null || request.col() == null) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Awakened Conqueror's requires row and col for X-pattern");
+            }
+            if (request.row() < 0 || request.row() > 9 || request.col() < 0 || request.col() > 9) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "X-pattern center must be within the sea chart");
+            }
+            xPatternShots = resolveXPattern(opponentBoard, request.row(), request.col(), playerBoard, game, token);
+        }
+
+        // Update state
+        state.setConquerorsUsesRemaining(state.getConquerorsUsesRemaining() - 1);
+        state.setConquerorsUsesConsumed(state.getConquerorsUsesConsumed() + 1);
+        state.setHakiUsedThisTurn(true);
+        hakiBattleStateRepository.save(state);
+
+        // Emit SSE to opponent
+        UUID opponentId = opponentBoard.getOwner().getId();
+        gameEventEmitter.emitConquerorsHakiUsed(token, opponentId, skipTurns, effectLevel);
+
+        return new ConquerorsActivationResponse(skipTurns, effectLevel, xPatternShots);
+    }
+
+    // --- Conqueror's Haki: X-pattern resolution ---
+
+    private List<XPatternShotResult> resolveXPattern(Board opponentBoard, int centerRow, int centerCol, Board playerBoard, Game game, String token) {
+        // 4 diagonal cells only (center is left for normal fireShot)
+        int[][] diagonals = {
+                {centerRow - 1, centerCol - 1},
+                {centerRow - 1, centerCol + 1},
+                {centerRow + 1, centerCol - 1},
+                {centerRow + 1, centerCol + 1}
+        };
+
+        List<XPatternShotResult> results = new ArrayList<>();
+
+        for (int[] cell : diagonals) {
+            int row = cell[0];
+            int col = cell[1];
+
+            // Skip out-of-bounds
+            if (row < 0 || row > 9 || col < 0 || col > 9) {
+                continue;
+            }
+
+            // Skip already-hit cells
+            if (isCellAlreadyHit(opponentBoard, row, col)) {
+                continue;
+            }
+
+            // Resolve shot
+            ShotResult result = ShotResult.MISS;
+            Ship hitShip = null;
+
+            for (Ship ship : opponentBoard.getShips()) {
+                int shipSize = ship.getType().getSize();
+                for (int i = 0; i < shipSize; i++) {
+                    int cellRow = ship.getRow() + (ship.getOrientation() == Orientation.VERTICAL ? i : 0);
+                    int cellCol = ship.getCol() + (ship.getOrientation() == Orientation.HORIZONTAL ? i : 0);
+
+                    if (cellRow == row && cellCol == col) {
+                        ship.setHits(ship.getHits() + 1);
+                        hitShip = ship;
+                        result = ship.isSunk() ? ShotResult.SUNK : ShotResult.HIT;
+                        break;
+                    }
+                }
+                if (hitShip != null) {
+                    break;
+                }
+            }
+
+            // Create shot entity
+            Shot xShot = Shot.builder()
+                    .board(opponentBoard)
+                    .attacker(playerBoard.getOwner())
+                    .row(row)
+                    .col(col)
+                    .result(result)
+                    .build();
+            opponentBoard.getShots().add(xShot);
+
+            // Check Armament trigger (eats skip turn if Conqueror's window active)
+            if (hitShip != null && (result == ShotResult.HIT || result == ShotResult.SUNK)) {
+                checkArmamentTrigger(opponentBoard, hitShip, row, col, playerBoard);
+            }
+
+            String sunkShipType = (result == ShotResult.SUNK && hitShip != null) ? hitShip.getType().name() : null;
+            results.add(new XPatternShotResult(row, col, result, sunkShipType));
+        }
+
+        // Check win condition after X-pattern resolves
+        if (opponentBoard.getShips().stream().allMatch(Ship::isSunk)) {
+            game.setPhase(GamePhase.FINISHED);
+            game.setEndedAt(java.time.LocalDateTime.now());
+
+            int totalTurns = game.getBlueBoard().getShots().size() + game.getRedBoard().getShots().size();
+
+            com.last_island.api.domain.user.entity.User attacker = playerBoard.getOwner();
+            com.last_island.api.domain.user.entity.User loser = opponentBoard.getOwner();
+
+            attacker.setWins(attacker.getWins() + 1);
+            loser.setLosses(loser.getLosses() + 1);
+
+            gameEventEmitter.emitGameOver(token, attacker.getName());
+        }
+
+        return results;
     }
 
     // --- Observation Haki ---
@@ -483,6 +707,10 @@ public class HakiBattleService {
     public void resetHakiUsedThisTurn(UUID boardId) {
         hakiBattleStateRepository.findByBoardId(boardId).ifPresent(state -> {
             state.setHakiUsedThisTurn(false);
+            // Decrement Conqueror's cooldown when this player starts a new normal turn
+            if (state.getConquerorsCooldownTurns() > 0 && state.getOpponentSkipTurns() == 0) {
+                state.setConquerorsCooldownTurns(state.getConquerorsCooldownTurns() - 1);
+            }
             hakiBattleStateRepository.save(state);
         });
     }

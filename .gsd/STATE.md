@@ -2,7 +2,7 @@
 
 ## Position
 
-Plan written — Armament Haki backend (assignment endpoint, passive trigger in fireShot, counter-fire, turn skip, tests)
+Plan written — Conqueror's Haki backend (activation endpoint, cooldown, X-pattern Lv3, Armament eat-skip interaction, SSE, tests)
 
 ## Decisions
 
@@ -18,4 +18,4 @@ Plan written — Armament Haki backend (assignment endpoint, passive trigger in 
 
 ## Last verification
 
-PASS at 2026-07-17T18:06 — 143/143 tests green (23 HakiArmamentServiceTest + 22 BoardServiceFireShotTest + 20 HakiBattleServiceTest), compile clean, all armament rules verified (assignment, trigger, counter-fire adjacency, turn skip, no recursion)
+PASS at 2026-07-17T18:26 — 167/167 tests green (22 HakiConquerorsServiceTest + 24 BoardServiceFireShotTest + 20 HakiBattleServiceTest + 23 HakiArmamentServiceTest), compile clean, client build clean, all Conqueror's rules verified (skip 3/5, cooldown 1/2, X-pattern 4 diagonals, armament eat-skip, one-haki-per-turn, duplicate-shot skip, win condition)
