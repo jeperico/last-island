@@ -15,3 +15,9 @@ Implementer: Modified `client/src/interfaces/api.ts` (+49 — Haki battle interf
 Reviewer: PASS — build clean, no new lint errors, grep confirms all 3 SSE event types + listeners + 3 API functions + armamentTriggered + id:string on ShipResponse
 
 Commit: uncommitted
+
+## 2026-07-20T11:00 — Refactor Haki Skill Tree Page — Visual Richness Upgrade
+
+Implementer: `client/src/app/haki/page.tsx` rewritten (net +220 lines, from ~173 to ~393)
+Reviewer: PASS — build clean, all 9 grep checks green (useRequireAuth, hero card wiring, per-branch colors, formatBounty, descriptions×6, awakened glow, business logic×10, backdrop-blur-md)
+Commit: uncommitted

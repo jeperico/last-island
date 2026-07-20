@@ -2,7 +2,7 @@
 
 ## Position
 
-Plan written — Design System Steering Doc + Kiro Skill (documentation only, no code changes)
+Plan written — Refactor Haki Skill Tree Page Visual Design (single file: client/src/app/haki/page.tsx)
 
 ## Decisions
 
@@ -18,4 +18,4 @@ Plan written — Design System Steering Doc + Kiro Skill (documentation only, no
 
 ## Last verification
 
-PASS at 2026-07-20T10:26 — all 8 checks green: both files exist, color-primary(6), tierStyles(4), createPortal(1), YAML frontmatter(2), getRankTier(5), next build clean
+PASS at 2026-07-20T11:02 — all 9 checks green: next build clean, useRequireAuth(2), getRankTier+tierStyles+AvatarIcon(6), from-blue/red/purple(3), formatBounty(2), descriptions(6), Awakened+shadow glow(2), business logic intact(10 hits), backdrop-blur-md(1)

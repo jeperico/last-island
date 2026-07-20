@@ -1,63 +1,103 @@
-# Create Design System Steering Doc + Kiro Skill
+# Refactor Haki Skill Tree Page — Visual Richness Upgrade
 
 ## Objective
 
-Codify the actual dark-nautical design system (extracted from game-over modal, character-select, settings, and leaderboard pages) into a canonical steering doc and an actionable Kiro skill for building/refactoring UI.
+Transform the Haki Skill Tree page from plain cards into a visually rich, themed page with hero section, per-branch color identities, segmented progress bars with glow, level descriptions, and awakened/locked state treatments — matching settings page quality.
 
 ## Files to touch
 
-- **create** `.kiro/steering/client/design-system.md` — comprehensive design system reference
-- **create** `.kiro/skills/design/SKILL.md` — actionable skill for AI-assisted UI work
+- `client/src/app/haki/page.tsx` — modify (complete rewrite of presentation layer; business logic unchanged)
 
 ## Steps
 
-1. **Create `.kiro/steering/client/design-system.md`** with these sections:
-   - **Philosophy** — dark nautical/One Piece theme, "deep ocean" aesthetic, dark-only
-   - **Color Palette** — exact CSS custom properties from `globals.css` organized by role: base (background, foreground), primary (blue/ocean), secondary (amber/treasure), surfaces (deep ocean layers), border, text levels, semantic (success/danger/warning), podium (gold/silver/bronze), accent (ocean/navy)
-   - **Typography** — font stack (Geist Sans via Next.js, system fallback), no decorative fonts actually used, weight/size conventions observed across pages
-   - **Spacing & Layout** — `max-w-7xl` page container, `px-4 py-8` page padding, `gap-8 lg:gap-20` grid gaps, card padding (`p-5`/`p-6`), section spacing (`space-y-6`, `mt-8`), border-radius tokens (radius-sm/md/lg/full)
-   - **Layout Patterns** — two-column dashboard grid (`grid-cols-1 lg:grid-cols-[3fr_2fr]`), full-viewport overlays (character-select, game-over), centered single-column settings, `order-first lg:order-0` for mobile priority reordering
-   - **Component Patterns** — cards (rounded-xl, border-border, bg-surface), buttons (variants via `Button` component), inputs (range sliders with accent-primary), badges (success/danger), panels with rank-tier glow
-   - **Rank Tier Visual System** — the 6-tier system (default → rising → elite → legendary → mythical → king) with exact border, glow, and animation classes per tier; `getRankTier()` mapping; `tierStyles` record
-   - **Avatar System** — profile images at `/avatars/{key}/profile.jpg`, full-body at `/avatars/{key}/full-body.jpg`, background images at `/avatars/{key}/{key}-bg-01.jpg` and `bg-02.jpg`; fallback SVG; AvatarIcon sizes (sm/md/lg)
-   - **Overlay & Modal Patterns** — `createPortal` to body, `fixed inset-0 z-50`, backdrop `bg-black/70`, scale animation (character-select-in/out keyframes), Escape key + body scroll lock, close button (×) positioning
-   - **Character Select Pattern** — clip-path panels, brightness/grayscale states (selected vs unselected vs has-selection), bottom gradient overlay with info, full-viewport black background
-   - **Leaderboard Pattern** — top-3 podium grid with avatar backgrounds, list below with scrollbar, pinned footer for current user, rank-tier background tinting per user
-   - **Loading States** — `Spinner` component (sizes sm/md/lg), `Skeleton` component for content placeholders, conditional rendering pattern, `loadingX` state booleans
-   - **Animations** — keyframes defined in globals.css (character-select-in/out, shadow-rotate, shadow-rotate-king), transition classes (duration-150, duration-300), hover transforms (scale-105, brightness changes)
-   - **Scrollbar Styling** — `.custom-scrollbar` class with primary-colored thumb
-   - **Accessibility** — aria-label on buttons, aria-pressed on selectable items, cursor-pointer on interactive elements, focus states via hover classes, truncate for overflow text
-   - **Dark Theme Enforcement** — no light mode, `--background: #0a1628` always, no `prefers-color-scheme` media query
+1. **Add new imports** — Add `AvatarIcon`, `getRankTier`, `tierStyles` from `@/components/ui`, `formatBounty` from `@/lib/format`, and destructure `user` from `useRequireAuth()` (in addition to `isLoading`).
 
-2. **Create `.kiro/skills/design/SKILL.md`** with YAML frontmatter and actionable instructions:
-   - Frontmatter: name, description (when to load this skill)
-   - **When to use** — creating new pages/components, refactoring existing UI, reviewing frontend PRs
-   - **Color usage rules** — always use semantic tokens (bg-surface, text-text-primary, border-border), never raw hex in components, use semantic colors for state (success/danger/warning)
-   - **Layout recipe** — step-by-step for new pages: flex-col flex-1 items-center, px-4 py-8, max-w-7xl inner container, section headings with emoji + text-lg font-semibold
-   - **Card recipe** — rounded-xl border border-border bg-surface, optional rank-tier styling via `tierStyles[tier]`
-   - **Overlay recipe** — createPortal, fixed inset-0 z-50, bg-black/70 backdrop, animation keyframes, Escape handler + scroll lock, close button pattern
-   - **Loading state recipe** — Skeleton for known-shape content, Spinner for unknown, conditional rendering with `loadingX` boolean
-   - **Rank display rules** — always use `getRankTier()` + `tierStyles`, show rank text with `.replace(/_/g, " ")`, bounty formatted with `formatBounty()` + ₿ suffix
-   - **Avatar display rules** — always use `AvatarIcon` component, specify size, pass rank for tier border
-   - **Text hierarchy** — text-text-primary for headings/names, text-text-secondary for labels, text-text-muted for metadata, text-secondary (amber) for bounty values
-   - **Interactive element rules** — cursor-pointer on all clickable, transition-colors/transition-all, hover:bg-surface-secondary for list items, hover:border-primary for bordered items
-   - **Don'ts** — don't use light backgrounds, don't introduce new color tokens without adding to globals.css, don't use clsx/cn (use array.filter(Boolean).join(" ")), don't add decorative fonts (stick with system sans-serif)
-   - **Reference files** — point to globals.css, avatar-icon.tsx, character-select.tsx, game-over-panel.tsx, settings/page.tsx, page.tsx (dashboard)
+2. **Expand BRANCHES config with per-level descriptions and color classes** — Replace single `description` field with `descriptions: string[]` (array of 3 entries, one per level explaining what it unlocks). Add `color` object to each branch with fields: `accent` (Tailwind text class), `bg` (gradient from class), `border` (border color class), `glow` (shadow class for awakened), `pip` (filled pip background class).
+   - Observation: blue-400/blue-500 palette — `text-blue-400`, `from-blue-500/20`, `border-blue-500/50`, `shadow-[0_0_12px_rgba(59,130,246,0.4)]`, `bg-blue-400`
+   - Armament: red-400/red-500 palette — `text-red-400`, `from-red-500/20`, `border-red-500/50`, `shadow-[0_0_12px_rgba(248,113,113,0.4)]`, `bg-red-400`
+   - Conqueror's: purple-400/purple-500 + yellow/amber — `text-purple-400`, `from-purple-500/20`, `border-purple-500/50`, `shadow-[0_0_12px_rgba(168,85,247,0.4)]`, `bg-purple-400`
+
+3. **Update loading guard** — Change early return condition to `if (isLoading || !user || loadingProfile)` to cover `user` null case (settings pattern).
+
+4. **Add hero section** — After back-link, before error display, add a hero card matching settings pattern:
+   - Outer div: `relative overflow-hidden rounded-xl ${rankStyle.border} ${rankStyle.glow} bg-surface p-6`
+   - Background wallpaper layer (10% opacity avatar bg image, rotated, with `user.avatar &&` guard)
+   - Content: `AvatarIcon` (size="lg") + user name + rank badge + Haki points summary (available / total / milestones)
+   - Compute `tier` and `rankStyle` from `getRankTier(user.rank)` / `tierStyles[tier]`
+
+5. **Remove old text-center header** — Delete the `<div className="text-center">` block that showed "Haki Skill Tree" title + points; this info moves to hero card.
+
+6. **Redesign LevelPips → ProgressBar component** — Replace the 3-dot pips with a segmented progress bar:
+   - Container: `flex items-center gap-1` with full width
+   - 3 segments, each: `h-2.5 flex-1 rounded-full transition-all` 
+   - Filled segments: branch color `pip` class + `shadow-[0_0_6px_...]` glow matching branch color
+   - Empty segments: `bg-surface-secondary`
+   - Accept `level`, `color` (branch color config) props
+
+7. **Redesign branch cards** — Replace `<Card>` with raw divs for full color control:
+   - Outer: `relative flex flex-col rounded-xl border bg-surface-elevated overflow-hidden`
+   - Top accent strip: `h-1 w-full bg-gradient-to-r ${branch.color.bg} to-transparent` (colored gradient bar at top of card)
+   - When awakened (level=3): apply branch `glow` shadow + `border-secondary/50` border + amber/gold border treatment
+   - Normal state: `border-border` default border
+
+8. **Per-level descriptions** — Below the progress bar, show a compact list of what each level unlocks:
+   - 3 small rows, each with level indicator (Lv1/Lv2/Lv3) + description text
+   - Filled levels: branch accent text color
+   - Unfilled levels: `text-text-muted` with slightly dimmed opacity
+
+9. **Awakened state treatment** — When `isMaxed`:
+   - Card border changes to `border-secondary/50`
+   - Card gets `shadow-[0_0_16px_rgba(245,158,11,0.2)]` (amber glow)
+   - "✦ Awakened ✦" text gets `text-secondary` + subtle animation or increased font weight
+   - All 3 progress segments are filled with branch glow
+
+10. **Locked Conqueror's overlay** — Improve the overlay:
+    - Use `backdrop-blur-md` (stronger blur) instead of `backdrop-blur-sm`
+    - Background: `bg-surface/70` (slightly more transparent for depth)
+    - Add a thin `border border-purple-500/20` ring around overlay content
+    - Center content: lock icon (larger, 🔒 text-4xl), requirement text with better hierarchy (bold prereq names)
+    - Add subtle `rounded-xl` to match card radius
+
+11. **Upgrade button styling** — Keep Button component but adjust context:
+    - When branch is Observation: no change (primary variant matches blue)
+    - When branch is Armament or Conqueror's: still use `variant="primary"` (consistent CTA, don't over-theme the interactive element)
+    - Disabled state styling already handled by Button component
+
+12. **Page layout adjustment** — Change `max-w-5xl` to `max-w-7xl` (match settings page width) for hero card to breathe; keep `lg:grid-cols-3` grid for branch cards.
 
 ## Verification
 
-1. `test -f .kiro/steering/client/design-system.md && echo "steering doc exists"` — file exists
-2. `test -f .kiro/skills/design/SKILL.md && echo "skill exists"` — file exists
-3. `grep -c "color-primary" .kiro/steering/client/design-system.md` — should be ≥ 1 (color tokens documented)
-4. `grep -c "tierStyles" .kiro/steering/client/design-system.md` — should be ≥ 1 (rank system documented)
-5. `grep -c "createPortal" .kiro/steering/client/design-system.md` — should be ≥ 1 (overlay pattern documented)
-6. `head -5 .kiro/skills/design/SKILL.md | grep -c "\-\-\-"` — should be ≥ 1 (YAML frontmatter present)
-7. `grep -c "getRankTier" .kiro/skills/design/SKILL.md` — should be ≥ 1 (rank usage documented)
-8. `cd client && npm run build` — build still passes (no code changes, just docs)
+```bash
+# 1. Build succeeds (TypeScript + Tailwind compilation)
+cd client && npx next build
+
+# 2. user destructured from useRequireAuth
+grep -n "useRequireAuth" client/src/app/haki/page.tsx
+
+# 3. Hero card pattern wired (rank tier system)
+grep -n "getRankTier\|tierStyles\|AvatarIcon" client/src/app/haki/page.tsx
+
+# 4. Per-branch color identity classes present
+grep -n "from-blue\|from-red\|from-purple" client/src/app/haki/page.tsx
+
+# 5. formatBounty imported and used
+grep -n "formatBounty" client/src/app/haki/page.tsx
+
+# 6. Level descriptions array exists (3 entries per branch)
+grep -c "descriptions" client/src/app/haki/page.tsx
+
+# 7. Awakened glow treatment
+grep -n "Awakened\|shadow-\[0_0_16px" client/src/app/haki/page.tsx
+
+# 8. Business logic unchanged — upgrade handler, fetch, helpers still present
+grep -n "handleUpgrade\|getLevel\|isConquerorUnlocked\|getHakiProfile\|upgradeHaki" client/src/app/haki/page.tsx
+
+# 9. Backdrop blur on locked overlay
+grep -n "backdrop-blur-md" client/src/app/haki/page.tsx
+```
 
 ## Rollback
 
 ```bash
-rm -f .kiro/steering/client/design-system.md
-rm -rf .kiro/skills/design/
+git checkout -- client/src/app/haki/page.tsx
 ```
