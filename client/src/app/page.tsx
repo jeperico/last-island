@@ -396,9 +396,18 @@ export default function Home() {
                       const userEntry =
                         leaderboard.currentUserEntry ??
                         leaderboard.entries.find((e) => e.isCurrentUser);
-                      if (!userEntry || userEntry.position <= 3) return null;
+                      if (!userEntry) return null;
+                      const rankBg: Record<string, string> = {
+                        default: "bg-surface-secondary/50",
+                        rising: "bg-blue-950/40 border-t-blue-500/30",
+                        elite: "bg-yellow-950/30 border-t-yellow-500/30",
+                        legendary: "bg-purple-950/30 border-t-purple-500/30",
+                        mythical: "bg-red-950/30 border-t-red-500/30",
+                        king: "bg-white/5 border-t-white/30",
+                      };
+                      const tier = getRankTier(userEntry.rank);
                       return (
-                        <div className="border-t border-border bg-surface-secondary/50 flex items-center gap-3 px-4 py-2.5">
+                        <div className={`border-t flex items-center gap-3 px-4 py-2.5 ${rankBg[tier] || rankBg.default}`}>
                           <span className="w-6 text-center text-xs font-bold text-primary">
                             {userEntry.position}
                           </span>
