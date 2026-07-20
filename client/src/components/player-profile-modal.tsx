@@ -32,16 +32,17 @@ export function PlayerProfileModal({ open, onClose, player }: PlayerProfileModal
   const winRatePercent = Math.round(player.winRate * 100);
 
   const avatarKey = player.avatar?.toLowerCase();
-  const bgImage = avatarKey ? `/avatars/${avatarKey}/${avatarKey}-bg-03.jpg` : null;
+  const bannerImage = avatarKey ? `/avatars/${avatarKey}/banner.jpg` : null;
 
   return (
     <Modal open={open} onClose={onClose} title="Player Profile">
       <div className={`rounded-xl overflow-hidden ${tierCardStyles[tier] || tierCardStyles.default}`}>
-        {/* Banner background */}
-        <div
-          className="relative h-24 bg-surface-secondary bg-cover bg-center"
-          style={bgImage ? { backgroundImage: `url(${bgImage})` } : undefined}
-        >
+        {/* Banner */}
+        <div className="relative h-24 overflow-hidden">
+          <div
+            className="absolute inset-0 bg-surface-secondary bg-cover bg-center"
+            style={bannerImage ? { backgroundImage: `url(${bannerImage})` } : undefined}
+          />
           <div className="absolute inset-0 bg-black/40" />
         </div>
 
