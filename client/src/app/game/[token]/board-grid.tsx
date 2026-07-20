@@ -47,7 +47,7 @@ function getCellClasses(state: CellState, interactive: boolean, isPreview: boole
     case "miss":
       return `${base} bg-blue-900/50 text-blue-400/70 border border-blue-700/30`;
     case "sunk":
-      return `${base} bg-gradient-to-br from-purple-800 to-red-900 text-white border border-purple-500/50 shadow-[0_0_10px_rgba(168,85,247,0.4)]`;
+      return `${base} bg-gradient-to-br from-purple-700 to-purple-900 text-white border border-purple-400/50 shadow-[0_0_10px_rgba(168,85,247,0.5)]`;
     default:
       return base;
   }

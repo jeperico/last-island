@@ -7,8 +7,9 @@ import type {
   UserResponse,
   MyBoardResponse,
   ShotCellResponse,
+  ShipType,
 } from "@/lib/api/types";
-import { getShipCells, cellKey } from "@/lib/game";
+import { getShipCells, cellKey, SHIP_SIZES } from "@/lib/game";
 import { formatBounty } from "@/lib/format";
 import { BoardGrid, type CellState } from "./board-grid";
 
@@ -29,6 +30,15 @@ const FLEET_SHIP_SIZES = [5, 4, 3, 3, 2];
 function buildMyBoardCells(myBoard: MyBoardResponse): Map<string, CellState> {
   const cells = new Map<string, CellState>();
 
+  // Build a set of hit positions for quick lookup
+  const hitPositions = new Set<string>();
+  for (const shot of myBoard.shotsReceived) {
+    if (shot.result === "HIT" || shot.result === "SUNK") {
+      hitPositions.add(cellKey(shot.row, shot.col));
+    }
+  }
+
+  // Mark ship cells — check if ship is fully sunk (all cells hit)
   for (const ship of myBoard.ships) {
     const shipCells = getShipCells(
       ship.row,
@@ -36,19 +46,23 @@ function buildMyBoardCells(myBoard: MyBoardResponse): Map<string, CellState> {
       ship.size,
       ship.orientation,
     );
+    const isSunk = shipCells.every((c) => hitPositions.has(cellKey(c.row, c.col)));
     for (const cell of shipCells) {
-      cells.set(cellKey(cell.row, cell.col), { type: "ship" });
+      const key = cellKey(cell.row, cell.col);
+      if (isSunk) {
+        cells.set(key, { type: "sunk" });
+      } else if (hitPositions.has(key)) {
+        cells.set(key, { type: "hit" });
+      } else {
+        cells.set(key, { type: "ship" });
+      }
     }
   }
 
+  // Mark misses (shots that didn't hit any ship)
   for (const shot of myBoard.shotsReceived) {
     const key = cellKey(shot.row, shot.col);
-    const existing = cells.get(key);
-    if (shot.result === "SUNK") {
-      cells.set(key, { type: "sunk" });
-    } else if (existing?.type === "ship" || shot.result === "HIT") {
-      cells.set(key, { type: "hit" });
-    } else {
+    if (shot.result === "MISS" && !cells.has(key)) {
       cells.set(key, { type: "miss" });
     }
   }
@@ -61,18 +75,91 @@ function buildOpponentBoardCells(
 ): Map<string, CellState> {
   const cells = new Map<string, CellState>();
 
+  // First pass: identify sunk ship types and their final-hit positions
+  const sunkShots = shotsFired.filter((s) => s.result === "SUNK" && s.sunkShipType);
+
+  // For each sunk ship, find all HIT/SUNK cells that belong to it
+  // by tracing contiguous hit cells from the SUNK cell in a line
+  const sunkCellKeys = new Set<string>();
+
+  for (const sunkShot of sunkShots) {
+    const shipSize = SHIP_SIZES[sunkShot.sunkShipType as ShipType] ?? 0;
+    if (shipSize === 0) continue;
+
+    const hitSet = new Set(
+      shotsFired
+        .filter((s) => s.result === "HIT" || s.result === "SUNK")
+        .map((s) => `${s.row},${s.col}`),
+    );
+
+    // Try horizontal line
+    const hCells = traceShipLine(sunkShot.row, sunkShot.col, 0, 1, shipSize, hitSet);
+    // Try vertical line
+    const vCells = traceShipLine(sunkShot.row, sunkShot.col, 1, 0, shipSize, hitSet);
+
+    const shipCells = hCells ?? vCells;
+    if (shipCells) {
+      for (const key of shipCells) {
+        sunkCellKeys.add(key);
+      }
+    } else {
+      sunkCellKeys.add(cellKey(sunkShot.row, sunkShot.col));
+    }
+  }
+
+  // Second pass: assign cell states
   for (const shot of shotsFired) {
     const key = cellKey(shot.row, shot.col);
-    if (shot.result === "SUNK") {
+    if (sunkCellKeys.has(key)) {
       cells.set(key, { type: "sunk" });
     } else if (shot.result === "HIT") {
       cells.set(key, { type: "hit" });
-    } else {
+    } else if (shot.result === "MISS") {
       cells.set(key, { type: "miss" });
+    } else if (shot.result === "SUNK") {
+      cells.set(key, { type: "sunk" });
     }
   }
 
   return cells;
+}
+
+/**
+ * Trace a contiguous line of hit cells through (startRow, startCol) in direction (dr, dc).
+ * Returns the cell keys if exactly `size` cells are found in a line, otherwise null.
+ */
+function traceShipLine(
+  startRow: number,
+  startCol: number,
+  dr: number,
+  dc: number,
+  size: number,
+  hitSet: Set<string>,
+): string[] | null {
+  let r = startRow;
+  let c = startCol;
+  // Go backward to find the start of the ship
+  while (r - dr >= 0 && r - dr <= 9 && c - dc >= 0 && c - dc <= 9 && hitSet.has(`${r - dr},${c - dc}`)) {
+    r -= dr;
+    c -= dc;
+  }
+  // Now go forward collecting cells
+  const cells: string[] = [];
+  while (r >= 0 && r <= 9 && c >= 0 && c <= 9 && hitSet.has(`${r},${c}`)) {
+    cells.push(`${r},${c}`);
+    r += dr;
+    c += dc;
+  }
+  // Check if we found exactly the right size and it includes the start cell
+  if (cells.length >= size && cells.includes(`${startRow},${startCol}`)) {
+    if (cells.length === size) return cells;
+    const startIdx = cells.indexOf(`${startRow},${startCol}`);
+    for (let i = Math.max(0, startIdx - size + 1); i <= Math.min(startIdx, cells.length - size); i++) {
+      const window = cells.slice(i, i + size);
+      if (window.includes(`${startRow},${startCol}`)) return window;
+    }
+  }
+  return null;
 }
 
 // ─── Ships sunk calculation ──────────────────────────────────────────────────
