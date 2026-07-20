@@ -1,203 +1,63 @@
-# Plan #6a: Frontend Battle Haki — Foundation (Types, API, SSE Wiring)
+# Create Design System Steering Doc + Kiro Skill
 
 ## Objective
 
-Add Haki battle types, API client functions, and SSE event wiring as the foundation layer for the Battle Haki UI.
+Codify the actual dark-nautical design system (extracted from game-over modal, character-select, settings, and leaderboard pages) into a canonical steering doc and an actionable Kiro skill for building/refactoring UI.
 
 ## Files to touch
 
-- modify `client/src/interfaces/api.ts` — Add Haki battle request/response interfaces (ObservationRequest, ObservationResponse, RevealedCell, ConquerorsActivationRequest, ConquerorsActivationResponse, XPatternShotResult, ArmamentAssignmentRequest); add `id: string` to `ShipResponse`; add `armamentTriggered` and `counterFire` fields to `ShotResponse`
-- modify `client/src/types/game-events.ts` — Add `OBSERVATION_HAKI_USED`, `ARMAMENT_HAKI_TRIGGERED`, `CONQUERORS_HAKI_USED` to `GameEventType`; add data interfaces (`ObservationHakiUsedEventData`, `ArmamentHakiTriggeredEventData`, `ConquerorsHakiUsedEventData`); extend `GameEventHandlers` with new callbacks
-- modify `client/src/lib/game/use-game-events.ts` — Register event listeners for the 3 new Haki SSE events
-- modify `client/src/lib/api/haki.ts` — Add `activateObservation`, `activateConquerors`, `assignArmament` functions
-- modify `client/src/lib/api/index.ts` — Re-export new haki API functions and new types
+- **create** `.kiro/steering/client/design-system.md` — comprehensive design system reference
+- **create** `.kiro/skills/design/SKILL.md` — actionable skill for AI-assisted UI work
 
 ## Steps
 
-1. **Add Haki battle interfaces to `client/src/interfaces/api.ts`**:
-   ```typescript
-   // After existing HakiUpgradeRequest interface:
+1. **Create `.kiro/steering/client/design-system.md`** with these sections:
+   - **Philosophy** — dark nautical/One Piece theme, "deep ocean" aesthetic, dark-only
+   - **Color Palette** — exact CSS custom properties from `globals.css` organized by role: base (background, foreground), primary (blue/ocean), secondary (amber/treasure), surfaces (deep ocean layers), border, text levels, semantic (success/danger/warning), podium (gold/silver/bronze), accent (ocean/navy)
+   - **Typography** — font stack (Geist Sans via Next.js, system fallback), no decorative fonts actually used, weight/size conventions observed across pages
+   - **Spacing & Layout** — `max-w-7xl` page container, `px-4 py-8` page padding, `gap-8 lg:gap-20` grid gaps, card padding (`p-5`/`p-6`), section spacing (`space-y-6`, `mt-8`), border-radius tokens (radius-sm/md/lg/full)
+   - **Layout Patterns** — two-column dashboard grid (`grid-cols-1 lg:grid-cols-[3fr_2fr]`), full-viewport overlays (character-select, game-over), centered single-column settings, `order-first lg:order-0` for mobile priority reordering
+   - **Component Patterns** — cards (rounded-xl, border-border, bg-surface), buttons (variants via `Button` component), inputs (range sliders with accent-primary), badges (success/danger), panels with rank-tier glow
+   - **Rank Tier Visual System** — the 6-tier system (default → rising → elite → legendary → mythical → king) with exact border, glow, and animation classes per tier; `getRankTier()` mapping; `tierStyles` record
+   - **Avatar System** — profile images at `/avatars/{key}/profile.jpg`, full-body at `/avatars/{key}/full-body.jpg`, background images at `/avatars/{key}/{key}-bg-01.jpg` and `bg-02.jpg`; fallback SVG; AvatarIcon sizes (sm/md/lg)
+   - **Overlay & Modal Patterns** — `createPortal` to body, `fixed inset-0 z-50`, backdrop `bg-black/70`, scale animation (character-select-in/out keyframes), Escape key + body scroll lock, close button (×) positioning
+   - **Character Select Pattern** — clip-path panels, brightness/grayscale states (selected vs unselected vs has-selection), bottom gradient overlay with info, full-viewport black background
+   - **Leaderboard Pattern** — top-3 podium grid with avatar backgrounds, list below with scrollbar, pinned footer for current user, rank-tier background tinting per user
+   - **Loading States** — `Spinner` component (sizes sm/md/lg), `Skeleton` component for content placeholders, conditional rendering pattern, `loadingX` state booleans
+   - **Animations** — keyframes defined in globals.css (character-select-in/out, shadow-rotate, shadow-rotate-king), transition classes (duration-150, duration-300), hover transforms (scale-105, brightness changes)
+   - **Scrollbar Styling** — `.custom-scrollbar` class with primary-colored thumb
+   - **Accessibility** — aria-label on buttons, aria-pressed on selectable items, cursor-pointer on interactive elements, focus states via hover classes, truncate for overflow text
+   - **Dark Theme Enforcement** — no light mode, `--background: #0a1628` always, no `prefers-color-scheme` media query
 
-   // ─── Haki Battle ──────────────────────────────────────────────────────────────
-
-   export type CellRevealStatus = "HAS_SHIP" | "EMPTY";
-
-   export interface RevealedCell {
-     row: number;
-     col: number;
-     status: CellRevealStatus;
-   }
-
-   export interface ObservationRequest {
-     row: number;
-     col: number;
-     revealRowIndex?: number | null;
-     revealColIndex?: number | null;
-   }
-
-   export interface ObservationResponse {
-     revealedCells: RevealedCell[];
-     effectLevel: string;
-   }
-
-   export interface ConquerorsActivationRequest {
-     row?: number | null;
-     col?: number | null;
-   }
-
-   export interface XPatternShotResult {
-     row: number;
-     col: number;
-     result: ShotResult;
-     sunkShipType: string | null;
-   }
-
-   export interface ConquerorsActivationResponse {
-     skipTurns: number;
-     effectLevel: string;
-     xPatternShots: XPatternShotResult[] | null;
-   }
-
-   export interface ArmamentAssignmentRequest {
-     ship1Id: string;
-     ship2Id: string | null;
-   }
-
-   export interface CounterFireResult {
-     row: number;
-     col: number;
-     result: ShotResult;
-     sunkShipType: string | null;
-   }
-   ```
-
-2. **Add `id` field to `ShipResponse`** in `client/src/interfaces/api.ts`:
-   ```typescript
-   export interface ShipResponse {
-     id: string;  // ← NEW
-     type: ShipType;
-     orientation: Orientation;
-     row: number;
-     col: number;
-     size: number;
-   }
-   ```
-
-3. **Add armament fields to `ShotResponse`** in `client/src/interfaces/api.ts`:
-   ```typescript
-   export interface ShotResponse {
-     row: number;
-     col: number;
-     result: ShotResult;
-     sunkShipType: string | null;
-     gameOver: boolean;
-     winnerName: string | null;
-     armamentTriggered: boolean;       // ← NEW
-     counterFire: CounterFireResult | null;  // ← NEW
-   }
-   ```
-
-4. **Add SSE event types to `client/src/types/game-events.ts`**:
-   - Extend `GameEventType` union with `| "OBSERVATION_HAKI_USED" | "ARMAMENT_HAKI_TRIGGERED" | "CONQUERORS_HAKI_USED"`
-   - Add data interfaces:
-     ```typescript
-     export interface ObservationHakiUsedEventData {}
-
-     export interface ArmamentHakiTriggeredEventData {
-       turnSkipped: boolean;
-       counterFireRow?: number | null;
-       counterFireCol?: number | null;
-       counterFireResult?: ShotResult | null;
-       counterFireSunkShipType?: string | null;
-     }
-
-     export interface ConquerorsHakiUsedEventData {
-       skipTurns: number;
-       effectLevel: string;
-     }
-     ```
-   - Extend `GameEventHandlers`:
-     ```typescript
-     onObservationHakiUsed?: (data: ObservationHakiUsedEventData) => void;
-     onArmamentHakiTriggered?: (data: ArmamentHakiTriggeredEventData) => void;
-     onConquerorsHakiUsed?: (data: ConquerorsHakiUsedEventData) => void;
-     ```
-
-5. **Wire SSE listeners in `client/src/lib/game/use-game-events.ts`**:
-   - Import the 3 new event data types
-   - Add handler functions following the existing pattern (parse JSON, call handlersRef):
-     ```typescript
-     function handleObservationHakiUsed(event: MessageEvent) {
-       const data: ObservationHakiUsedEventData = event.data ? JSON.parse(event.data) : {};
-       handlersRef.current.onObservationHakiUsed?.(data);
-     }
-
-     function handleArmamentHakiTriggered(event: MessageEvent) {
-       const data: ArmamentHakiTriggeredEventData = JSON.parse(event.data);
-       handlersRef.current.onArmamentHakiTriggered?.(data);
-     }
-
-     function handleConquerorsHakiUsed(event: MessageEvent) {
-       const data: ConquerorsHakiUsedEventData = JSON.parse(event.data);
-       handlersRef.current.onConquerorsHakiUsed?.(data);
-     }
-     ```
-   - Add `addEventListener` calls:
-     ```typescript
-     es.addEventListener("OBSERVATION_HAKI_USED", handleObservationHakiUsed);
-     es.addEventListener("ARMAMENT_HAKI_TRIGGERED", handleArmamentHakiTriggered);
-     es.addEventListener("CONQUERORS_HAKI_USED", handleConquerorsHakiUsed);
-     ```
-
-6. **Add battle API functions to `client/src/lib/api/haki.ts`**:
-   ```typescript
-   import type {
-     ObservationRequest,
-     ObservationResponse,
-     ConquerorsActivationRequest,
-     ConquerorsActivationResponse,
-     ArmamentAssignmentRequest,
-   } from "./types";
-
-   export function activateObservation(
-     gameToken: string,
-     data: ObservationRequest,
-   ): Promise<ObservationResponse> {
-     return apiPost<ObservationResponse>(`/api/games/${gameToken}/haki/observation`, data);
-   }
-
-   export function activateConquerors(
-     gameToken: string,
-     data: ConquerorsActivationRequest,
-   ): Promise<ConquerorsActivationResponse> {
-     return apiPost<ConquerorsActivationResponse>(`/api/games/${gameToken}/haki/conquerors`, data);
-   }
-
-   export function assignArmament(
-     gameToken: string,
-     data: ArmamentAssignmentRequest,
-   ): Promise<void> {
-     return apiPost<void>(`/api/games/${gameToken}/haki/armament`, data);
-   }
-   ```
-
-7. **Update barrel exports in `client/src/lib/api/index.ts`**:
-   - Add `activateObservation, activateConquerors, assignArmament` to the haki re-export line
-   - Add new types to the type re-export block: `ObservationRequest, ObservationResponse, RevealedCell, CellRevealStatus, ConquerorsActivationRequest, ConquerorsActivationResponse, XPatternShotResult, ArmamentAssignmentRequest, CounterFireResult`
+2. **Create `.kiro/skills/design/SKILL.md`** with YAML frontmatter and actionable instructions:
+   - Frontmatter: name, description (when to load this skill)
+   - **When to use** — creating new pages/components, refactoring existing UI, reviewing frontend PRs
+   - **Color usage rules** — always use semantic tokens (bg-surface, text-text-primary, border-border), never raw hex in components, use semantic colors for state (success/danger/warning)
+   - **Layout recipe** — step-by-step for new pages: flex-col flex-1 items-center, px-4 py-8, max-w-7xl inner container, section headings with emoji + text-lg font-semibold
+   - **Card recipe** — rounded-xl border border-border bg-surface, optional rank-tier styling via `tierStyles[tier]`
+   - **Overlay recipe** — createPortal, fixed inset-0 z-50, bg-black/70 backdrop, animation keyframes, Escape handler + scroll lock, close button pattern
+   - **Loading state recipe** — Skeleton for known-shape content, Spinner for unknown, conditional rendering with `loadingX` boolean
+   - **Rank display rules** — always use `getRankTier()` + `tierStyles`, show rank text with `.replace(/_/g, " ")`, bounty formatted with `formatBounty()` + ₿ suffix
+   - **Avatar display rules** — always use `AvatarIcon` component, specify size, pass rank for tier border
+   - **Text hierarchy** — text-text-primary for headings/names, text-text-secondary for labels, text-text-muted for metadata, text-secondary (amber) for bounty values
+   - **Interactive element rules** — cursor-pointer on all clickable, transition-colors/transition-all, hover:bg-surface-secondary for list items, hover:border-primary for bordered items
+   - **Don'ts** — don't use light backgrounds, don't introduce new color tokens without adding to globals.css, don't use clsx/cn (use array.filter(Boolean).join(" ")), don't add decorative fonts (stick with system sans-serif)
+   - **Reference files** — point to globals.css, avatar-icon.tsx, character-select.tsx, game-over-panel.tsx, settings/page.tsx, page.tsx (dashboard)
 
 ## Verification
 
-```bash
-cd client && npx next build
-cd client && npx eslint src/
-grep -r "OBSERVATION_HAKI_USED\|ARMAMENT_HAKI_TRIGGERED\|CONQUERORS_HAKI_USED" client/src/types/game-events.ts client/src/lib/game/use-game-events.ts
-grep -r "activateObservation\|activateConquerors\|assignArmament" client/src/lib/api/haki.ts client/src/lib/api/index.ts
-grep "armamentTriggered" client/src/interfaces/api.ts
-grep "id: string" client/src/interfaces/api.ts | grep -i ship
-```
+1. `test -f .kiro/steering/client/design-system.md && echo "steering doc exists"` — file exists
+2. `test -f .kiro/skills/design/SKILL.md && echo "skill exists"` — file exists
+3. `grep -c "color-primary" .kiro/steering/client/design-system.md` — should be ≥ 1 (color tokens documented)
+4. `grep -c "tierStyles" .kiro/steering/client/design-system.md` — should be ≥ 1 (rank system documented)
+5. `grep -c "createPortal" .kiro/steering/client/design-system.md` — should be ≥ 1 (overlay pattern documented)
+6. `head -5 .kiro/skills/design/SKILL.md | grep -c "\-\-\-"` — should be ≥ 1 (YAML frontmatter present)
+7. `grep -c "getRankTier" .kiro/skills/design/SKILL.md` — should be ≥ 1 (rank usage documented)
+8. `cd client && npm run build` — build still passes (no code changes, just docs)
 
 ## Rollback
 
 ```bash
-git checkout -- client/src/interfaces/api.ts client/src/types/game-events.ts client/src/lib/game/use-game-events.ts client/src/lib/api/haki.ts client/src/lib/api/index.ts
+rm -f .kiro/steering/client/design-system.md
+rm -rf .kiro/skills/design/
 ```

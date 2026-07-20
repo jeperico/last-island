@@ -2,7 +2,7 @@
 
 ## Position
 
-Plan written — Frontend Battle Haki UI (Plan #6a: Foundation — Types, API functions, SSE event wiring)
+Plan written — Design System Steering Doc + Kiro Skill (documentation only, no code changes)
 
 ## Decisions
 
@@ -18,4 +18,4 @@ Plan written — Frontend Battle Haki UI (Plan #6a: Foundation — Types, API fu
 
 ## Last verification
 
-PASS at 2026-07-17T18:48 — next build clean, no new eslint errors (only pre-existing react-hooks/set-state-in-effect and no-empty-object-type), all grep checks confirm 3 SSE events wired, 3 API functions exported, armamentTriggered on ShotResponse, id on ShipResponse
+PASS at 2026-07-20T10:26 — all 8 checks green: both files exist, color-primary(6), tierStyles(4), createPortal(1), YAML frontmatter(2), getRankTier(5), next build clean
