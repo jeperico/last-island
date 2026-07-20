@@ -2,7 +2,7 @@
 
 ## Position
 
-Plan written — Fix Armament Haki Turn-Skip Stacking Bug
+Verified — Fix Awakened Observation Haki (pre-visualize + row/col toggle)
 
 ## Decisions
 
@@ -18,4 +18,4 @@ Plan written — Fix Armament Haki Turn-Skip Stacking Bug
 
 ## Last verification
 
-PASS at 2026-07-20T12:49 — build clean, 167/167 backend tests green, client builds, all grep checks confirm wiring
+PASS at 2026-07-20T15:26 — build clean (Next.js 16.2.9 Turbopack), awakenedAxis state present, isAwakenedObservation useMemo present, handleObservationConfirm sends revealRowIndex/revealColIndex based on axis, preview includes full row/col for awakened, hoveredCell auto-set to (4,4) on mode entry, axis toggle UI conditional on observationMode && isAwakenedObservation

@@ -393,14 +393,16 @@ public class HakiBattleService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Conqueror's Haki is on cooldown");
         }
 
-        // Determine effect level
+        // Determine effect level based on conqueror's level (first use = full power, second use = WEAK)
         String effectLevel;
-        if (state.getConquerorsUsesConsumed() == 0) {
+        if (state.getConquerorsUsesConsumed() > 0) {
             effectLevel = "WEAK";
+        } else if (state.getConquerorsLevel() >= 3) {
+            effectLevel = "AWAKENED";
         } else if (state.getConquerorsLevel() == 2) {
             effectLevel = "STRONG";
         } else {
-            effectLevel = "AWAKENED";
+            effectLevel = "WEAK";
         }
 
         // Compute skip turns
@@ -439,8 +441,9 @@ public class HakiBattleService {
     // --- Conqueror's Haki: X-pattern resolution ---
 
     private List<XPatternShotResult> resolveXPattern(Board opponentBoard, int centerRow, int centerCol, Board playerBoard, Game game, String token) {
-        // 4 diagonal cells only (center is left for normal fireShot)
-        int[][] diagonals = {
+        // Center + 4 diagonal cells
+        int[][] cells = {
+                {centerRow, centerCol},
                 {centerRow - 1, centerCol - 1},
                 {centerRow - 1, centerCol + 1},
                 {centerRow + 1, centerCol - 1},
@@ -449,7 +452,7 @@ public class HakiBattleService {
 
         List<XPatternShotResult> results = new ArrayList<>();
 
-        for (int[] cell : diagonals) {
+        for (int[] cell : cells) {
             int row = cell[0];
             int col = cell[1];
 
@@ -591,17 +594,17 @@ public class HakiBattleService {
             }
         }
 
-        // For AWAKENED: validate row/col reveal params
+        // For AWAKENED: validate row AND col reveal params (reveals full cross)
         if ("AWAKENED".equals(effectLevel)) {
             boolean hasRow = request.revealRowIndex() != null;
             boolean hasCol = request.revealColIndex() != null;
-            if ((!hasRow && !hasCol) || (hasRow && hasCol)) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Awakened observation requires exactly one of revealRowIndex or revealColIndex");
+            if (!hasRow || !hasCol) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Awakened observation requires both revealRowIndex and revealColIndex");
             }
-            if (hasRow && (request.revealRowIndex() < 0 || request.revealRowIndex() > 9)) {
+            if (request.revealRowIndex() < 0 || request.revealRowIndex() > 9) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "revealRowIndex must be between 0 and 9");
             }
-            if (hasCol && (request.revealColIndex() < 0 || request.revealColIndex() > 9)) {
+            if (request.revealColIndex() < 0 || request.revealColIndex() > 9) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "revealColIndex must be between 0 and 9");
             }
         }
@@ -619,16 +622,13 @@ public class HakiBattleService {
             }
         }
 
-        // For AWAKENED: add entire row or column
+        // For AWAKENED: add entire row AND entire column (cross pattern)
         if ("AWAKENED".equals(effectLevel)) {
-            if (request.revealRowIndex() != null) {
-                for (int c = 0; c <= 9; c++) {
-                    revealedPositions.add(request.revealRowIndex() * 10 + c);
-                }
-            } else {
-                for (int r = 0; r <= 9; r++) {
-                    revealedPositions.add(r * 10 + request.revealColIndex());
-                }
+            for (int c = 0; c <= 9; c++) {
+                revealedPositions.add(request.revealRowIndex() * 10 + c);
+            }
+            for (int r = 0; r <= 9; r++) {
+                revealedPositions.add(r * 10 + request.revealColIndex());
             }
         }
 
@@ -655,14 +655,18 @@ public class HakiBattleService {
     }
 
     private String determineEffectLevel(HakiBattleState state) {
-        if (state.getObservationUsesConsumed() == 0) {
+        // Second use is always WEAK (2×2)
+        if (state.getObservationUsesConsumed() > 0) {
             return "WEAK";
         }
-        // Second use (consumed == 1)
-        if (state.getObservationLevel() == 3) {
+        // First use depends on level
+        if (state.getObservationLevel() >= 3) {
             return "AWAKENED";
         }
-        return "STRONG";
+        if (state.getObservationLevel() == 2) {
+            return "STRONG";
+        }
+        return "WEAK";
     }
 
     private Set<Integer> computeOccupiedCells(Board board) {

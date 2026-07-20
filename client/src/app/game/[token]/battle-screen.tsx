@@ -58,7 +58,9 @@ export function BattleScreen({
   const [hakiProfile, setHakiProfile] = useState<HakiProfileResponse | null>(null);
   const [hakiUsedThisTurn, setHakiUsedThisTurn] = useState(false);
   const [observationUsesLeft, setObservationUsesLeft] = useState(0);
+  const [observationUsesConsumed, setObservationUsesConsumed] = useState(0);
   const [conquerorsUsesLeft, setConquerorsUsesLeft] = useState(0);
+  const [conquerorsUsesConsumed, setConquerorsUsesConsumed] = useState(0);
   const [conquerorsCooldown, _setConquerorsCooldown] = useState(0);
   const [observationMode, setObservationMode] = useState(false);
   const [conquerorsMode, setConquerorsMode] = useState(false);
@@ -101,6 +103,15 @@ export function BattleScreen({
     }
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [observationMode, conquerorsMode]);
+
+  // Pre-visualize scan preview at center of board when entering haki mode
+  useEffect(() => {
+    if (observationMode || conquerorsMode) {
+      setHoveredCell({ row: 4, col: 4 });
+    } else {
+      setHoveredCell(null);
+    }
   }, [observationMode, conquerorsMode]);
 
   const myAvatar =
@@ -205,6 +216,11 @@ export function BattleScreen({
 
           const updatedShotsFired: ShotCellResponse[] = [
             ...(gameState.opponentBoard?.shotsFired ?? []),
+            ...optimisticShots.filter(
+              (s) => !(gameState.opponentBoard?.shotsFired ?? []).some(
+                (ss) => ss.row === s.row && ss.col === s.col
+              )
+            ),
             newShot,
           ];
 
@@ -248,13 +264,25 @@ export function BattleScreen({
 
   // ─── Haki Handlers ────────────────────────────────────────────────────────
 
+  // Determine if current observation use is AWAKENED (level 3, first use only)
+  const isAwakenedObservation = useMemo(() => {
+    if (!hakiProfile || hakiProfile.observationLevel < 3) return false;
+    return observationUsesConsumed === 0; // first use at level 3 = AWAKENED
+  }, [hakiProfile, observationUsesConsumed]);
+
   const handleObservationConfirm = useCallback(
     async (row: number, col: number) => {
       setObservationMode(false);
       try {
-        const result = await activateObservation(gameToken, { row, col });
+        const request: { row: number; col: number; revealRowIndex?: number; revealColIndex?: number } = { row, col };
+        if (isAwakenedObservation) {
+          request.revealRowIndex = row;
+          request.revealColIndex = col;
+        }
+        const result = await activateObservation(gameToken, request);
         setRevealedCells((prev) => [...prev, ...result.revealedCells]);
         setObservationUsesLeft((prev) => prev - 1);
+        setObservationUsesConsumed((prev) => prev + 1);
         setHakiUsedThisTurn(true);
         setHakiMessage(`Observation Haki reveals ${result.revealedCells.length} cells!`);
         setTimeout(() => setHakiMessage(null), 3000);
@@ -262,7 +290,7 @@ export function BattleScreen({
         setError(err instanceof Error ? err.message : "Observation failed");
       }
     },
-    [gameToken, gameState.currentTurnPlayerName],
+    [gameToken, isAwakenedObservation],
   );
 
   const handleConquerorsConfirm = useCallback(
@@ -274,6 +302,7 @@ export function BattleScreen({
           col: col ?? null,
         });
         setConquerorsUsesLeft((prev) => prev - 1);
+        setConquerorsUsesConsumed((prev) => prev + 1);
         setHakiUsedThisTurn(true);
         if (result.xPatternShots) {
           const newShots: ShotCellResponse[] = result.xPatternShots.map((s) => ({
@@ -342,11 +371,8 @@ export function BattleScreen({
     const previewKeys = new Set<string>();
 
     if (observationMode && hakiProfile) {
-      // Server logic: first use (WEAK) = 2×2, second use (STRONG/AWAKENED) = 3×3
-      // Uses consumed = total - remaining
-      const totalUses = hakiProfile.observationLevel >= 2 ? 2 : 1;
-      const consumed = totalUses - observationUsesLeft;
-      const size = consumed === 0 ? 2 : 3;
+      // First use: Level 2+ = 3×3, Level 1 = 2×2. Second use is always 2×2.
+      const size = (observationUsesConsumed === 0 && hakiProfile.observationLevel >= 2) ? 3 : 2;
       for (let dr = 0; dr < size; dr++) {
         for (let dc = 0; dc < size; dc++) {
           const r = hoveredCell.row + dr;
@@ -356,23 +382,34 @@ export function BattleScreen({
           }
         }
       }
+      // For AWAKENED: preview full row AND full column (cross pattern)
+      if (isAwakenedObservation) {
+        for (let c = 0; c <= 9; c++) {
+          previewKeys.add(cellKey(hoveredCell.row, c));
+        }
+        for (let r = 0; r <= 9; r++) {
+          previewKeys.add(cellKey(r, hoveredCell.col));
+        }
+      }
     }
 
     if (conquerorsMode) {
-      // Conqueror's: X-pattern (center + 4 diagonals)
+      // Conqueror's: center always shown; X-pattern diagonals only at level 3 first use
       previewKeys.add(cellKey(hoveredCell.row, hoveredCell.col));
-      const diagonals = [[-1, -1], [-1, 1], [1, -1], [1, 1]];
-      for (const [dr, dc] of diagonals) {
-        const r = hoveredCell.row + dr;
-        const c = hoveredCell.col + dc;
-        if (r >= 0 && r <= 9 && c >= 0 && c <= 9) {
-          previewKeys.add(cellKey(r, c));
+      if (hakiProfile && hakiProfile.conquerorsLevel >= 3 && conquerorsUsesConsumed === 0) {
+        const diagonals = [[-1, -1], [-1, 1], [1, -1], [1, 1]];
+        for (const [dr, dc] of diagonals) {
+          const r = hoveredCell.row + dr;
+          const c = hoveredCell.col + dc;
+          if (r >= 0 && r <= 9 && c >= 0 && c <= 9) {
+            previewKeys.add(cellKey(r, c));
+          }
         }
       }
     }
 
     return previewKeys.size > 0 ? previewKeys : undefined;
-  }, [hoveredCell, observationMode, conquerorsMode, hakiProfile, observationUsesLeft]);
+  }, [hoveredCell, observationMode, conquerorsMode, hakiProfile, observationUsesConsumed, isAwakenedObservation, conquerorsUsesConsumed]);
 
   const handleBoardCellHover = useCallback((row: number, col: number) => {
     if (observationMode || conquerorsMode) {
@@ -444,8 +481,9 @@ export function BattleScreen({
               onCancelObservation={() => setObservationMode(false)}
               conquerorsMode={conquerorsMode}
               onStartConquerors={() => {
-                // If Lv3 awakened and it's the 2nd use, need target selection
-                if (hakiProfile.conquerorsLevel >= 3 && conquerorsUsesLeft === 1) {
+                // Level 3 first use needs targeting for X-pattern (usesLeft === total means first use)
+                const totalConqUses = hakiProfile.conquerorsLevel >= 2 ? 2 : 1;
+                if (hakiProfile.conquerorsLevel >= 3 && conquerorsUsesLeft === totalConqUses) {
                   setConquerorsMode(true);
                 } else {
                   handleConquerorsConfirm();
@@ -464,6 +502,7 @@ export function BattleScreen({
 
             {/* Enemy Waters card */}
             <div className="px-3 py-3 rounded-xl border border-amber-900/30 bg-amber-950/5">
+
               <BoardGrid
                 title={observationMode ? "👁 Select Area to Scan" : conquerorsMode ? "👑 Select X-Pattern Target" : "🎯 Enemy Waters"}
                 cells={opponentBoardCells}

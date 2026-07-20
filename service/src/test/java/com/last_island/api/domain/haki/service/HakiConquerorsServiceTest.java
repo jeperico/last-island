@@ -152,7 +152,7 @@ class HakiConquerorsServiceTest {
     }
 
     @Test
-    void activateConquerors_lv2_weak_thenStrong() {
+    void activateConquerors_lv2_firstStrong_secondWeak() {
         Game game = buildInProgressGame();
         UUID blueBoardId = game.getBlueBoard().getId();
         HakiBattleState state = buildConquerorsState(blueBoardId, 2, 2, 0, 0);
@@ -161,26 +161,26 @@ class HakiConquerorsServiceTest {
         when(hakiBattleStateRepository.findByBoardId(blueBoardId)).thenReturn(Optional.of(state));
         when(hakiBattleStateRepository.save(any())).thenAnswer(i -> i.getArgument(0));
 
-        // First use — WEAK
+        // First use — STRONG (level 2, consumed=0)
         ConquerorsActivationResponse response1 = hakiBattleService.activateConquerors(
                 TOKEN, bluePlayer.getId(), new ConquerorsActivationRequest(null, null));
 
-        assertThat(response1.effectLevel()).isEqualTo("WEAK");
-        assertThat(response1.skipTurns()).isEqualTo(3);
-        assertThat(state.getOpponentSkipTurns()).isEqualTo(3);
+        assertThat(response1.effectLevel()).isEqualTo("STRONG");
+        assertThat(response1.skipTurns()).isEqualTo(5);
+        assertThat(state.getOpponentSkipTurns()).isEqualTo(5);
 
         // Reset for second use
         state.setHakiUsedThisTurn(false);
         state.setOpponentSkipTurns(0);
         state.setConquerorsCooldownTurns(0);
 
-        // Second use — STRONG
+        // Second use — WEAK (consumed > 0)
         ConquerorsActivationResponse response2 = hakiBattleService.activateConquerors(
                 TOKEN, bluePlayer.getId(), new ConquerorsActivationRequest(null, null));
 
-        assertThat(response2.effectLevel()).isEqualTo("STRONG");
-        assertThat(response2.skipTurns()).isEqualTo(5);
-        assertThat(state.getOpponentSkipTurns()).isEqualTo(5);
+        assertThat(response2.effectLevel()).isEqualTo("WEAK");
+        assertThat(response2.skipTurns()).isEqualTo(3);
+        assertThat(state.getOpponentSkipTurns()).isEqualTo(3);
         assertThat(state.getConquerorsUsesRemaining()).isEqualTo(0);
         assertThat(state.getConquerorsUsesConsumed()).isEqualTo(2);
     }

@@ -62,11 +62,9 @@ export function HakiBar({
 
   function getObservationInfo(): string {
     if (!hakiProfile) return "";
-    // First use is always 2×2, second use is 3×3 (at level 2+)
-    const totalUses = hakiProfile.observationLevel >= 2 ? 2 : 1;
-    const consumed = totalUses - observationUsesLeft;
-    const size = consumed === 0 ? "2×2" : "3×3";
-    return `${size} scan`;
+    if (hakiProfile.observationLevel >= 3) return "3×3 + cross / 2×2";
+    if (hakiProfile.observationLevel >= 2) return "3×3 / 2×2";
+    return "2×2 scan";
   }
 
   function getConquerorsInfo(): string {
@@ -97,7 +95,7 @@ export function HakiBar({
   const conqTotalUses = hakiProfile.conquerorsLevel >= 2 ? 2 : 1;
 
   return (
-    <div className="flex flex-col gap-2 w-40 rounded-xl border border-border bg-surface-elevated/80 backdrop-blur-sm p-3">
+    <div className="flex flex-col gap-2 w-48 rounded-xl border border-border bg-surface-elevated/80 backdrop-blur-sm p-3">
       {/* Title */}
       <div className="flex items-center gap-1.5 pb-1.5 border-b border-border-light">
         <span className="text-xs font-bold text-text-secondary uppercase tracking-wider">
@@ -156,7 +154,7 @@ export function HakiBar({
               onClick={onStartObservation}
               className="w-full text-blue-400 hover:text-blue-300 hover:bg-blue-900/30 text-xs h-7 border border-blue-800/40 disabled:opacity-30"
             >
-              👁 Scan
+              {observationUsesLeft === 0 ? "Depleted" : "👁 Scan"}
             </Button>
           )}
         </div>

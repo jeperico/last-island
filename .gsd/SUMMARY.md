@@ -85,3 +85,53 @@ Implementer: Modified 7 files — `service/src/main/java/com/last_island/api/dom
 Reviewer: PASS — build clean, eslint clean, 167/167 backend tests green, all grep checks confirm wiring
 
 Commit: uncommitted
+
+## 2026-07-20T14:25 — Refactor Armament Haki Turn Logic — Immediate Turn Switch
+
+Implementer: Modified 7 files — `service/src/main/java/com/last_island/api/domain/haki/service/HakiBattleService.java` (−25 lines: deleted `applyArmamentSkipOrEat` method + 2 call sites, removed `setOpponentSkipTurns(0)` from `assignArmament`, removed stale comment), `service/src/main/java/com/last_island/api/domain/haki/dto/ArmamentTriggerResult.java` (−1 field: removed `turnSkipped` boolean), `service/src/main/java/com/last_island/api/domain/board/service/BoardService.java` (refactored turn-switch: condition `MISS || armamentTriggered`, guarded `consumeSkipTurn` for natural MISSes only, removed `turnSkippedByArmament` SSE mechanism), `service/src/main/java/com/last_island/api/infrastructure/sse/GameEventEmitter.java` (removed `boolean turnSkipped` param, hardcoded `true` for backward compat), `service/src/test/java/com/last_island/api/domain/board/service/BoardServiceFireShotTest.java` (updated 3 tests + added 1 new test for armament turn switch without Conqueror's consumption), `service/src/test/java/com/last_island/api/domain/haki/service/HakiArmamentServiceTest.java` (updated 3 tests: removed `turnSkipped`/`opponentSkipTurns` assertions), `service/src/test/java/com/last_island/api/domain/haki/service/HakiConquerorsServiceTest.java` (updated 3 tests: removed eat-skip assertions, verified opponentSkipTurns unchanged by Armament). Full backend test suite passes, client builds clean, grep confirms no Armament code path touches opponentSkipTurns.
+
+Reviewer: PASS — 168/168 tests green, armament no longer touches opponentSkipTurns, turn switches immediately on armament trigger, Conqueror's skip logic independent, counter-fire (Lv3) works, eat-skip interaction preserved
+
+Commit: uncommitted
+
+## 2026-07-20T14:32 — Add Player Profile Modal to Leaderboard
+
+Implementer: Created `client/src/components/player-profile-modal.tsx` (+80 lines). Modified `client/src/app/page.tsx` (+20 lines — import, LeaderboardEntryResponse type, profilePlayer state, onClick/role/tabIndex/onKeyDown on podium+list+footer, modal render). Net: +100 lines across 2 files.
+
+Reviewer: PASS — build clean, eslint clean (0 errors, 2 pre-existing warnings), all grep checks green (PlayerProfileModal 2, setProfilePlayer 8, getRankTier+tierStyles+formatBounty 5, bg-surface-elevated 1, AvatarIcon 2, role="button" 3, Modal 5)
+
+Commit: uncommitted
+
+## 2026-07-20T14:48 — Refactor Armament Haki Absorption Limits
+
+Implementer: Modified `service/src/main/java/com/last_island/api/domain/haki/service/HakiBattleService.java` (−4 lines net: ship1 cap 1→3, ship2 cap removed entirely). Modified `service/src/test/java/com/last_island/api/domain/haki/service/HakiArmamentServiceTest.java` (+42 lines net: renamed 3 tests, rewrote 1 test, added 2 new tests for 3-hit cap and unlimited absorption). Full test suite passes (168/168 green), all grep checks confirm changes.
+
+Reviewer: PASS — 170/170 tests green, ship1 cap `< 3` at line 197, ship2 has no cap guard, counter-fire `level == 3` at line 210, all 5 test methods present
+
+Commit: uncommitted
+
+## 2026-07-20T14:57 — Refactor Armament Haki Ship Selection UI — Protection Labels & Swapped Assignment
+
+Implementer: Modified `client/src/app/game/[token]/ship-placement.tsx` (net +6 lines). Changed header text from "harden" to "protect" with level-specific phrasing, updated Level 2+ selection prompts to show protection type at each step ("full protection (unlimited)" → "3-hit protection"), swapped `handleArmamentConfirm` assignment so first pick = ship2Id (unlimited) and second = ship1Id (3-hit cap), replaced 🛡️ badge with ∞/3× protection-type badges.
+
+Reviewer: PASS — build clean, selection order "full protection (unlimited)" → "3-hit protection" confirmed, handleArmamentConfirm swap verified (first→ship2Id, second→ship1Id), badge ∞ at index 0 / 3× otherwise, Level 1 single pick→ship1Id with null ship2Id
+
+Commit: uncommitted
+
+## 2026-07-20T15:23 — Fix Awakened Observation Haki — Pre-visualize + Row/Col Toggle
+
+Implementer: Modified `client/src/app/game/[token]/battle-screen.tsx` (net +45 lines). Added useEffect to pre-set hoveredCell to center (4,4) on observation/conquerors mode entry, added `awakenedAxis` state and `isAwakenedObservation` useMemo, extended `observationPreviewCells` to include full row/col highlight for awakened, updated `handleObservationConfirm` to send `revealRowIndex`/`revealColIndex`, added row/col axis toggle UI above opponent board grid.
+
+Reviewer: PASS — build clean, all 7 checks green (awakenedAxis state, isAwakenedObservation useMemo, revealRowIndex/revealColIndex dispatch, full row/col preview, center (4,4) auto-set, axis toggle UI conditional)
+
+Commit: uncommitted
+
+## 2026-07-20T15:33 — Awakened observation: cross pattern (row + col)
+
+Implementer: Changed 3 files (+18 / -30 net)
+- `service/src/main/java/com/last_island/api/domain/haki/service/HakiBattleService.java` — validation now requires BOTH revealRowIndex and revealColIndex; reveal logic reveals full row AND column (cross)
+- `client/src/app/game/[token]/battle-screen.tsx` — removed awakenedAxis state & toggle UI; always sends both row+col; preview shows cross pattern
+- `service/src/test/java/com/last_island/api/domain/haki/service/HakiBattleServiceTest.java` — updated awakened tests to send both params, fixed expected cell counts for cross pattern
+
+Reviewer: pending
+Commit: uncommitted

@@ -258,7 +258,7 @@ class HakiBattleServiceTest {
     }
 
     @Test
-    void lv2_firstUseWeak_secondUseStrong() {
+    void lv2_firstUseStrong_secondUseWeak() {
         Game game = buildInProgressGame();
         UUID blueBoardId = game.getBlueBoard().getId();
 
@@ -271,8 +271,8 @@ class HakiBattleServiceTest {
         ObservationRequest request1 = new ObservationRequest(0, 0, null, null);
         ObservationResponse response1 = hakiBattleService.activateObservation(TOKEN, bluePlayer.getId(), request1);
 
-        assertThat(response1.effectLevel()).isEqualTo("WEAK");
-        assertThat(response1.revealedCells()).hasSize(4);
+        assertThat(response1.effectLevel()).isEqualTo("STRONG");
+        assertThat(response1.revealedCells()).hasSize(9);
 
         // Second use — reset flag for new turn
         state.setHakiUsedThisTurn(false);
@@ -280,8 +280,8 @@ class HakiBattleServiceTest {
         ObservationRequest request2 = new ObservationRequest(0, 0, null, null);
         ObservationResponse response2 = hakiBattleService.activateObservation(TOKEN, bluePlayer.getId(), request2);
 
-        assertThat(response2.effectLevel()).isEqualTo("STRONG");
-        assertThat(response2.revealedCells()).hasSize(9);
+        assertThat(response2.effectLevel()).isEqualTo("WEAK");
+        assertThat(response2.revealedCells()).hasSize(4);
     }
 
     @Test
@@ -300,7 +300,7 @@ class HakiBattleServiceTest {
     }
 
     @Test
-    void lv3_firstUseWeak_secondUseAwakened() {
+    void lv3_firstUseAwakened_secondUseWeak() {
         Game game = buildInProgressGame();
         UUID blueBoardId = game.getBlueBoard().getId();
 
@@ -309,39 +309,42 @@ class HakiBattleServiceTest {
         when(hakiBattleStateRepository.findByBoardId(blueBoardId)).thenReturn(Optional.of(state));
         when(hakiBattleStateRepository.save(any())).thenAnswer(i -> i.getArgument(0));
 
-        // First use — WEAK 2×2
-        ObservationRequest request1 = new ObservationRequest(0, 0, null, null);
+        // First use — AWAKENED 3×3 + cross
+        ObservationRequest request1 = new ObservationRequest(0, 0, 5, 7);
         ObservationResponse response1 = hakiBattleService.activateObservation(TOKEN, bluePlayer.getId(), request1);
-        assertThat(response1.effectLevel()).isEqualTo("WEAK");
-        assertThat(response1.revealedCells()).hasSize(4);
+        assertThat(response1.effectLevel()).isEqualTo("AWAKENED");
+        // 3×3 = 9 cells + row 5 (10 cells) + col 7 (10 cells) - 1 overlap (5,7 in both row&col) = 28
+        assertThat(response1.revealedCells()).hasSize(28);
 
-        // Second use — AWAKENED 3×3 + full row
+        // Second use — WEAK 2×2
         state.setHakiUsedThisTurn(false);
-        ObservationRequest request2 = new ObservationRequest(0, 0, 5, null);
+        ObservationRequest request2 = new ObservationRequest(0, 0, null, null);
         ObservationResponse response2 = hakiBattleService.activateObservation(TOKEN, bluePlayer.getId(), request2);
 
-        assertThat(response2.effectLevel()).isEqualTo("AWAKENED");
-        // 3×3 = 9 cells + row 5 = 10 cells, but some may overlap. Row 5 cols 0-2 overlap with area if area starts at (0,0)
-        // Area (0,0)-(2,2) does NOT overlap with row 5, so total = 9 + 10 = 19
-        assertThat(response2.revealedCells()).hasSize(19);
+        assertThat(response2.effectLevel()).isEqualTo("WEAK");
+        assertThat(response2.revealedCells()).hasSize(4);
     }
 
     @Test
-    void lv3_awakenedWithColumn() {
+    void lv3_awakenedWithCross() {
         Game game = buildInProgressGame();
         UUID blueBoardId = game.getBlueBoard().getId();
 
-        HakiBattleState state = buildState(blueBoardId, 3, 1, 1);
+        HakiBattleState state = buildState(blueBoardId, 3, 2, 0);
         when(gameRepository.findByTokenAndIsActiveTrue(TOKEN)).thenReturn(Optional.of(game));
         when(hakiBattleStateRepository.findByBoardId(blueBoardId)).thenReturn(Optional.of(state));
         when(hakiBattleStateRepository.save(any())).thenAnswer(i -> i.getArgument(0));
 
-        // AWAKENED with column reveal — area (0,0)-(2,2) + col 5, no overlap → 9 + 10 = 19
-        ObservationRequest request = new ObservationRequest(0, 0, null, 5);
+        // AWAKENED with cross reveal — area (0,0)-(2,2) + row 5 + col 5
+        // Area (0,0)-(2,2) = 9 cells, row 5 = 10 cells, col 5 = 10 cells
+        // Row 5 ∩ col 5 = (5,5) → 1 overlap
+        // Area ∩ row 5 = none (row 5 not in rows 0-2), Area ∩ col 5 = none (col 5 not in cols 0-2)
+        // Total unique = 9 + 10 + 10 - 1 = 28
+        ObservationRequest request = new ObservationRequest(0, 0, 5, 5);
         ObservationResponse response = hakiBattleService.activateObservation(TOKEN, bluePlayer.getId(), request);
 
         assertThat(response.effectLevel()).isEqualTo("AWAKENED");
-        assertThat(response.revealedCells()).hasSize(19);
+        assertThat(response.revealedCells()).hasSize(28);
     }
 
     @Test
@@ -349,11 +352,11 @@ class HakiBattleServiceTest {
         Game game = buildInProgressGame();
         UUID blueBoardId = game.getBlueBoard().getId();
 
-        HakiBattleState state = buildState(blueBoardId, 3, 1, 1);
+        HakiBattleState state = buildState(blueBoardId, 3, 2, 0);
         when(gameRepository.findByTokenAndIsActiveTrue(TOKEN)).thenReturn(Optional.of(game));
         when(hakiBattleStateRepository.findByBoardId(blueBoardId)).thenReturn(Optional.of(state));
 
-        // Neither revealRowIndex nor revealColIndex provided
+        // Neither revealRowIndex nor revealColIndex provided — should fail for AWAKENED
         ObservationRequest request = new ObservationRequest(0, 0, null, null);
         ResponseStatusException ex = assertThrows(ResponseStatusException.class,
                 () -> hakiBattleService.activateObservation(TOKEN, bluePlayer.getId(), request));
@@ -438,7 +441,7 @@ class HakiBattleServiceTest {
     void outOfBounds_strong_400() {
         Game game = buildInProgressGame();
         UUID blueBoardId = game.getBlueBoard().getId();
-        HakiBattleState state = buildState(blueBoardId, 2, 1, 1);
+        HakiBattleState state = buildState(blueBoardId, 2, 2, 0);
 
         when(gameRepository.findByTokenAndIsActiveTrue(TOKEN)).thenReturn(Optional.of(game));
         when(hakiBattleStateRepository.findByBoardId(blueBoardId)).thenReturn(Optional.of(state));

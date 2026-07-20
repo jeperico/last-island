@@ -1,101 +1,90 @@
-# Fix Armament Haki Turn-Skip Stacking Bug
+# Refactor Armament Haki Absorption Limits
 
 ## Objective
 
-Cap Armament Haki's `opponentSkipTurns` at 1 (no stacking), add `current_turn_player_name` to `ShotResponse`, and make the frontend use the server-returned turn owner instead of optimistic computation.
+Change Armament Haki absorption caps so ship1 absorbs up to 3 hits (was 1) and ship2 absorbs unlimited hits (was capped at 3), while preserving Level 3 counter-fire behavior and immediate turn-switch on each absorbed hit.
 
 ## Files to touch
 
-- modify `service/src/main/java/com/last_island/api/domain/haki/service/HakiBattleService.java` — cap armament skip at 1
-- modify `service/src/main/java/com/last_island/api/domain/board/dto/ShotResponse.java` — add `currentTurnPlayerName` field
-- modify `service/src/main/java/com/last_island/api/domain/board/service/BoardService.java` — pass `game.getCurrentTurn().getName()` to ShotResponse
-- modify `service/src/test/java/com/last_island/api/domain/haki/service/HakiArmamentServiceTest.java` — update stacking assertion (3→1)
-- modify `service/src/test/java/com/last_island/api/domain/board/service/BoardServiceFireShotTest.java` — assert `currentTurnPlayerName` in responses
-- modify `client/src/interfaces/api.ts` — add `currentTurnPlayerName` to ShotResponse interface
-- modify `client/src/app/game/[token]/battle-screen.tsx` — use `response.currentTurnPlayerName` instead of optimistic computation
+- **modify** `service/src/main/java/com/last_island/api/domain/haki/service/HakiBattleService.java` — update absorption cap logic in `checkArmamentTrigger()`
+- **modify** `service/src/test/java/com/last_island/api/domain/haki/service/HakiArmamentServiceTest.java` — fix existing tests and add new ones for the new limits
 
 ## Steps
 
-1. **Cap armament skip at 1 in `HakiBattleService.applyArmamentSkipOrEat()`**
-   - Change line 241 from `defenderState.setOpponentSkipTurns(defenderState.getOpponentSkipTurns() + 1)` to `defenderState.setOpponentSkipTurns(1)` (set, not increment). This makes repeated armament triggers idempotent — the field stays at 1 regardless of how many armored hits land.
-   - Conqueror's Haki (line 437) is NOT changed — its multi-turn skip (3 or 5) is intentional.
+1. **Modify `HakiBattleService.java` line 197** — change ship1 cap from `< 1` to `< 3`:
+   ```java
+   // Before
+   if (state.getArmamentShip1HitsAbsorbed() < 1) {
+   // After
+   if (state.getArmamentShip1HitsAbsorbed() < 3) {
+   ```
 
-2. **Add `currentTurnPlayerName` to `ShotResponse` record**
-   - Add a `String currentTurnPlayerName` parameter to the record. Update both constructors:
-     - Game-over constructor: pass `null` (game is over, no next turn).
-     - Normal constructor: accept `currentTurnPlayerName` as a new parameter.
-   - Jackson will serialize it as `current_turn_player_name` (Spring Boot's default snake_case property naming).
+2. **Modify `HakiBattleService.java` line 207** — remove the cap check for ship2 entirely. The absorption block and counter-fire logic (Level 3 check at ~line 211-213) must remain, only the `if (state.getArmamentShip2HitsAbsorbed() < 3)` guard is removed:
+   ```java
+   // Before
+   if (state.getArmamentShip2HitsAbsorbed() < 3) {
+       state.setArmamentShip2HitsAbsorbed(state.getArmamentShip2HitsAbsorbed() + 1);
+       // ... absorption + counter-fire logic ...
+   }
+   // After (remove the if wrapper, keep the body at the same indent level)
+   state.setArmamentShip2HitsAbsorbed(state.getArmamentShip2HitsAbsorbed() + 1);
+   // ... absorption + counter-fire logic ...
+   ```
+   Ensure the closing `}` of the removed `if` is also removed. The `if (state.getArmamentLevel() == 3)` counter-fire block inside must be preserved unchanged.
 
-3. **Pass current turn player name in `BoardService.fireShot()`**
-   - After turn switch logic (line ~340), capture `game.getCurrentTurn().getName()`.
-   - Pass it to the final `new ShotResponse(...)` call on line 378.
-   - For the game-over return (line 310), pass `null`.
+3. **Modify test `checkArmament_lv1_secondHitOnShip1_noTrigger` (~line 297)**:
+   - Rename to `checkArmament_lv1_fourthHitOnShip1_noTrigger`
+   - Change `state.setArmamentShip1HitsAbsorbed(1)` → `state.setArmamentShip1HitsAbsorbed(3)`
+   - Assertions remain the same (hit is NOT absorbed because cap reached)
 
-4. **Update `HakiArmamentServiceTest.checkArmament_lv2_ship2_first3Hits_eachTriggersSkip()`**
-   - Change the final assertion from `assertThat(state.getOpponentSkipTurns()).isEqualTo(3)` to `assertThat(state.getOpponentSkipTurns()).isEqualTo(1)` — multiple hits no longer stack.
+4. **Rename test `checkArmament_lv2_ship2_first3Hits_eachTriggers` (~line 317)**:
+   - Rename to `checkArmament_lv2_ship2_multipleHits_eachTriggers`
+   - Body unchanged (3 sequential hits all trigger — still valid for unlimited)
 
-5. **Update `BoardServiceFireShotTest` assertions**
-   - In tests that build ShotResponse expectations, verify `currentTurnPlayerName()` matches the expected turn owner after the shot resolves.
+5. **Rewrite test `checkArmament_lv2_ship2_fourthHit_noTrigger` (~line 351)**:
+   - Rename to `checkArmament_lv2_ship2_manyHits_allTrigger`
+   - Set `state.setArmamentShip2HitsAbsorbed(50)` (simulating 50 prior absorptions)
+   - Assert that the next hit IS absorbed (trigger returned, counter incremented to 51)
+   - Assert turn switch is triggered (same pattern as existing absorption tests)
 
-6. **Add `currentTurnPlayerName` to frontend `ShotResponse` interface**
-   - In `client/src/interfaces/api.ts`, add `currentTurnPlayerName: string | null;` to the `ShotResponse` interface.
+6. **Add new test `checkArmament_lv1_thirdHitOnShip1_triggerReturned`** (after existing lv1 tests):
+   - Set `state.setArmamentShip1HitsAbsorbed(2)` (already absorbed 2)
+   - Fire at ship1
+   - Assert trigger IS returned (3rd hit absorbed, counter goes to 3)
+   - Assert turn switch triggered
 
-7. **Replace optimistic turn computation in `battle-screen.tsx`**
-   - In the shot handler (lines ~201-208), replace the `newCurrentTurn` derivation block:
-     ```typescript
-     // Before (optimistic):
-     const newCurrentTurn = response.result === "MISS"
-       ? gameState.bluePlayerName === user.name ? gameState.redPlayerName : gameState.bluePlayerName
-       : gameState.currentTurnPlayerName;
-     
-     // After (server-authoritative):
-     const newCurrentTurn = response.currentTurnPlayerName ?? gameState.currentTurnPlayerName;
-     ```
-   - This handles HIT (attacker keeps turn), MISS (server says who's next), and skip-consumed (server already bounced turn back).
+7. **Add new test `checkArmament_lv2_ship2_unlimitedAbsorption_stillTriggers`** (after existing lv2 tests):
+   - Set `state.setArmamentShip2HitsAbsorbed(99)`
+   - Fire at ship2
+   - Assert trigger IS returned (100th hit absorbed, counter goes to 100)
+   - Confirms no upper bound exists
 
 ## Verification
 
 ```bash
-# 1. Backend compiles
-make service-build
+# 1. Run the specific Armament test class
+cd /home/perico/work/last-island/service && ./mvnw test -pl . -Dtest=HakiArmamentServiceTest
 
-# 2. All backend tests pass (167 expected)
-make service-test
+# 2. Run full service test suite to catch regressions
+cd /home/perico/work/last-island/service && ./mvnw test -pl .
 
-# 3. Frontend builds without errors
-make client-build
+# 3. Verify ship1 cap changed to 3
+grep -n "getArmamentShip1HitsAbsorbed() < 3" service/src/main/java/com/last_island/api/domain/haki/service/HakiBattleService.java
 
-# 4. Frontend lint passes
-make client-lint
+# 4. Verify ship2 cap removed (no cap check should remain)
+grep -n "getArmamentShip2HitsAbsorbed() <" service/src/main/java/com/last_island/api/domain/haki/service/HakiBattleService.java | grep -v "test"
 
-# 5. Grep: armament skip is set, not incremented
-grep -n "setOpponentSkipTurns(1)" service/src/main/java/com/last_island/api/domain/haki/service/HakiBattleService.java
+# 5. Verify counter-fire logic preserved
+grep -n "getArmamentLevel() == 3" service/src/main/java/com/last_island/api/domain/haki/service/HakiBattleService.java
 
-# 6. Grep: no increment remains in applyArmamentSkipOrEat
-grep -n "getOpponentSkipTurns() + 1" service/src/main/java/com/last_island/api/domain/haki/service/HakiBattleService.java | grep -v "Conqueror"
-
-# 7. Grep: currentTurnPlayerName in ShotResponse record
-grep -n "currentTurnPlayerName" service/src/main/java/com/last_island/api/domain/board/dto/ShotResponse.java
-
-# 8. Grep: frontend uses response.currentTurnPlayerName
-grep -n "response.currentTurnPlayerName" client/src/app/game/\[token\]/battle-screen.tsx
-
-# 9. Grep: no old optimistic turn logic remains
-grep -n "bluePlayerName.*redPlayerName\|redPlayerName.*bluePlayerName" client/src/app/game/\[token\]/battle-screen.tsx
+# 6. Verify new tests exist
+grep -n "fourthHitOnShip1_noTrigger\|thirdHitOnShip1_triggerReturned\|manyHits_allTrigger\|unlimitedAbsorption_stillTriggers\|multipleHits_eachTriggers" service/src/test/java/com/last_island/api/domain/haki/service/HakiArmamentServiceTest.java
 ```
-
-Check #6 should return zero lines (the only `+1` remaining should be Conqueror's at line 437).
-Check #9 should return zero lines (optimistic swap removed).
 
 ## Rollback
 
 ```bash
-git checkout -- \
-  service/src/main/java/com/last_island/api/domain/haki/service/HakiBattleService.java \
-  service/src/main/java/com/last_island/api/domain/board/dto/ShotResponse.java \
-  service/src/main/java/com/last_island/api/domain/board/service/BoardService.java \
-  service/src/test/java/com/last_island/api/domain/haki/service/HakiArmamentServiceTest.java \
-  service/src/test/java/com/last_island/api/domain/board/service/BoardServiceFireShotTest.java \
-  client/src/interfaces/api.ts \
-  client/src/app/game/\[token\]/battle-screen.tsx
+cd /home/perico/work/last-island
+git checkout -- service/src/main/java/com/last_island/api/domain/haki/service/HakiBattleService.java
+git checkout -- service/src/test/java/com/last_island/api/domain/haki/service/HakiArmamentServiceTest.java
 ```

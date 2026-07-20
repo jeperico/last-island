@@ -340,6 +340,11 @@ export function GameOverPanel({ gameState, user, onClose }: GameOverPanelProps) 
 
           {/* Middle column */}
           <div className="flex flex-col items-center justify-between py-6 px-4 bg-surface-elevated overflow-hidden">
+            {/* Victory/Defeat banner */}
+            <p className={`text-4xl font-black uppercase tracking-widest mb-4 ${isWinner ? "text-success" : "text-danger"}`}>
+              {isWinner ? "VICTORY" : "DEFEAT"}
+            </p>
+
             {/* Top score card */}
             <div className={`w-full max-w-sm rounded-lg p-4 text-center ${isWinner ? "bg-success/10 border border-success/20" : "bg-danger/10 border border-danger/20"}`}>
               {/* Ships sunk comparison */}
@@ -383,7 +388,7 @@ export function GameOverPanel({ gameState, user, onClose }: GameOverPanelProps) 
 
             {/* Boards section */}
             <div className="flex-1 flex items-center justify-center w-full overflow-hidden">
-              <div className="flex gap-4 justify-center items-center" style={{ transform: "scale(0.85)" }}>
+              <div className="flex gap-4 justify-center items-center" style={{ transform: "scale(0.7)" }}>
                 {gameState.myBoard && (
                   <BoardGrid title="My Fleet" cells={myBoardCells} />
                 )}
