@@ -18,4 +18,4 @@ Plan written — Add Player Profile Modal to Leaderboard
 
 ## Last verification
 
-PASS at 2026-07-20T11:53 — banner fix verified: build clean, rotate=0, 300%=0, bg-cover bg-top present, all original functionality intact (Modal/AvatarIcon/getRankTier/tierStyles/formatBounty/grid — 13 matches)
+PASS at 2026-07-20T12:34 — build clean, "future turn" message confirmed, no "Turn lost" remains, armament setTimeout=5000, counterFire setTimeout=5000

@@ -69,3 +69,11 @@ Implementer: Created `client/src/components/player-profile-modal.tsx` (+92 lines
 Reviewer: PASS — build clean, eslint clean (0 errors, 2 pre-existing warnings), all grep checks green (PlayerProfileModal 2, setProfilePlayer 8, getRankTier+tierStyles+formatBounty 5, bg-surface-elevated 1, AvatarIcon 2, Modal 5, role="button" 3)
 
 Commit: uncommitted
+
+## 2026-07-20T12:32 — Fix Armament Haki Notification — Clarity & Duration
+
+Implementer: Modified `client/src/app/game/[token]/battle-screen.tsx` (net 0 lines — text change + two timeout value changes). Changed armament message from "Turn lost!" to "You'll lose a future turn.", armament setTimeout 3000→5000, counter-fire setTimeout 3000→5000.
+
+Reviewer: PASS — build clean, "future turn" message present, no "Turn lost" remains, both setTimeouts confirmed 5000
+
+Commit: uncommitted
