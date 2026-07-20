@@ -29,3 +29,11 @@ Implementer: Modified `client/src/app/game/[token]/ship-placement.tsx` (was ~310
 Reviewer: PASS — build clean, eslint clean, business logic 25 matches, all 11 verification checks green (build, lint, logic functions, backdrop-blur, bg-surface×8, ship imports, text tokens×11, props interface, SurrenderModal, gradient accent, 10×10 grid+handlers+cell states+keyboard shortcut)
 
 Commit: uncommitted
+
+## 2026-07-20T11:26 — Add Haki Tutorial Modal on Home Page
+
+Implementer: Created `client/src/components/haki-tutorial-modal.tsx` (+71). Modified `client/src/app/page.tsx` (+16). Net: +87 lines across 2 files.
+
+Reviewer: PASS — build clean, eslint clean (0 errors, 2 pre-existing warnings), all 8 grep checks green (localStorage key 1, hakiPointsAvailable 1, HakiTutorialModal 2, getHakiProfile 2, bg-surface-elevated 1, /haki 1, Modal 5, per-branch colors 3)
+
+Commit: uncommitted

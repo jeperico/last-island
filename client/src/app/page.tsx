@@ -13,6 +13,7 @@ import {
   getGame,
   getBattleLog,
   getLeaderboard,
+  getHakiProfile,
 } from "@/lib/api";
 import type { ApiError } from "@/lib/api/client";
 import type {
@@ -39,6 +40,7 @@ import {
   tierStyles,
 } from "@/components/ui";
 import { GameOverPanel } from "./game/[token]/game-over-panel";
+import { HakiTutorialModal } from "@/components/haki-tutorial-modal";
 import { formatBounty } from "@/lib/format";
 
 export default function Home() {
@@ -62,6 +64,7 @@ export default function Home() {
   const [selectedBattle, setSelectedBattle] =
     useState<GameStateResponse | null>(null);
   const [loadingBattle, setLoadingBattle] = useState(false);
+  const [hakiTutorialOpen, setHakiTutorialOpen] = useState(false);
 
   useEffect(() => {
     if (isLoading || !user) return;
@@ -97,6 +100,17 @@ export default function Home() {
         if (!cancelled) {
           setLoadingBattleLog(false);
         }
+      }
+      try {
+        const hakiProfile = await getHakiProfile();
+        if (!cancelled && hakiProfile.hakiPointsAvailable > 0) {
+          const seen = localStorage.getItem("last-island-haki-tutorial-seen");
+          if (!seen) {
+            setHakiTutorialOpen(true);
+          }
+        }
+      } catch {
+        // Haki tutorial check is non-critical, silently ignore
       }
     }
 
@@ -642,6 +656,11 @@ export default function Home() {
           onClose={() => setSelectedBattle(null)}
         />
       )}
+
+      <HakiTutorialModal
+        open={hakiTutorialOpen}
+        onClose={() => setHakiTutorialOpen(false)}
+      />
     </div>
   );
 }

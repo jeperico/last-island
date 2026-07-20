@@ -2,7 +2,7 @@
 
 ## Position
 
-Plan written — Refactor Ship Placement Component Visual Design (single file: client/src/app/game/[token]/ship-placement.tsx)
+Plan written — Add Haki Tutorial Modal on Home Page
 
 ## Decisions
 
@@ -18,4 +18,4 @@ Plan written — Refactor Ship Placement Component Visual Design (single file: c
 
 ## Last verification
 
-PASS at 2026-07-20T11:21 — build clean, eslint clean, business logic 25 matches, backdrop-blur-md present, bg-surface ×8, text tokens ×11, props interface intact, SurrenderModal rendered, gradient accent present, 10×10 grid with onClick/onMouseEnter/onMouseLeave, 4 distinct cell states, R keyboard shortcut, 5-ship fleet map
+PASS at 2026-07-20T11:29 — build clean, eslint 0 errors (2 pre-existing warnings), all 8 grep checks green (localStorage key ≥1, hakiPointsAvailable ≥1, HakiTutorialModal ≥2, getHakiProfile ≥2, bg-surface-elevated ≥1, /haki link ≥1, Modal ≥2, per-branch colors ≥3)
