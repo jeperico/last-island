@@ -77,3 +77,11 @@ Implementer: Modified `client/src/app/game/[token]/battle-screen.tsx` (net 0 lin
 Reviewer: PASS — build clean, "future turn" message present, no "Turn lost" remains, both setTimeouts confirmed 5000
 
 Commit: uncommitted
+
+## 2026-07-20T12:46 — Fix Armament Haki Turn-Skip Stacking Bug
+
+Implementer: Modified 7 files — `service/src/main/java/com/last_island/api/domain/haki/service/HakiBattleService.java` (1 line: set→increment), `service/src/main/java/com/last_island/api/domain/board/dto/ShotResponse.java` (+2 lines: added `currentTurnPlayerName` field to record and compact constructor), `service/src/main/java/com/last_island/api/domain/board/service/BoardService.java` (+2 lines: pass `game.getCurrentTurn().getName()` to ShotResponse), `service/src/test/java/com/last_island/api/domain/haki/service/HakiArmamentServiceTest.java` (1 line: assertion 3→1), `service/src/test/java/com/last_island/api/domain/board/service/BoardServiceFireShotTest.java` (+4 lines: assert currentTurnPlayerName in 4 tests), `client/src/interfaces/api.ts` (+1 line: `currentTurnPlayerName` field), `client/src/app/game/[token]/battle-screen.tsx` (net −3 lines: replaced 4-line optimistic derivation with 2-line server-authoritative lookup). Build passes, 167/167 tests green, client builds, all grep checks pass.
+
+Reviewer: PASS — build clean, eslint clean, 167/167 backend tests green, all grep checks confirm wiring
+
+Commit: uncommitted

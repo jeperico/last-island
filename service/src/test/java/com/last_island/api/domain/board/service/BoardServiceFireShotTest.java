@@ -133,6 +133,7 @@ class BoardServiceFireShotTest {
         assertThat(response.result()).isEqualTo(ShotResult.MISS);
         assertThat(response.gameOver()).isFalse();
         assertThat(response.sunkShipType()).isNull();
+        assertThat(response.currentTurnPlayerName()).isEqualTo(redPlayer.getName());
     }
 
     @Test
@@ -146,6 +147,7 @@ class BoardServiceFireShotTest {
         assertThat(response.result()).isEqualTo(ShotResult.HIT);
         assertThat(response.gameOver()).isFalse();
         assertThat(response.sunkShipType()).isNull();
+        assertThat(response.currentTurnPlayerName()).isEqualTo(bluePlayer.getName());
         // Ship should have 1 hit now
         Ship striker = game.getRedBoard().getShips().get(0);
         assertThat(striker.getHits()).isEqualTo(1);
@@ -376,6 +378,7 @@ class BoardServiceFireShotTest {
 
         assertThat(response.gameOver()).isTrue();
         assertThat(response.winnerName()).isEqualTo("Luffy");
+        assertThat(response.currentTurnPlayerName()).isNull();
     }
 
     @Test
@@ -466,10 +469,11 @@ class BoardServiceFireShotTest {
         // consumeSkipTurn(playerBoard=blueBoard) checks blueBoard.state.opponentSkipTurns
         when(hakiBattleService.consumeSkipTurn(game.getBlueBoard())).thenReturn(true);
 
-        boardService.fireShot(TOKEN, bluePlayer.getId(), new ShotRequest(5, 5)); // MISS
+        ShotResponse response = boardService.fireShot(TOKEN, bluePlayer.getId(), new ShotRequest(5, 5)); // MISS
 
         // Turn should go back to attacker (bluePlayer) because defender's turn was skipped
         assertThat(game.getCurrentTurn()).isEqualTo(bluePlayer);
+        assertThat(response.currentTurnPlayerName()).isEqualTo(bluePlayer.getName());
     }
 
     // --- Conqueror's Haki Integration Tests ---

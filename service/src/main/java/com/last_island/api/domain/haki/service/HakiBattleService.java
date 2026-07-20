@@ -237,8 +237,8 @@ public class HakiBattleService {
             attackerState.setOpponentSkipTurns(attackerState.getOpponentSkipTurns() - 1);
             hakiBattleStateRepository.save(attackerState);
         } else {
-            // Normal Armament behavior — opponent (attacker) owes a skip
-            defenderState.setOpponentSkipTurns(defenderState.getOpponentSkipTurns() + 1);
+            // Normal Armament behavior — opponent (attacker) owes a skip (capped at 1, no stacking)
+            defenderState.setOpponentSkipTurns(1);
         }
     }
 

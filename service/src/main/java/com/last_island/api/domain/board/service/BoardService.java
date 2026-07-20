@@ -376,6 +376,7 @@ public class BoardService {
         // 14. Return response
         boolean armamentTriggered = armamentResult != null;
         return new ShotResponse(result, sunkShipType, request.row(), request.col(), false, null,
-                armamentTriggered, armamentResult != null ? armamentResult.counterFire() : null);
+                armamentTriggered, armamentResult != null ? armamentResult.counterFire() : null,
+                game.getCurrentTurn().getName());
     }
 }

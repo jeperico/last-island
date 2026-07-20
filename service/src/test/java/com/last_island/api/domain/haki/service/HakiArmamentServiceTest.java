@@ -343,7 +343,7 @@ class HakiArmamentServiceTest {
         assertThat(r3.turnSkipped()).isTrue();
 
         assertThat(state.getArmamentShip2HitsAbsorbed()).isEqualTo(3);
-        assertThat(state.getOpponentSkipTurns()).isEqualTo(3);
+        assertThat(state.getOpponentSkipTurns()).isEqualTo(1);
     }
 
     @Test

@@ -18,4 +18,4 @@ Plan written — Fix Armament Haki Turn-Skip Stacking Bug
 
 ## Last verification
 
-PASS at 2026-07-20T12:34 — build clean, "future turn" message confirmed, no "Turn lost" remains, armament setTimeout=5000, counterFire setTimeout=5000
+PASS at 2026-07-20T12:49 — build clean, 167/167 backend tests green, client builds, all grep checks confirm wiring

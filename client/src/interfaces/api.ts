@@ -159,6 +159,7 @@ export interface ShotResponse {
   winnerName: string | null;
   armamentTriggered: boolean;
   counterFire: CounterFireResult | null;
+  currentTurnPlayerName: string | null;
 }
 
 // ─── Error shape ─────────────────────────────────────────────────────────────
