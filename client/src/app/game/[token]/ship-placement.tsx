@@ -28,6 +28,7 @@ const ROW_LABELS = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"];
 interface ShipPlacementProps {
   gameToken: string;
   onPlacementComplete: (gamePhase: GamePhase) => void;
+  onArmamentStart?: () => void;
 }
 
 interface PlacementEntry {
@@ -39,6 +40,7 @@ interface PlacementEntry {
 export function ShipPlacement({
   gameToken,
   onPlacementComplete,
+  onArmamentStart,
 }: ShipPlacementProps) {
   const fleet = useMemo(() => PIRATE_FLEET, []);
 
@@ -366,18 +368,13 @@ export function ShipPlacement({
     try {
       const response = await placeShips(gameToken, request);
 
-      // Race condition guard: if game already transitioned, skip armament step
-      if (response.gamePhase !== "PLACING_SHIPS") {
-        onPlacementComplete(response.gamePhase);
-        return;
-      }
-
-      // If player has armament haki, show selection step
+      // If player has armament haki, show selection step before completing
       if (hakiProfile && hakiProfile.armamentLevel >= 1) {
         setDeployedShips(response.ships);
         setDeployedGamePhase(response.gamePhase);
         setSelectedShipIds([]);
         setArmamentStep(true);
+        onArmamentStart?.();
         return;
       }
 
@@ -689,13 +686,25 @@ export function ShipPlacement({
         <div className="bg-surface-elevated rounded-xl border border-border p-5 flex flex-col gap-4">
           <div className="text-center">
             <h3 className="text-lg font-bold text-text-primary">🛡️ Armament Haki</h3>
-            <p className="text-sm text-red-400 font-medium mt-1">
-              Select {(hakiProfile?.armamentLevel ?? 0) >= 2 ? "2 ships" : "1 ship"} to harden with Armament Haki
+            <p className="text-xs text-red-400/80 font-semibold mt-0.5">
+              Level {hakiProfile?.armamentLevel ?? 0}
             </p>
+            <p className="text-sm text-text-secondary font-medium mt-1">
+              Select {(hakiProfile?.armamentLevel ?? 0) >= 2 ? "2 ships" : "1 ship"} to harden
+            </p>
+            {(hakiProfile?.armamentLevel ?? 0) >= 2 && (
+              <p className="text-xs text-text-muted mt-1">
+                {selectedShipIds.length === 0
+                  ? "Pick ship 1 of 2"
+                  : selectedShipIds.length === 1
+                    ? "Pick ship 2 of 2"
+                    : "✓ Both ships selected"}
+              </p>
+            )}
           </div>
 
           <div className="flex flex-col gap-2">
-            {deployedShips.map((ship) => {
+            {[...deployedShips].sort((a, b) => b.size - a.size).map((ship) => {
               const shipKey = ship.id || ship.type;
               const isSelected = ship.id
                 ? selectedShipIds.includes(ship.id)

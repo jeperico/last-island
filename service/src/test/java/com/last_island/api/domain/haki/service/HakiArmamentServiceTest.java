@@ -241,7 +241,7 @@ class HakiArmamentServiceTest {
     @Test
     void assignArmament_wrongPhase_throwsBadRequest() {
         Game game = buildPlacingShipsGame();
-        game.setPhase(GamePhase.IN_PROGRESS);
+        game.setPhase(GamePhase.FINISHED);
 
         when(gameRepository.findByTokenAndIsActiveTrue(TOKEN)).thenReturn(Optional.of(game));
 

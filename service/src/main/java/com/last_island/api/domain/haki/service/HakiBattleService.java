@@ -109,8 +109,8 @@ public class HakiBattleService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Battle not found"));
 
         // Validate phase
-        if (game.getPhase() != GamePhase.PLACING_SHIPS) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Armament can only be assigned during fleet deployment");
+        if (game.getPhase() != GamePhase.PLACING_SHIPS && game.getPhase() != GamePhase.IN_PROGRESS) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Armament can only be assigned during fleet deployment or early battle");
         }
 
         // Identify player's board
