@@ -9,6 +9,7 @@ import com.last_island.api.domain.board.enums.ShotResult;
 import com.last_island.api.domain.game.entity.Game;
 import com.last_island.api.domain.game.enums.GamePhase;
 import com.last_island.api.domain.game.repository.GameRepository;
+import com.last_island.api.domain.haki.dto.ArmamentTriggerResult;
 import com.last_island.api.domain.haki.dto.ConquerorsActivationRequest;
 import com.last_island.api.domain.haki.dto.ConquerorsActivationResponse;
 import com.last_island.api.domain.haki.dto.XPatternShotResult;
@@ -394,10 +395,10 @@ class HakiConquerorsServiceTest {
         assertThat(state.getConquerorsCooldownTurns()).isEqualTo(2); // No decrement
     }
 
-    // --- Armament eat-skip interaction tests ---
+    // --- Armament + Conqueror's interaction tests ---
 
     @Test
-    void armamentTrigger_eatsSkipTurn_duringConquerorsWindow() {
+    void armamentTrigger_duringConquerorsWindow_doesNotTouchSkipTurns() {
         Board defenderBoard = Board.builder().owner(redPlayer).ships(new ArrayList<>()).shots(new ArrayList<>()).build();
         defenderBoard.setId(UUID.randomUUID());
 
@@ -421,19 +422,18 @@ class HakiConquerorsServiceTest {
         attackerState.setOpponentSkipTurns(3); // Conqueror's window active
 
         when(hakiBattleStateRepository.findByBoardId(defenderBoard.getId())).thenReturn(Optional.of(defenderState));
-        when(hakiBattleStateRepository.findByBoardId(attackerBoard.getId())).thenReturn(Optional.of(attackerState));
         when(hakiBattleStateRepository.save(any())).thenAnswer(i -> i.getArgument(0));
 
-        hakiBattleService.checkArmamentTrigger(defenderBoard, armoredShip, 0, 0, attackerBoard);
+        ArmamentTriggerResult result = hakiBattleService.checkArmamentTrigger(defenderBoard, armoredShip, 0, 0, attackerBoard);
 
-        // Attacker's skip turns should be reduced by 1 (eaten)
-        assertThat(attackerState.getOpponentSkipTurns()).isEqualTo(2);
-        // Defender's opponentSkipTurns should NOT increase
-        assertThat(defenderState.getOpponentSkipTurns()).isEqualTo(0);
+        // Armament triggers (non-null result) but does NOT touch opponentSkipTurns
+        assertThat(result).isNotNull();
+        assertThat(attackerState.getOpponentSkipTurns()).isEqualTo(3); // Unchanged
+        assertThat(defenderState.getOpponentSkipTurns()).isEqualTo(0); // Unchanged
     }
 
     @Test
-    void armamentTrigger_normalBehavior_outsideConquerorsWindow() {
+    void armamentTrigger_outsideConquerorsWindow_doesNotTouchSkipTurns() {
         Board defenderBoard = Board.builder().owner(redPlayer).ships(new ArrayList<>()).shots(new ArrayList<>()).build();
         defenderBoard.setId(UUID.randomUUID());
 
@@ -456,13 +456,13 @@ class HakiConquerorsServiceTest {
         attackerState.setOpponentSkipTurns(0);
 
         when(hakiBattleStateRepository.findByBoardId(defenderBoard.getId())).thenReturn(Optional.of(defenderState));
-        when(hakiBattleStateRepository.findByBoardId(attackerBoard.getId())).thenReturn(Optional.of(attackerState));
         when(hakiBattleStateRepository.save(any())).thenAnswer(i -> i.getArgument(0));
 
-        hakiBattleService.checkArmamentTrigger(defenderBoard, armoredShip, 0, 0, attackerBoard);
+        ArmamentTriggerResult result = hakiBattleService.checkArmamentTrigger(defenderBoard, armoredShip, 0, 0, attackerBoard);
 
-        // Normal behavior: defender's opponentSkipTurns increased
-        assertThat(defenderState.getOpponentSkipTurns()).isEqualTo(1);
+        // Armament triggers but does NOT modify opponentSkipTurns
+        assertThat(result).isNotNull();
+        assertThat(defenderState.getOpponentSkipTurns()).isEqualTo(0);
         assertThat(attackerState.getOpponentSkipTurns()).isEqualTo(0);
     }
 
@@ -598,9 +598,9 @@ class HakiConquerorsServiceTest {
         ConquerorsActivationResponse response = hakiBattleService.activateConquerors(
                 TOKEN, bluePlayer.getId(), new ConquerorsActivationRequest(5, 5));
 
-        // The X-pattern hit should trigger armament, which eats a skip turn
-        // blueState.opponentSkipTurns was set to 5 (awakened), then armament eats 1 → 4
-        assertThat(blueState.getOpponentSkipTurns()).isEqualTo(4);
+        // The X-pattern hit triggers armament (absorption tracking) but does NOT eat skip turns
+        // blueState.opponentSkipTurns stays at 5 (awakened) — Armament no longer touches opponentSkipTurns
+        assertThat(blueState.getOpponentSkipTurns()).isEqualTo(5);
         assertThat(response.xPatternShots().stream().anyMatch(s -> s.result() == ShotResult.HIT)).isTrue();
     }
 

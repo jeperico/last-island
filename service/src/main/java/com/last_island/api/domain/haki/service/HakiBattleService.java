@@ -175,7 +175,6 @@ public class HakiBattleService {
         // Reset absorbed hits in case of reassignment
         state.setArmamentShip1HitsAbsorbed(0);
         state.setArmamentShip2HitsAbsorbed(0);
-        state.setOpponentSkipTurns(0);
 
         hakiBattleStateRepository.save(state);
     }
@@ -197,9 +196,8 @@ public class HakiBattleService {
         if (hitShipId.equals(state.getArmamentShip1Id())) {
             if (state.getArmamentShip1HitsAbsorbed() < 1) {
                 state.setArmamentShip1HitsAbsorbed(state.getArmamentShip1HitsAbsorbed() + 1);
-                applyArmamentSkipOrEat(state, attackerBoard);
                 hakiBattleStateRepository.save(state);
-                return new ArmamentTriggerResult(true, null);
+                return new ArmamentTriggerResult(null);
             }
             return null;
         }
@@ -208,7 +206,6 @@ public class HakiBattleService {
         if (state.getArmamentLevel() >= 2 && hitShipId.equals(state.getArmamentShip2Id())) {
             if (state.getArmamentShip2HitsAbsorbed() < 3) {
                 state.setArmamentShip2HitsAbsorbed(state.getArmamentShip2HitsAbsorbed() + 1);
-                applyArmamentSkipOrEat(state, attackerBoard);
 
                 CounterFireResult counterFire = null;
                 if (state.getArmamentLevel() == 3) {
@@ -216,30 +213,12 @@ public class HakiBattleService {
                 }
 
                 hakiBattleStateRepository.save(state);
-                return new ArmamentTriggerResult(true, counterFire);
+                return new ArmamentTriggerResult(counterFire);
             }
             return null;
         }
 
         return null;
-    }
-
-    /**
-     * Applies the Armament skip-turn effect. If the attacker has an active Conqueror's window
-     * (opponentSkipTurns > 0 on attacker's state), Armament "eats" one skip turn instead of
-     * adding to defender's skip counter.
-     */
-    private void applyArmamentSkipOrEat(HakiBattleState defenderState, Board attackerBoard) {
-        HakiBattleState attackerState = hakiBattleStateRepository.findByBoardId(attackerBoard.getId())
-                .orElse(null);
-        if (attackerState != null && attackerState.getOpponentSkipTurns() > 0) {
-            // Conqueror's window active — "eat" one skip turn
-            attackerState.setOpponentSkipTurns(attackerState.getOpponentSkipTurns() - 1);
-            hakiBattleStateRepository.save(attackerState);
-        } else {
-            // Normal Armament behavior — opponent (attacker) owes a skip (capped at 1, no stacking)
-            defenderState.setOpponentSkipTurns(1);
-        }
     }
 
     // --- Armament Haki: Counter-fire ---
@@ -431,7 +410,6 @@ public class HakiBattleService {
         int skipTurns = "WEAK".equals(effectLevel) ? 3 : 5;
 
         // Add skip turns to playerBoard's opponentSkipTurns BEFORE X-pattern resolution
-        // (so Armament eat-skip mechanic can detect the active Conqueror's window)
         HakiBattleState playerState = hakiBattleStateRepository.findByBoardId(playerBoard.getId())
                 .orElse(state);
         playerState.setOpponentSkipTurns(playerState.getOpponentSkipTurns() + skipTurns);

@@ -78,10 +78,10 @@ public class GameEventEmitter {
         registry.send(gameToken, opponentId, event);
     }
 
-    public void emitArmamentHakiTriggered(String gameToken, UUID attackerId, boolean turnSkipped, CounterFireResult counterFire) {
+    public void emitArmamentHakiTriggered(String gameToken, UUID attackerId, CounterFireResult counterFire) {
         long id = registry.nextEventId(gameToken);
         Map<String, Object> data = new java.util.HashMap<>();
-        data.put("turnSkipped", turnSkipped);
+        data.put("turnSkipped", true);
         if (counterFire != null) {
             data.put("counterFireRow", counterFire.row());
             data.put("counterFireCol", counterFire.col());
