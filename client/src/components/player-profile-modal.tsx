@@ -38,7 +38,7 @@ export function PlayerProfileModal({ open, onClose, player }: PlayerProfileModal
     <Modal open={open} onClose={onClose} title="Player Profile">
       <div className={`rounded-xl overflow-hidden ${tierCardStyles[tier] || tierCardStyles.default}`}>
         {/* Banner */}
-        <div className="relative h-24 overflow-hidden">
+        <div className="relative h-32 overflow-hidden">
           <div
             className="absolute inset-0 bg-surface-secondary bg-cover bg-center"
             style={bannerImage ? { backgroundImage: `url(${bannerImage})` } : undefined}

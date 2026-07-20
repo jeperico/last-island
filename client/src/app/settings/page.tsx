@@ -102,11 +102,10 @@ export default function SettingsPage() {
           {/* Background wallpaper */}
           {user.avatar && (
             <div className="absolute inset-0 opacity-10 pointer-events-none overflow-hidden">
-              <div
-                className="absolute top-1/2 left-1/2 w-[100vh] h-[100vw] -translate-x-1/2 -translate-y-1/2 -rotate-90 bg-cover bg-center"
-                style={{
-                  backgroundImage: `url(/avatars/${user.avatar.toLowerCase()}/${user.avatar.toLowerCase()}-bg-01.jpg)`,
-                }}
+              <img
+                src={`/avatars/${user.avatar.toLowerCase()}/banner.jpg`}
+                alt=""
+                className="absolute inset-0 w-full h-full object-cover"
               />
             </div>
           )}
