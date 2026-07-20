@@ -2,7 +2,7 @@
 
 ## Position
 
-Plan written — Refactor Haki Skill Tree Page Visual Design (single file: client/src/app/haki/page.tsx)
+Plan written — Refactor Ship Placement Component Visual Design (single file: client/src/app/game/[token]/ship-placement.tsx)
 
 ## Decisions
 
@@ -18,4 +18,4 @@ Plan written — Refactor Haki Skill Tree Page Visual Design (single file: clien
 
 ## Last verification
 
-PASS at 2026-07-20T11:02 — all 9 checks green: next build clean, useRequireAuth(2), getRankTier+tierStyles+AvatarIcon(6), from-blue/red/purple(3), formatBounty(2), descriptions(6), Awakened+shadow glow(2), business logic intact(10 hits), backdrop-blur-md(1)
+PASS at 2026-07-20T11:21 — build clean, eslint clean, business logic 25 matches, backdrop-blur-md present, bg-surface ×8, text tokens ×11, props interface intact, SurrenderModal rendered, gradient accent present, 10×10 grid with onClick/onMouseEnter/onMouseLeave, 4 distinct cell states, R keyboard shortcut, 5-ship fleet map

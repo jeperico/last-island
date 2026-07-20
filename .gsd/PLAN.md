@@ -1,103 +1,107 @@
-# Refactor Haki Skill Tree Page — Visual Richness Upgrade
+# Refactor Ship Placement Component — Visual Richness Upgrade
 
 ## Objective
 
-Transform the Haki Skill Tree page from plain cards into a visually rich, themed page with hero section, per-branch color identities, segmented progress bars with glow, level descriptions, and awakened/locked state treatments — matching settings page quality.
+Rewrite the JSX/CSS layer of `client/src/app/game/[token]/ship-placement.tsx` to match the project's dark nautical design system quality, transforming a plain functional layout into a visually rich sea-chart deployment screen — without touching any business logic.
 
 ## Files to touch
 
-- `client/src/app/haki/page.tsx` — modify (complete rewrite of presentation layer; business logic unchanged)
+- `client/src/app/game/[token]/ship-placement.tsx` — modify (visual-only rewrite of JSX classes and layout structure)
 
 ## Steps
 
-1. **Add new imports** — Add `AvatarIcon`, `getRankTier`, `tierStyles` from `@/components/ui`, `formatBounty` from `@/lib/format`, and destructure `user` from `useRequireAuth()` (in addition to `isLoading`).
+1. **Upgrade the outer container** — Keep `bg-surface/80 backdrop-blur-sm rounded-2xl p-6` but upgrade to `backdrop-blur-md` (matches waiting/deployed cards). Add `border border-border` for definition. Add an internal teal accent strip at the top: `<div className="h-1 w-full bg-gradient-to-r from-primary/30 via-ocean/20 to-transparent rounded-t-2xl absolute top-0 left-0" />` (make outer container `relative overflow-hidden`).
 
-2. **Expand BRANCHES config with per-level descriptions and color classes** — Replace single `description` field with `descriptions: string[]` (array of 3 entries, one per level explaining what it unlocks). Add `color` object to each branch with fields: `accent` (Tailwind text class), `bg` (gradient from class), `border` (border color class), `glow` (shadow class for awakened), `pip` (filled pip background class).
-   - Observation: blue-400/blue-500 palette — `text-blue-400`, `from-blue-500/20`, `border-blue-500/50`, `shadow-[0_0_12px_rgba(59,130,246,0.4)]`, `bg-blue-400`
-   - Armament: red-400/red-500 palette — `text-red-400`, `from-red-500/20`, `border-red-500/50`, `shadow-[0_0_12px_rgba(248,113,113,0.4)]`, `bg-red-400`
-   - Conqueror's: purple-400/purple-500 + yellow/amber — `text-purple-400`, `from-purple-500/20`, `border-purple-500/50`, `shadow-[0_0_12px_rgba(168,85,247,0.4)]`, `bg-purple-400`
+2. **Redesign the title/header** — Replace plain `text-xl font-bold text-foreground` with:
+   - Emoji prefix: `⚓` or `🗺️`
+   - `text-2xl font-bold text-text-primary` (proper token, larger)
+   - Add subtitle: `<p className="text-sm text-text-muted">Position your fleet on the sea chart</p>`
+   - Center-align with `text-center`
 
-3. **Update loading guard** — Change early return condition to `if (isLoading || !user || loadingProfile)` to cover `user` null case (settings pattern).
+3. **Reduce gap between ship panel and grid** — Change `gap-24` to `gap-8 md:gap-12` (gap-24 is excessive; battle-screen uses gap-8).
 
-4. **Add hero section** — After back-link, before error display, add a hero card matching settings pattern:
-   - Outer div: `relative overflow-hidden rounded-xl ${rankStyle.border} ${rankStyle.glow} bg-surface p-6`
-   - Background wallpaper layer (10% opacity avatar bg image, rotated, with `user.avatar &&` guard)
-   - Content: `AvatarIcon` (size="lg") + user name + rank badge + Haki points summary (available / total / milestones)
-   - Compute `tier` and `rankStyle` from `getRankTier(user.rank)` / `tierStyles[tier]`
+4. **Redesign the ship panel as a fleet manifest** —
+   - Wrap in an elevated card: `rounded-xl border border-border bg-surface-elevated p-4`
+   - Section header: `<h2 className="flex items-center gap-2 text-sm font-semibold text-text-secondary uppercase tracking-wide mb-3">🚢 Fleet Manifest</h2>`
+   - Add `divide-y divide-border-light` on the ship list container (remove space-y-2, use `divide-y` with no gap)
+   - Each ship button: `px-3 py-2.5 first:rounded-t-lg last:rounded-b-lg` (no individual border/rounded, rely on parent divide-y)
+   - Selected state: `bg-primary/15 border-l-2 border-l-primary` with `shadow-[0_0_8px_rgba(37,99,235,0.3)]`
+   - Placed state: `bg-success-bg border-l-2 border-l-success`
+   - Default state: `hover:bg-surface-secondary/60`
+   - Ship name: `text-sm font-medium text-text-primary`
+   - Hull segments: keep the small squares but use `bg-primary` for selected, `bg-success` for placed, `bg-text-muted` for unplaced. Add `rounded-[2px]` for slightly rounder dots.
+   - Placed checkmark: `text-success text-xs font-bold` (✓ already there, just restyle)
+   - Show ship size as `text-xs text-text-muted` badge: e.g., `(5)` next to name
 
-5. **Remove old text-center header** — Delete the `<div className="text-center">` block that showed "Haki Skill Tree" title + points; this info moves to hero card.
+5. **Redesign the orientation toggle** — Make it feel like a tactical control:
+   - Wrap in its own mini-card: `mt-4 rounded-lg border border-border bg-surface-secondary/50 p-3`
+   - Label above: `<span className="text-xs font-semibold text-text-muted uppercase tracking-wide">Orientation</span>`
+   - Button content: larger arrow icon, `text-sm font-medium text-text-primary`
+   - Keyboard badge: `<kbd className="ml-2 rounded bg-surface-elevated px-1.5 py-0.5 text-[10px] font-mono text-text-muted border border-border-light">R</kbd>`
 
-6. **Redesign LevelPips → ProgressBar component** — Replace the 3-dot pips with a segmented progress bar:
-   - Container: `flex items-center gap-1` with full width
-   - 3 segments, each: `h-2.5 flex-1 rounded-full transition-all` 
-   - Filled segments: branch color `pip` class + `shadow-[0_0_6px_...]` glow matching branch color
-   - Empty segments: `bg-surface-secondary`
-   - Accept `level`, `color` (branch color config) props
+6. **Enhance grid cells** — Richer cell states with ocean feel:
+   - Empty: `bg-sky-950/50 hover:bg-sky-900/60 border-sky-900/40` (deeper ocean)
+   - Placed: `bg-teal-500/50 border-teal-400/40 shadow-[inset_0_0_4px_rgba(45,212,191,0.3)]` (solid vessel glow)
+   - Preview-valid: `bg-green-500/40 border-green-400/50 shadow-[0_0_6px_rgba(74,222,128,0.4)]` (glow effect)
+   - Preview-invalid: `bg-red-500/40 border-red-400/50 shadow-[0_0_4px_rgba(248,113,113,0.3)]`
+   - All cells: `rounded-[2px]` for very subtle rounding, `transition-all duration-100` for smooth state changes
+   - Grid border overall: wrap the grid in a container with `border border-border rounded-lg p-1 bg-surface-secondary/30` to create a "chart frame"
 
-7. **Redesign branch cards** — Replace `<Card>` with raw divs for full color control:
-   - Outer: `relative flex flex-col rounded-xl border bg-surface-elevated overflow-hidden`
-   - Top accent strip: `h-1 w-full bg-gradient-to-r ${branch.color.bg} to-transparent` (colored gradient bar at top of card)
-   - When awakened (level=3): apply branch `glow` shadow + `border-secondary/50` border + amber/gold border treatment
-   - Normal state: `border-border` default border
+7. **Grid labels enhancement** — Change `text-text-secondary` to `text-text-muted text-[10px] font-mono` for a coordinate/chart feel.
 
-8. **Per-level descriptions** — Below the progress bar, show a compact list of what each level unlocks:
-   - 3 small rows, each with level indicator (Lv1/Lv2/Lv3) + description text
-   - Filled levels: branch accent text color
-   - Unfilled levels: `text-text-muted` with slightly dimmed opacity
+8. **Action buttons area** — Group buttons in a mini-card container:
+   - Wrap in `mt-5 rounded-lg border border-border bg-surface-secondary/30 p-3`
+   - Keep existing Button component usage (primary, secondary variants)
+   - Add a subtle label above: `<span className="text-xs text-text-muted font-medium mb-2 block">Actions</span>` (or remove if too busy — implementer discretion)
+   - Tighten to `gap-2` for the row, keep `w-full` on Deploy
 
-9. **Awakened state treatment** — When `isMaxed`:
-   - Card border changes to `border-secondary/50`
-   - Card gets `shadow-[0_0_16px_rgba(245,158,11,0.2)]` (amber glow)
-   - "✦ Awakened ✦" text gets `text-secondary` + subtle animation or increased font weight
-   - All 3 progress segments are filled with branch glow
+9. **Surrender button** — Replace custom inline styles with Button component usage:
+   - Use `<Button variant="ghost" size="sm" onClick={() => setSurrenderOpen(true)} className="absolute bottom-4 left-1/2 -translate-x-1/2 text-xs opacity-70 hover:opacity-100">🏳️ Surrender</Button>`
+   - This matches battle-screen's surrender pattern and leverages the existing component
 
-10. **Locked Conqueror's overlay** — Improve the overlay:
-    - Use `backdrop-blur-md` (stronger blur) instead of `backdrop-blur-sm`
-    - Background: `bg-surface/70` (slightly more transparent for depth)
-    - Add a thin `border border-purple-500/20` ring around overlay content
-    - Center content: lock icon (larger, 🔒 text-4xl), requirement text with better hierarchy (bold prereq names)
-    - Add subtle `rounded-xl` to match card radius
-
-11. **Upgrade button styling** — Keep Button component but adjust context:
-    - When branch is Observation: no change (primary variant matches blue)
-    - When branch is Armament or Conqueror's: still use `variant="primary"` (consistent CTA, don't over-theme the interactive element)
-    - Disabled state styling already handled by Button component
-
-12. **Page layout adjustment** — Change `max-w-5xl` to `max-w-7xl` (match settings page width) for hero card to breathe; keep `lg:grid-cols-3` grid for branch cards.
+10. **Text token migration** — Replace all instances of `text-foreground` with appropriate design-system tokens:
+    - Headings → `text-text-primary`
+    - Labels → `text-text-secondary`
+    - Metadata → `text-text-muted`
 
 ## Verification
 
 ```bash
-# 1. Build succeeds (TypeScript + Tailwind compilation)
+# 1. Build — no TS/compilation errors
 cd client && npx next build
 
-# 2. user destructured from useRequireAuth
-grep -n "useRequireAuth" client/src/app/haki/page.tsx
+# 2. Lint — no lint errors in the modified file
+cd client && npx eslint src/app/game/\\[token\\]/ship-placement.tsx
 
-# 3. Hero card pattern wired (rank tier system)
-grep -n "getRankTier\|tierStyles\|AvatarIcon" client/src/app/haki/page.tsx
+# 3. Business logic preserved (should be ≥10 matches)
+grep -c "handleCellClick\|handleShipSelect\|handleRandomize\|handleReset\|handleDeploy\|handleSurrender\|getCellState\|occupiedCells\|cellToShipMap\|hoverPreview" client/src/app/game/\\[token\\]/ship-placement.tsx
 
-# 4. Per-branch color identity classes present
-grep -n "from-blue\|from-red\|from-purple" client/src/app/haki/page.tsx
+# 4. Frosted glass pattern exists
+grep "backdrop-blur" client/src/app/game/\\[token\\]/ship-placement.tsx
 
-# 5. formatBounty imported and used
-grep -n "formatBounty" client/src/app/haki/page.tsx
+# 5. Design-system surface tokens used
+grep "bg-surface" client/src/app/game/\\[token\\]/ship-placement.tsx
 
-# 6. Level descriptions array exists (3 entries per branch)
-grep -c "descriptions" client/src/app/haki/page.tsx
+# 6. Ship config imports unchanged
+grep "SHIP_DISPLAY_NAMES\|SHIP_SIZES\|PIRATE_FLEET" client/src/app/game/\\[token\\]/ship-placement.tsx
 
-# 7. Awakened glow treatment
-grep -n "Awakened\|shadow-\[0_0_16px" client/src/app/haki/page.tsx
+# 7. Proper text hierarchy tokens used (should be ≥3 matches)
+grep -c "text-text-primary\|text-text-secondary\|text-text-muted" client/src/app/game/\\[token\\]/ship-placement.tsx
 
-# 8. Business logic unchanged — upgrade handler, fetch, helpers still present
-grep -n "handleUpgrade\|getLevel\|isConquerorUnlocked\|getHakiProfile\|upgradeHaki" client/src/app/haki/page.tsx
+# 8. Props interface intact
+grep "onPlacementComplete\|gameToken" client/src/app/game/\\[token\\]/ship-placement.tsx
 
-# 9. Backdrop blur on locked overlay
-grep -n "backdrop-blur-md" client/src/app/haki/page.tsx
+# 9. SurrenderModal still rendered
+grep "SurrenderModal" client/src/app/game/\\[token\\]/ship-placement.tsx
+
+# 10. Accent strip or gradient accent present
+grep "bg-gradient-to" client/src/app/game/\\[token\\]/ship-placement.tsx
+
+# 11. Manual: open a game in browser, navigate to placement screen, verify ships are selectable, placeable, grid responds to hover, randomize works, deploy works
 ```
 
 ## Rollback
 
 ```bash
-git checkout -- client/src/app/haki/page.tsx
+git checkout -- client/src/app/game/\\[token\\]/ship-placement.tsx
 ```
