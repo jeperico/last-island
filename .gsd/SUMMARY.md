@@ -37,3 +37,35 @@ Implementer: Created `client/src/components/haki-tutorial-modal.tsx` (+71). Modi
 Reviewer: PASS — build clean, eslint clean (0 errors, 2 pre-existing warnings), all 8 grep checks green (localStorage key 1, hakiPointsAvailable 1, HakiTutorialModal 2, getHakiProfile 2, bg-surface-elevated 1, /haki 1, Modal 5, per-branch colors 3)
 
 Commit: uncommitted
+
+## 2026-07-20T11:33 — Battle Screen, Board Grid & Haki Bar Visual Refactor
+
+Implementer: Modified 3 files — `client/src/app/game/[token]/board-grid.tsx` (+53 lines), `client/src/app/game/[token]/haki-bar.tsx` (+40 lines), `client/src/app/game/[token]/battle-screen.tsx` (+15 lines net). BoardGrid gains `mode` prop with ring-2 blue/purple glow overlays, chart frame, gradient hit/sunk cells, and ocean-depth empties. HakiBar becomes a per-ability themed panel (blue observation, red passive armament, purple conquerors) with pip charge dots, pulsing active states, and Esc cancel hints. BattleScreen gets accent strip, separate board cards (teal defensive, amber offensive), enhanced turn indicator with medium avatar + inline countdown, and passes mode prop to enemy grid. Fixed pre-existing React 19 lint issue (setState-in-effect → derived state pattern).
+
+Reviewer: PASS — build clean, all 10 checks green (7 logic functions confirmed, BoardGrid CellState+mode+10×10+onCellClick/interactive/disabled, HakiBar all props, 5 distinct cell visual classes, mode-based ring-2 glow overlays, backdrop-blur-md+bg-surface, hakiNotification banner, SurrenderModal×2, CountdownTimer×2)
+
+Commit: uncommitted
+
+## 2026-07-20T11:40 — Armament Haki Ship Assignment UI During PLACING_SHIPS Phase
+
+Implementer: Modified `client/src/app/game/[token]/ship-placement.tsx` (+~80 lines). Added haki profile fetch on mount, armament selection state (6 new state vars), modified handleDeploy with race-condition guard (PLACING_SHIPS check), added handleArmamentToggle/handleArmamentConfirm/handleArmamentSkip handlers, rendered red-themed Modal with selectable ship list and level-aware confirm logic. Imports added: getHakiProfile, assignArmament, Modal, HakiProfileResponse, ShipResponse.
+
+Reviewer: PASS — build clean, eslint clean, 51 business logic matches, armamentLevel>=1 guard present, assignArmament called with {ship1Id, ship2Id} from deployedShips, red theme (6 red-* classes), 19 design system token usages, race-condition guard on PLACING_SHIPS
+
+Commit: uncommitted
+
+## 2026-07-20T11:42 — Add Haki Levels and "+1 Haki Point" Badge to Game-Over Panel
+
+Implementer: Modified 6 files — `service/src/main/java/com/last_island/api/domain/game/dto/GameStateResponse.java` (+4 lines — 6 haki Integer fields), `service/src/main/java/com/last_island/api/domain/game/service/GameService.java` (+22 lines — HakiProfileRepository injection + haki fetch in getGame), `service/src/main/java/com/last_island/api/domain/game/mapper/GameMapper.java` (+8 lines — new toStateResponse overload accepting haki params, old delegates with nulls), `service/src/test/java/com/last_island/api/domain/game/service/GameServiceTest.java` (+25 lines — @Mock HakiProfileRepository, haki stubs + assertions in getGame tests), `client/src/interfaces/api.ts` (+6 lines — 6 haki fields on GameStateResponse), `client/src/app/game/[token]/game-over-panel.tsx` (+22 lines — haki derivation, PlayerColumn haki props, conditional haki bar with O/A/C colored levels, "+1 Haki Point" badge for winner with ≤3 wins).
+
+Reviewer: PASS — build clean, eslint clean, all grep checks confirmed (verified as part of profile modal review batch)
+
+Commit: uncommitted
+
+## 2026-07-20T11:55 — Add Player Profile Modal to Leaderboard
+
+Implementer: Created `client/src/components/player-profile-modal.tsx` (+92 lines). Modified `client/src/app/page.tsx` (+20 lines — import, state, onClick/role/tabIndex/onKeyDown on podium+list+footer, modal render). Net: +112 lines across 2 files.
+
+Reviewer: PASS — build clean, eslint clean (0 errors, 2 pre-existing warnings), all grep checks green (PlayerProfileModal 2, setProfilePlayer 8, getRankTier+tierStyles+formatBounty 5, bg-surface-elevated 1, AvatarIcon 2, Modal 5, role="button" 3)
+
+Commit: uncommitted

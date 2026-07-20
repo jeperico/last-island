@@ -11,11 +11,11 @@ import type {
   GameStateResponse,
   UserResponse,
   ShotCellResponse,
+  ShipType,
   HakiProfileResponse,
   RevealedCell,
-  ConquerorsActivationResponse,
 } from "@/lib/api/types";
-import { getShipCells, cellKey } from "@/lib/game";
+import { getShipCells, cellKey, SHIP_SIZES } from "@/lib/game";
 import { Badge, Alert, Spinner, Button } from "@/components/ui";
 import { CountdownTimer } from "@/components/ui";
 import { AvatarIcon } from "@/components/ui";
@@ -43,7 +43,7 @@ export function BattleScreen({
   readOnly,
   bgImage: bgImageProp,
   skipTurnsLeft = 0,
-  onHakiNotification,
+  onHakiNotification: _onHakiNotification,
 }: BattleScreenProps) {
   const [firing, setFiring] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -56,14 +56,17 @@ export function BattleScreen({
 
   // Haki state
   const [hakiProfile, setHakiProfile] = useState<HakiProfileResponse | null>(null);
-  const [hakiUsedThisTurn, setHakiUsedThisTurn] = useState(false);
+  // Track which turn the haki was used in — reset when turn changes
+  const [hakiUsedInTurn, setHakiUsedInTurn] = useState<string | null>(null);
+  const hakiUsedThisTurn = hakiUsedInTurn === gameState.currentTurnPlayerName;
   const [observationUsesLeft, setObservationUsesLeft] = useState(0);
   const [conquerorsUsesLeft, setConquerorsUsesLeft] = useState(0);
-  const [conquerorsCooldown, setConquerorsCooldown] = useState(0);
+  const [conquerorsCooldown, _setConquerorsCooldown] = useState(0);
   const [observationMode, setObservationMode] = useState(false);
   const [conquerorsMode, setConquerorsMode] = useState(false);
   const [revealedCells, setRevealedCells] = useState<RevealedCell[]>([]);
   const [hakiMessage, setHakiMessage] = useState<string | null>(null);
+  const [hoveredCell, setHoveredCell] = useState<{ row: number; col: number } | null>(null);
 
   // Fetch Haki profile once
   useEffect(() => {
@@ -80,11 +83,6 @@ export function BattleScreen({
       .catch(() => {/* no haki */});
   }, [readOnly]);
 
-  // Reset hakiUsedThisTurn when turn changes
-  useEffect(() => {
-    setHakiUsedThisTurn(false);
-  }, [gameState.currentTurnPlayerName]);
-
   const isMyTurn = gameState.currentTurnPlayerName === user.name;
 
   const myAvatar =
@@ -95,6 +93,10 @@ export function BattleScreen({
     gameState.bluePlayerName === user.name
       ? gameState.redPlayerAvatar
       : gameState.bluePlayerAvatar;
+  const opponentName =
+    gameState.bluePlayerName === user.name
+      ? gameState.redPlayerName
+      : gameState.bluePlayerName;
 
   // Merge server shots with optimistic shots
   const allShotsFired = useMemo(() => {
@@ -206,7 +208,25 @@ export function BattleScreen({
           setOptimisticShots([]);
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to fire shot");
+        const message = err instanceof Error ? err.message : "Failed to fire shot";
+        // If the error indicates stale game state (turn expired, game not in progress, etc.)
+        // refetch game state silently instead of showing a confusing error
+        const isStaleStateError =
+          message.toLowerCase().includes("not started") ||
+          message.toLowerCase().includes("not your turn") ||
+          message.toLowerCase().includes("not in progress") ||
+          message.toLowerCase().includes("has ended") ||
+          message.toLowerCase().includes("expired");
+        if (isStaleStateError) {
+          try {
+            const updatedState = await getGame(gameToken);
+            onGameStateUpdate(updatedState);
+          } catch {
+            setError(message);
+          }
+        } else {
+          setError(message);
+        }
       } finally {
         setFiring(false);
       }
@@ -223,14 +243,14 @@ export function BattleScreen({
         const result = await activateObservation(gameToken, { row, col });
         setRevealedCells((prev) => [...prev, ...result.revealedCells]);
         setObservationUsesLeft((prev) => prev - 1);
-        setHakiUsedThisTurn(true);
+        setHakiUsedInTurn(gameState.currentTurnPlayerName);
         setHakiMessage(`Observation Haki reveals ${result.revealedCells.length} cells!`);
         setTimeout(() => setHakiMessage(null), 3000);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Observation failed");
       }
     },
-    [gameToken],
+    [gameToken, gameState.currentTurnPlayerName],
   );
 
   const handleConquerorsConfirm = useCallback(
@@ -242,7 +262,7 @@ export function BattleScreen({
           col: col ?? null,
         });
         setConquerorsUsesLeft((prev) => prev - 1);
-        setHakiUsedThisTurn(true);
+        setHakiUsedInTurn(gameState.currentTurnPlayerName);
         if (result.xPatternShots) {
           const newShots: ShotCellResponse[] = result.xPatternShots.map((s) => ({
             row: s.row,
@@ -258,7 +278,7 @@ export function BattleScreen({
         setError(err instanceof Error ? err.message : "Conqueror's failed");
       }
     },
-    [gameToken],
+    [gameToken, gameState.currentTurnPlayerName],
   );
 
   const handleCellClick = useCallback(
@@ -296,8 +316,61 @@ export function BattleScreen({
     ? `/avatars/${myAvatar.toLowerCase()}/${myAvatar.toLowerCase()}-bg-01.jpg`
     : null);
 
+  const enemyBoardMode = observationMode
+    ? "observation" as const
+    : conquerorsMode
+      ? "conquerors" as const
+      : "normal" as const;
+
+  // Compute observation/conquerors hover preview cells
+  const observationPreviewCells = useMemo(() => {
+    if (!hoveredCell) return undefined;
+    if (!observationMode && !conquerorsMode) return undefined;
+
+    const previewKeys = new Set<string>();
+
+    if (observationMode && hakiProfile) {
+      // Observation: 2×2 at level 1, 3×3 at level 2+
+      const size = hakiProfile.observationLevel >= 2 ? 3 : 2;
+      for (let dr = 0; dr < size; dr++) {
+        for (let dc = 0; dc < size; dc++) {
+          const r = hoveredCell.row + dr;
+          const c = hoveredCell.col + dc;
+          if (r >= 0 && r <= 9 && c >= 0 && c <= 9) {
+            previewKeys.add(cellKey(r, c));
+          }
+        }
+      }
+    }
+
+    if (conquerorsMode) {
+      // Conqueror's: X-pattern (center + 4 diagonals)
+      previewKeys.add(cellKey(hoveredCell.row, hoveredCell.col));
+      const diagonals = [[-1, -1], [-1, 1], [1, -1], [1, 1]];
+      for (const [dr, dc] of diagonals) {
+        const r = hoveredCell.row + dr;
+        const c = hoveredCell.col + dc;
+        if (r >= 0 && r <= 9 && c >= 0 && c <= 9) {
+          previewKeys.add(cellKey(r, c));
+        }
+      }
+    }
+
+    return previewKeys.size > 0 ? previewKeys : undefined;
+  }, [hoveredCell, observationMode, conquerorsMode, hakiProfile]);
+
+  const handleBoardCellHover = useCallback((row: number, col: number) => {
+    if (observationMode || conquerorsMode) {
+      setHoveredCell({ row, col });
+    }
+  }, [observationMode, conquerorsMode]);
+
+  const handleBoardCellLeave = useCallback(() => {
+    setHoveredCell(null);
+  }, []);
+
   return (
-    <div className="relative flex flex-1 flex-col items-center justify-center gap-6 px-4 py-6">
+    <div className="relative flex flex-1 flex-col items-center justify-center gap-4 px-4 py-4">
       {/* Background image */}
       {bgImage && (
         <div
@@ -309,117 +382,131 @@ export function BattleScreen({
           />
         </div>
       )}
-      {/* Turn indicator (hidden when readOnly) */}
-      <div className="relative z-10 flex flex-col items-center gap-6 bg-surface/80 backdrop-blur-sm rounded-2xl px-6 py-5">
-      {!readOnly && (
-        <div className="flex flex-col items-center justify-center gap-2">
-          <div className="flex items-center justify-center gap-2">
-            <AvatarIcon avatar={isMyTurn ? myAvatar : opponentAvatar} size="sm" />
-            {isMyTurn ? (
-              <Badge variant="success">Your Turn — Fire!</Badge>
-            ) : (
-              <Badge variant="warning" pulse>
-                Opponent&apos;s Turn — Waiting…
-              </Badge>
+
+      {/* Main card */}
+      <div className="relative z-10 flex flex-col items-center gap-4 bg-surface/80 backdrop-blur-md rounded-2xl px-5 py-4 border border-border">
+        {/* Accent strip */}
+        <div className="h-1 w-full bg-gradient-to-r from-primary/30 via-ocean/20 to-transparent rounded-t-2xl" />
+
+        {/* Turn indicator */}
+        {!readOnly && (
+          <div className="flex items-center gap-3 px-4 py-2 bg-surface-secondary/40 rounded-lg border border-border">
+            <AvatarIcon avatar={isMyTurn ? myAvatar : opponentAvatar} size="md" />
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-text-secondary font-medium">
+                {isMyTurn ? user.name : opponentName}
+              </span>
+              {isMyTurn ? (
+                <Badge variant="success">Your Turn — Fire!</Badge>
+              ) : (
+                <Badge variant="warning" pulse>
+                  Opponent&apos;s Turn
+                </Badge>
+              )}
+            </div>
+            <CountdownTimer turnStartedAt={gameState.turnStartedAt} />
+          </div>
+        )}
+
+        {/* Boards section with Haki sidebar */}
+        <div className="flex items-start justify-center gap-4">
+          {/* Haki Sidebar — left */}
+          {!readOnly && hakiProfile && (
+            <HakiBar
+              gameToken={gameToken}
+              hakiProfile={hakiProfile}
+              isMyTurn={isMyTurn}
+              hakiUsedThisTurn={hakiUsedThisTurn}
+              observationUsesLeft={observationUsesLeft}
+              conquerorsUsesLeft={conquerorsUsesLeft}
+              conquerorsCooldown={conquerorsCooldown}
+              onHakiUsed={() => setHakiUsedInTurn(gameState.currentTurnPlayerName)}
+              onObservationResult={(cells) => setRevealedCells((prev) => [...prev, ...cells])}
+              onConquerorsResult={() => {}}
+              onError={(msg) => setError(msg)}
+              observationMode={observationMode}
+              onStartObservation={() => setObservationMode(true)}
+              onCancelObservation={() => setObservationMode(false)}
+              conquerorsMode={conquerorsMode}
+              onStartConquerors={() => {
+                // If Lv3 awakened and it's the 2nd use, need target selection
+                if (hakiProfile.conquerorsLevel >= 3 && conquerorsUsesLeft === 1) {
+                  setConquerorsMode(true);
+                } else {
+                  handleConquerorsConfirm();
+                }
+              }}
+              onCancelConquerors={() => setConquerorsMode(false)}
+            />
+          )}
+
+          {/* Boards row */}
+          <div className="flex flex-wrap items-start justify-center gap-5">
+            {/* My Fleet card */}
+            <div className="px-3 py-3 rounded-xl border border-teal-900/40 bg-teal-950/10">
+              <BoardGrid title="⚓ My Fleet" cells={myBoardCells} mode="normal" />
+            </div>
+
+            {/* Enemy Waters card */}
+            <div className="px-3 py-3 rounded-xl border border-amber-900/30 bg-amber-950/5">
+              <BoardGrid
+                title={observationMode ? "👁 Select Area to Scan" : conquerorsMode ? "👑 Select X-Pattern Target" : "🎯 Enemy Waters"}
+                cells={opponentBoardCells}
+                interactive={!readOnly}
+                disabled={readOnly || (!isMyTurn && !observationMode && !conquerorsMode) || firing}
+                onCellClick={handleCellClick}
+                onCellHover={handleBoardCellHover}
+                onCellLeave={handleBoardCellLeave}
+                mode={enemyBoardMode}
+                previewCells={observationPreviewCells}
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Haki notification */}
+        {hakiMessage && (
+          <div className="px-4 py-1.5 bg-purple-900/60 border border-purple-500/40 rounded-lg text-sm text-purple-200 text-center animate-pulse">
+            ⚡ {hakiMessage}
+          </div>
+        )}
+
+        {/* Skip turns indicator */}
+        {skipTurnsLeft > 0 && (
+          <div className="px-4 py-1.5 bg-red-900/60 border border-red-500/40 rounded-lg text-sm text-red-200 text-center">
+            🌊 Overwhelmed by Conqueror&apos;s Haki — {skipTurnsLeft} turns remaining
+          </div>
+        )}
+
+        {/* Firing indicator — fixed height to prevent layout shift */}
+        {!readOnly && (
+          <div className="h-6 flex items-center justify-center">
+            {firing && (
+              <span className="flex items-center gap-2 text-sm text-text-muted">
+                <Spinner size="sm" /> Firing…
+              </span>
             )}
           </div>
-          <CountdownTimer turnStartedAt={gameState.turnStartedAt} />
-        </div>
-      )}
+        )}
 
-      {/* Grids */}
-      <div className="flex flex-wrap items-start justify-center gap-8">
-        <BoardGrid title="My Fleet" cells={myBoardCells} />
-        <BoardGrid
-          title={observationMode ? "Select Area to Scan" : conquerorsMode ? "Select X-Pattern Target" : "Enemy Waters"}
-          cells={opponentBoardCells}
-          interactive={!readOnly}
-          disabled={readOnly || (!isMyTurn && !observationMode && !conquerorsMode) || firing}
-          onCellClick={handleCellClick}
-        />
-      </div>
+        {/* Error banner */}
+        {!readOnly && error && (
+          <Alert variant="error" dismissible onDismiss={() => setError(null)}>
+            {error}
+          </Alert>
+        )}
 
-      {/* Haki Bar */}
-      {!readOnly && hakiProfile && (
-        <HakiBar
-          gameToken={gameToken}
-          hakiProfile={hakiProfile}
-          isMyTurn={isMyTurn}
-          hakiUsedThisTurn={hakiUsedThisTurn}
-          observationUsesLeft={observationUsesLeft}
-          conquerorsUsesLeft={conquerorsUsesLeft}
-          conquerorsCooldown={conquerorsCooldown}
-          onHakiUsed={() => setHakiUsedThisTurn(true)}
-          onObservationResult={(cells) => setRevealedCells((prev) => [...prev, ...cells])}
-          onConquerorsResult={() => {}}
-          onError={(msg) => setError(msg)}
-          observationMode={observationMode}
-          onStartObservation={() => setObservationMode(true)}
-          onCancelObservation={() => setObservationMode(false)}
-          conquerorsMode={conquerorsMode}
-          onStartConquerors={() => {
-            // If Lv3 awakened and it's the 2nd use, need target selection
-            if (hakiProfile.conquerorsLevel >= 3 && conquerorsUsesLeft === 1) {
-              setConquerorsMode(true);
-            } else {
-              handleConquerorsConfirm();
-            }
-          }}
-          onCancelConquerors={() => setConquerorsMode(false)}
-        />
-      )}
-
-      {/* Haki notification */}
-      {hakiMessage && (
-        <div className="px-4 py-2 bg-purple-900/60 border border-purple-500/40 rounded-lg text-sm text-purple-200 text-center animate-pulse">
-          ⚡ {hakiMessage}
-        </div>
-      )}
-
-      {/* Skip turns indicator */}
-      {skipTurnsLeft > 0 && (
-        <div className="px-4 py-2 bg-red-900/60 border border-red-500/40 rounded-lg text-sm text-red-200 text-center">
-          🌊 Overwhelmed by Conqueror&apos;s Haki — {skipTurnsLeft} turns remaining
-        </div>
-      )}
-
-      {/* Observation/Conquerors mode hint */}
-      {(observationMode || conquerorsMode) && (
-        <div className="px-3 py-1.5 bg-yellow-900/40 border border-yellow-500/30 rounded text-xs text-yellow-200 text-center">
-          {observationMode && "👁 Click a cell on Enemy Waters to scan that area"}
-          {conquerorsMode && "👑 Click a cell for X-pattern shot (center + 4 diagonals)"}
-        </div>
-      )}
-
-      {/* Firing indicator — fixed height to prevent layout shift */}
-      {!readOnly && (
-        <div className="h-6 flex items-center justify-center">
-          {firing && (
-            <span className="flex items-center gap-2 text-sm text-text-muted">
-              <Spinner size="sm" /> Firing…
-            </span>
-          )}
-        </div>
-      )}
-
-      {/* Error banner */}
-      {!readOnly && error && (
-        <Alert variant="error" dismissible onDismiss={() => setError(null)}>
-          {error}
-        </Alert>
-      )}
-
-      {/* Surrender button */}
-      {!readOnly && (
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setSurrenderOpen(true)}
-          className="text-text-muted hover:text-danger"
-        >
-          🏳️ Surrender
-        </Button>
-      )}
+        {/* Surrender button */}
+        {!readOnly && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setSurrenderOpen(true)}
+            className="text-xs text-text-muted hover:text-danger"
+          >
+            🏳️ Surrender
+          </Button>
+        )}
       </div>
 
       <SurrenderModal
@@ -439,7 +526,15 @@ function buildMyBoardCells(
 
   if (!gameState.myBoard) return cells;
 
-  // Mark ship cells
+  // Build a set of hit positions for quick lookup
+  const hitPositions = new Set<string>();
+  for (const shot of gameState.myBoard.shotsReceived) {
+    if (shot.result === "HIT" || shot.result === "SUNK") {
+      hitPositions.add(cellKey(shot.row, shot.col));
+    }
+  }
+
+  // Mark ship cells — check if ship is fully sunk (all cells hit)
   for (const ship of gameState.myBoard.ships) {
     const shipCells = getShipCells(
       ship.row,
@@ -447,20 +542,23 @@ function buildMyBoardCells(
       ship.size,
       ship.orientation,
     );
+    const isSunk = shipCells.every((c) => hitPositions.has(cellKey(c.row, c.col)));
     for (const cell of shipCells) {
-      cells.set(cellKey(cell.row, cell.col), { type: "ship" });
+      const key = cellKey(cell.row, cell.col);
+      if (isSunk) {
+        cells.set(key, { type: "sunk" });
+      } else if (hitPositions.has(key)) {
+        cells.set(key, { type: "hit" });
+      } else {
+        cells.set(key, { type: "ship" });
+      }
     }
   }
 
-  // Overlay shots received
+  // Mark misses (shots that didn't hit any ship)
   for (const shot of gameState.myBoard.shotsReceived) {
     const key = cellKey(shot.row, shot.col);
-    const existing = cells.get(key);
-    if (shot.result === "SUNK") {
-      cells.set(key, { type: "sunk" });
-    } else if (existing?.type === "ship" || shot.result === "HIT") {
-      cells.set(key, { type: "hit" });
-    } else {
+    if (shot.result === "MISS" && !cells.has(key)) {
       cells.set(key, { type: "miss" });
     }
   }
@@ -473,16 +571,95 @@ function buildOpponentBoardCells(
 ): Map<string, CellState> {
   const cells = new Map<string, CellState>();
 
+  // First pass: identify sunk ship types and their final-hit positions
+  const sunkShots = shotsFired.filter((s) => s.result === "SUNK" && s.sunkShipType);
+
+  // For each sunk ship, find all HIT/SUNK cells that belong to it
+  // by tracing contiguous hit cells from the SUNK cell in a line
+  const sunkCellKeys = new Set<string>();
+
+  for (const sunkShot of sunkShots) {
+    const shipSize = SHIP_SIZES[sunkShot.sunkShipType as ShipType] ?? 0;
+    if (shipSize === 0) continue;
+
+    // Find contiguous hit/sunk cells forming a line of the right size through sunkShot
+    const hitSet = new Set(
+      shotsFired
+        .filter((s) => s.result === "HIT" || s.result === "SUNK")
+        .map((s) => `${s.row},${s.col}`),
+    );
+
+    // Try horizontal line
+    const hCells = traceShipLine(sunkShot.row, sunkShot.col, 0, 1, shipSize, hitSet);
+    // Try vertical line
+    const vCells = traceShipLine(sunkShot.row, sunkShot.col, 1, 0, shipSize, hitSet);
+
+    const shipCells = hCells ?? vCells;
+    if (shipCells) {
+      for (const key of shipCells) {
+        sunkCellKeys.add(key);
+      }
+    } else {
+      // Fallback: just mark the sunk cell itself
+      sunkCellKeys.add(cellKey(sunkShot.row, sunkShot.col));
+    }
+  }
+
+  // Second pass: assign cell states
   for (const shot of shotsFired) {
     const key = cellKey(shot.row, shot.col);
-    if (shot.result === "SUNK") {
+    if (sunkCellKeys.has(key)) {
       cells.set(key, { type: "sunk" });
     } else if (shot.result === "HIT") {
       cells.set(key, { type: "hit" });
-    } else {
+    } else if (shot.result === "MISS") {
       cells.set(key, { type: "miss" });
+    } else if (shot.result === "SUNK") {
+      // Already in sunkCellKeys above, but just in case
+      cells.set(key, { type: "sunk" });
     }
   }
 
   return cells;
+}
+
+/**
+ * Trace a contiguous line of hit cells through (startRow, startCol) in direction (dr, dc).
+ * Returns the cell keys if exactly `size` cells are found in a line, otherwise null.
+ */
+function traceShipLine(
+  startRow: number,
+  startCol: number,
+  dr: number,
+  dc: number,
+  size: number,
+  hitSet: Set<string>,
+): string[] | null {
+  // Collect cells going backward from start
+  const cells: string[] = [];
+  let r = startRow;
+  let c = startCol;
+  // Go backward to find the start of the ship
+  while (r - dr >= 0 && r - dr <= 9 && c - dc >= 0 && c - dc <= 9 && hitSet.has(`${r - dr},${c - dc}`)) {
+    r -= dr;
+    c -= dc;
+  }
+  // Now go forward collecting cells
+  while (r >= 0 && r <= 9 && c >= 0 && c <= 9 && hitSet.has(`${r},${c}`)) {
+    cells.push(`${r},${c}`);
+    r += dr;
+    c += dc;
+  }
+  // Check if we found exactly the right size and it includes the start cell
+  if (cells.length >= size && cells.includes(`${startRow},${startCol}`)) {
+    // If cells are longer than ship size, find the subset containing the start
+    if (cells.length === size) return cells;
+    // Find the right window of `size` cells that includes the start
+    const startIdx = cells.indexOf(`${startRow},${startCol}`);
+    for (let i = Math.max(0, startIdx - size + 1); i <= Math.min(startIdx, cells.length - size); i++) {
+      const window = cells.slice(i, i + size);
+      if (window.includes(`${startRow},${startCol}`)) return window;
+    }
+  }
+  return null;
 }

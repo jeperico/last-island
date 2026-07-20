@@ -13,6 +13,8 @@ import com.last_island.api.domain.game.entity.Game;
 import com.last_island.api.domain.game.enums.GamePhase;
 import com.last_island.api.domain.game.repository.GameRepository;
 import com.last_island.api.domain.game.repository.GameResultRepository;
+import com.last_island.api.domain.haki.entity.HakiProfile;
+import com.last_island.api.domain.haki.repository.HakiProfileRepository;
 import com.last_island.api.domain.user.entity.User;
 import com.last_island.api.domain.user.repository.UserRepository;
 import com.last_island.api.domain.user.service.BountyService;
@@ -55,6 +57,9 @@ class GameServiceTest {
 
     @Mock
     private BountyService bountyService;
+
+    @Mock
+    private HakiProfileRepository hakiProfileRepository;
 
     @InjectMocks
     private GameService gameService;
@@ -206,17 +211,42 @@ class GameServiceTest {
         Game game = buildInProgressGameWithBoards();
         when(gameRepository.findByTokenAndIsActiveTrue("654321")).thenReturn(Optional.of(game));
 
+        HakiProfile blueHaki = HakiProfile.builder()
+                .userId(bluePlayer.getId())
+                .observationLevel(2)
+                .armamentLevel(1)
+                .conquerorsLevel(0)
+                .build();
+        when(hakiProfileRepository.findByUserId(bluePlayer.getId())).thenReturn(Optional.of(blueHaki));
+
+        HakiProfile redHaki = HakiProfile.builder()
+                .userId(redPlayer.getId())
+                .observationLevel(1)
+                .armamentLevel(3)
+                .conquerorsLevel(1)
+                .build();
+        when(hakiProfileRepository.findByUserId(redPlayer.getId())).thenReturn(Optional.of(redHaki));
+
         GameStateResponse response = gameService.getGame("654321", bluePlayer.getId());
 
         assertThat(response.myBoard()).isNotNull();
         assertThat(response.myBoard().ships()).isNotEmpty();
         assertThat(response.myBoard().ships().get(0).type()).isEqualTo("THOUSAND_SUNNY");
+
+        assertThat(response.bluePlayerObservation()).isEqualTo(2);
+        assertThat(response.bluePlayerArmament()).isEqualTo(1);
+        assertThat(response.bluePlayerConquerors()).isEqualTo(0);
+        assertThat(response.redPlayerObservation()).isEqualTo(1);
+        assertThat(response.redPlayerArmament()).isEqualTo(3);
+        assertThat(response.redPlayerConquerors()).isEqualTo(1);
     }
 
     @Test
     void getGame_returnsOpponentBoardWithoutShips() {
         Game game = buildInProgressGameWithBoards();
         when(gameRepository.findByTokenAndIsActiveTrue("654321")).thenReturn(Optional.of(game));
+        when(hakiProfileRepository.findByUserId(bluePlayer.getId())).thenReturn(Optional.empty());
+        when(hakiProfileRepository.findByUserId(redPlayer.getId())).thenReturn(Optional.empty());
 
         GameStateResponse response = gameService.getGame("654321", bluePlayer.getId());
 
@@ -225,6 +255,14 @@ class GameServiceTest {
         assertThat(response.opponentBoard().shotsFired()).hasSize(1);
         assertThat(response.opponentBoard().shotsFired().get(0).row()).isEqualTo(3);
         assertThat(response.opponentBoard().shotsFired().get(0).col()).isEqualTo(3);
+
+        // Haki fields should be null when no profile exists
+        assertThat(response.bluePlayerObservation()).isNull();
+        assertThat(response.bluePlayerArmament()).isNull();
+        assertThat(response.bluePlayerConquerors()).isNull();
+        assertThat(response.redPlayerObservation()).isNull();
+        assertThat(response.redPlayerArmament()).isNull();
+        assertThat(response.redPlayerConquerors()).isNull();
     }
 
     @Test

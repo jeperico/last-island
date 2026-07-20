@@ -20,6 +20,7 @@ import type {
   BattleLogEntryResponse,
   GameStateResponse,
   GameSummaryResponse,
+  LeaderboardEntryResponse,
   LeaderboardResponse,
   PageResponse,
 } from "@/lib/api/types";
@@ -41,6 +42,7 @@ import {
 } from "@/components/ui";
 import { GameOverPanel } from "./game/[token]/game-over-panel";
 import { HakiTutorialModal } from "@/components/haki-tutorial-modal";
+import { PlayerProfileModal } from "@/components/player-profile-modal";
 import { formatBounty } from "@/lib/format";
 
 export default function Home() {
@@ -65,6 +67,9 @@ export default function Home() {
     useState<GameStateResponse | null>(null);
   const [loadingBattle, setLoadingBattle] = useState(false);
   const [hakiTutorialOpen, setHakiTutorialOpen] = useState(false);
+  const [profilePlayer, setProfilePlayer] = useState<LeaderboardEntryResponse | null>(null);
+  const profileOpen = profilePlayer !== null;
+  const closeProfile = () => setProfilePlayer(null);
 
   useEffect(() => {
     if (isLoading || !user) return;
@@ -343,7 +348,11 @@ export default function Home() {
                           return (
                             <div
                               key={pos}
-                              className={`relative p-3 flex flex-col items-center gap-1.5 overflow-hidden ${entry.isCurrentUser ? "ring-2 ring-inset ring-primary/50" : ""}`}
+                              className={`relative p-3 flex flex-col items-center gap-1.5 overflow-hidden cursor-pointer ${entry.isCurrentUser ? "ring-2 ring-inset ring-primary/50" : ""}`}
+                              onClick={() => setProfilePlayer(entry)}
+                              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setProfilePlayer(entry); } }}
+                              role="button"
+                              tabIndex={0}
                             >
                               {/* Avatar background */}
                               {avatarBg && (
@@ -377,9 +386,13 @@ export default function Home() {
                       {leaderboard.entries.filter(e => e.position > 3).map((entry) => (
                         <div
                           key={`${entry.position}-${entry.name}`}
-                          className={`flex items-center gap-3 px-4 py-2.5 transition-colors hover:bg-surface-secondary ${
+                          className={`flex items-center gap-3 px-4 py-2.5 transition-colors hover:bg-surface-secondary cursor-pointer ${
                             entry.isCurrentUser ? "bg-primary/5 border-l-2 border-l-primary" : ""
                           }`}
+                          onClick={() => setProfilePlayer(entry)}
+                          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setProfilePlayer(entry); } }}
+                          role="button"
+                          tabIndex={0}
                         >
                           <span className="w-6 text-center text-xs font-bold text-text-muted">
                             {entry.position}
@@ -421,7 +434,13 @@ export default function Home() {
                       };
                       const tier = getRankTier(userEntry.rank);
                       return (
-                        <div className={`border-t flex items-center gap-3 px-4 py-2.5 ${rankBg[tier] || rankBg.default}`}>
+                        <div
+                          className={`border-t flex items-center gap-3 px-4 py-2.5 cursor-pointer ${rankBg[tier] || rankBg.default}`}
+                          onClick={() => setProfilePlayer(userEntry)}
+                          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setProfilePlayer(userEntry); } }}
+                          role="button"
+                          tabIndex={0}
+                        >
                           <span className="w-6 text-center text-xs font-bold text-primary">
                             {userEntry.position}
                           </span>
@@ -660,6 +679,12 @@ export default function Home() {
       <HakiTutorialModal
         open={hakiTutorialOpen}
         onClose={() => setHakiTutorialOpen(false)}
+      />
+
+      <PlayerProfileModal
+        open={profileOpen}
+        onClose={closeProfile}
+        player={profilePlayer}
       />
     </div>
   );

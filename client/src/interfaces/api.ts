@@ -142,6 +142,12 @@ export interface GameStateResponse {
   createdAt: string;
   myBoard: MyBoardResponse | null;
   opponentBoard: OpponentBoardResponse | null;
+  bluePlayerObservation: number | null;
+  bluePlayerArmament: number | null;
+  bluePlayerConquerors: number | null;
+  redPlayerObservation: number | null;
+  redPlayerArmament: number | null;
+  redPlayerConquerors: number | null;
 }
 
 export interface ShotResponse {

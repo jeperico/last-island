@@ -1,3 +1,5 @@
 package com.last_island.api.domain.board.dto;
 
-public record ShipResponse(String type, String orientation, int row, int col, int size) {}
+import java.util.UUID;
+
+public record ShipResponse(UUID id, String type, String orientation, int row, int col, int size) {}

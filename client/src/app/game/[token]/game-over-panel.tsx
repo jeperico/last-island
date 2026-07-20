@@ -147,6 +147,15 @@ export function GameOverPanel({ gameState, user, onClose }: GameOverPanelProps) 
   const isWinner = gameState.winnerName === user.name;
   const bountyDelta = gameState.bountyDelta ?? 0;
 
+  // Haki levels
+  const myObservation = (isBlue ? gameState.bluePlayerObservation : gameState.redPlayerObservation) ?? 0;
+  const myArmament = (isBlue ? gameState.bluePlayerArmament : gameState.redPlayerArmament) ?? 0;
+  const myConquerors = (isBlue ? gameState.bluePlayerConquerors : gameState.redPlayerConquerors) ?? 0;
+
+  const oppObservation = (isBlue ? gameState.redPlayerObservation : gameState.bluePlayerObservation) ?? 0;
+  const oppArmament = (isBlue ? gameState.redPlayerArmament : gameState.bluePlayerArmament) ?? 0;
+  const oppConquerors = (isBlue ? gameState.redPlayerConquerors : gameState.bluePlayerConquerors) ?? 0;
+
   // Compute previous bounty
   const prevBounty = isWinner ? myBounty - bountyDelta : myBounty + bountyDelta;
 
@@ -237,6 +246,9 @@ export function GameOverPanel({ gameState, user, onClose }: GameOverPanelProps) 
             wins={myWins}
             accuracy={myAccuracy}
             isWinner={isWinner}
+            observation={myObservation}
+            armament={myArmament}
+            conquerors={myConquerors}
           />
 
           {/* Middle column */}
@@ -275,6 +287,11 @@ export function GameOverPanel({ gameState, user, onClose }: GameOverPanelProps) 
               ) : (
                 <p className="text-sm text-text-muted">—</p>
               )}
+
+              {/* +1 Haki Point badge */}
+              {isWinner && (isWinner ? myWins : oppWins) <= 3 && (
+                <span className="inline-block mt-2 px-2 py-0.5 rounded text-xs font-bold bg-success/10 text-success border border-success/20">+1 Haki Point</span>
+              )}
             </div>
 
             {/* Boards section */}
@@ -308,6 +325,9 @@ export function GameOverPanel({ gameState, user, onClose }: GameOverPanelProps) 
             wins={oppWins}
             accuracy={oppAccuracy}
             isWinner={!isWinner}
+            observation={oppObservation}
+            armament={oppArmament}
+            conquerors={oppConquerors}
           />
         </div>
       </div>
@@ -327,6 +347,9 @@ function PlayerColumn({
   wins,
   accuracy,
   isWinner,
+  observation,
+  armament,
+  conquerors,
 }: {
   name: string;
   avatar: string | null;
@@ -335,6 +358,9 @@ function PlayerColumn({
   wins: number;
   accuracy: number;
   isWinner: boolean;
+  observation: number;
+  armament: number;
+  conquerors: number;
 }) {
   const hasAvatar = avatar !== null;
   const avatarPath = hasAvatar
@@ -417,6 +443,15 @@ function PlayerColumn({
           <span>•</span>
           <span>{accuracy}%</span>
         </div>
+
+        {/* Haki levels */}
+        {(observation > 0 || armament > 0 || conquerors > 0) && (
+          <div className="flex items-center gap-2 text-xs mt-1">
+            {observation > 0 && <span className="text-blue-400">👁 {observation}</span>}
+            {armament > 0 && <span className="text-red-400">🦾 {armament}</span>}
+            {conquerors > 0 && <span className="text-purple-400">👑 {conquerors}</span>}
+          </div>
+        )}
       </div>
     </div>
   );

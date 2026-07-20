@@ -1,74 +1,98 @@
-# Add Haki Tutorial Modal on Home Page
+# Add Player Profile Modal to Leaderboard
 
 ## Objective
 
-Create a one-time tutorial modal that teaches users how to spend their haki points, triggered on home page load when the user has available haki points and hasn't seen the tutorial before (localStorage flag).
+Create a PlayerProfileModal component and wire it into the home page leaderboard so clicking any player (podium top-3 or scrollable list rows) opens a rich profile card showing avatar, name, rank with tier glow, bounty, wins, losses (derived), and win rate.
 
 ## Files to touch
 
-- **create** `client/src/components/haki-tutorial-modal.tsx` — new modal component with tutorial content
-- **modify** `client/src/app/page.tsx` — add haki profile fetch, modal state, conditional render
+- **create** `client/src/components/player-profile-modal.tsx` — New modal component
+- **modify** `client/src/app/page.tsx` — Add state for selected player, onClick handlers on leaderboard rows/podium cells, render PlayerProfileModal
 
 ## Steps
 
-1. **Create `client/src/components/haki-tutorial-modal.tsx`**
-   - Import `Modal` from `@/components/ui`
-   - Import `Button` from `@/components/ui`
-   - Import `Link` from `next/link`
-   - Props: `{ open: boolean; onClose: () => void }`
-   - On close handler: set `localStorage.setItem('last-island-haki-tutorial-seen', 'true')` then call `onClose`
-   - Content layout (dark nautical style — `bg-surface-elevated rounded-xl p-6 border border-border`):
-     - Title: "🧿 Haki Awakened!" (text-text-primary, text-xl font-bold)
-     - Intro paragraph: explain haki points are earned from victories, can be spent to unlock combat abilities
-     - 3-branch summary list with icons and per-branch accent colors:
-       - 👁 Observation (text-blue-400) — reveals enemy ship positions during battle
-       - 🦾 Armament (text-red-400) — strengthens your cannonballs with counter-fire
-       - 👑 Conqueror's (text-purple-400) — unleashes an X-pattern attack on the field
-     - CTA: `<Link href="/haki">` wrapped in a `<Button variant="primary" fullWidth>` — "Manage Your Haki →"
-     - Dismiss text: "You can always access this from the 👁 icon in the header."
+1. **Create `client/src/components/player-profile-modal.tsx`**
+   - Props interface: `{ open: boolean; onClose: () => void; player: LeaderboardEntryResponse | null }`
+   - Import `Modal`, `AvatarIcon`, `getRankTier`, `tierStyles` from `@/components/ui`
+   - Import `formatBounty` from `@/lib/format`
+   - Import `LeaderboardEntryResponse` from `@/interfaces/api`
+   - Early return `null` if `player` is null
+   - Wrap content in `<Modal open={open} onClose={onClose} title="Player Profile">`
+   - Inner card: `<div className="bg-surface-elevated rounded-xl p-6 border border-border">`
+   - Compute tier: `const tier = getRankTier(player.rank)` and `const style = tierStyles[tier]`
+   - Compute losses: `const totalGames = player.winRate > 0 ? Math.round(player.wins / player.winRate) : player.wins; const losses = totalGames - player.wins;`
+   - Layout:
+     - Top section: avatar background image (`/avatars/{key}/{key}-bg-02.jpg`) as a banner with overlay, centered `AvatarIcon` size `lg` with tier glow border (`${style.border} ${style.glow}`)
+     - Player name: large `text-text-primary font-bold text-xl` centered
+     - Rank badge: pill/tag with tier background color (use `rankBg` map pattern from design system), tier text color, rank name
+     - Bounty: `formatBounty(player.bounty)` + "₿" with `text-secondary` styling
+     - Stats grid (2×2 or horizontal row): Wins, Losses, Win Rate (as percentage), each with label in `text-text-muted` and value in `text-text-primary`
+   - Apply rank tier glow to the outer card border: `${style.border} ${style.glow}`
+   - No accuracy field (not available in LeaderboardEntryResponse; task says "if available")
 
-2. **Modify `client/src/app/page.tsx`**
-   - Add import for `getHakiProfile` from `@/lib/api`
-   - Add import for `HakiTutorialModal` from `@/components/haki-tutorial-modal`
-   - Add state: `const [hakiTutorialOpen, setHakiTutorialOpen] = useState(false)`
-   - Inside the existing `useEffect` that fetches games (the one guarded by `if (isLoading || !user) return`), after the battle log fetch, add:
-     ```ts
-     try {
-       const hakiProfile = await getHakiProfile();
-       if (!cancelled && hakiProfile.hakiPointsAvailable > 0) {
-         const seen = localStorage.getItem('last-island-haki-tutorial-seen');
-         if (!seen) {
-           setHakiTutorialOpen(true);
-         }
-       }
-     } catch {
-       // Haki tutorial check is non-critical, silently ignore
-     }
-     ```
-   - At the bottom of the JSX return (after the `GameOverPanel`), add:
-     ```tsx
-     <HakiTutorialModal
-       open={hakiTutorialOpen}
-       onClose={() => setHakiTutorialOpen(false)}
-     />
-     ```
+2. **Modify `client/src/app/page.tsx` — State + import**
+   - Add import: `import { PlayerProfileModal } from "@/components/player-profile-modal"`
+   - Add state: `const [profilePlayer, setProfilePlayer] = useState<LeaderboardEntryResponse | null>(null)`
+   - Derive open state: `const profileOpen = profilePlayer !== null`
+   - Add close handler: `const closeProfile = () => setProfilePlayer(null)`
+
+3. **Modify `client/src/app/page.tsx` — Wire podium cells (lines ~237–272)**
+   - Add to each podium cell `<div>`: `onClick={() => setProfilePlayer(entry)}`, `className` append `cursor-pointer`, add `role="button"` and `tabIndex={0}` for accessibility, add `onKeyDown` handler for Enter/Space to trigger click
+
+4. **Modify `client/src/app/page.tsx` — Wire scrollable list rows (lines ~275–301)**
+   - Add to each list row `<div>`: `onClick={() => setProfilePlayer(entry)}`, append `cursor-pointer` to existing className
+
+5. **Modify `client/src/app/page.tsx` — Wire pinned current-user footer (lines ~304–336)**
+   - Add `onClick` + `cursor-pointer` to the pinned footer row as well (user can view their own profile card)
+
+6. **Modify `client/src/app/page.tsx` — Render modal**
+   - Place `<PlayerProfileModal open={profileOpen} onClose={closeProfile} player={profilePlayer} />` near the other modals (close to HakiTutorialModal render location)
 
 ## Verification
 
-1. `cd client && npx next build` — must exit 0 (no type or build errors)
-2. `cd client && npx eslint src/components/haki-tutorial-modal.tsx src/app/page.tsx` — no lint errors
-3. `grep -c "last-island-haki-tutorial-seen" client/src/components/haki-tutorial-modal.tsx` — must be ≥ 1 (localStorage write on close)
-4. `grep -c "hakiPointsAvailable" client/src/app/page.tsx` — must be ≥ 1 (condition check)
-5. `grep -c "HakiTutorialModal" client/src/app/page.tsx` — must be ≥ 2 (import + render)
-6. `grep -c "getHakiProfile" client/src/app/page.tsx` — must be ≥ 2 (import + call)
-7. `grep -c "bg-surface-elevated" client/src/components/haki-tutorial-modal.tsx` — must be ≥ 1 (design system token)
-8. `grep -c "/haki" client/src/components/haki-tutorial-modal.tsx` — must be ≥ 1 (link to skill tree page)
-9. `grep -c "Modal" client/src/components/haki-tutorial-modal.tsx` — must be ≥ 2 (import + usage)
-10. `grep "text-blue-400\|text-red-400\|text-purple-400" client/src/components/haki-tutorial-modal.tsx | wc -l` — must be ≥ 3 (per-branch colors)
+```bash
+# 1. Build check — no TypeScript errors
+cd client && npm run build
+
+# 2. Lint check — zero new errors
+cd client && npx eslint src/components/player-profile-modal.tsx src/app/page.tsx --no-error-on-unmatched-pattern
+
+# 3. PlayerProfileModal imported and rendered in page
+grep -c "PlayerProfileModal" client/src/app/page.tsx
+# Expected: ≥ 2
+
+# 4. onClick handlers added to leaderboard
+grep -c "setProfilePlayer" client/src/app/page.tsx
+# Expected: ≥ 3 (podium + list + footer)
+
+# 5. cursor-pointer on leaderboard elements
+grep "cursor-pointer" client/src/app/page.tsx | grep -c "setProfilePlayer\|leaderboard"
+# Expected: ≥ 1
+
+# 6. Tier utilities and formatBounty used in modal
+grep -E "getRankTier|tierStyles|formatBounty" client/src/components/player-profile-modal.tsx
+# Expected: ≥ 3 matches
+
+# 7. Design system card pattern
+grep -c "bg-surface-elevated" client/src/components/player-profile-modal.tsx
+# Expected: ≥ 1
+
+# 8. AvatarIcon used in modal
+grep -c "AvatarIcon" client/src/components/player-profile-modal.tsx
+# Expected: ≥ 1
+
+# 9. Modal component used
+grep -c "Modal" client/src/components/player-profile-modal.tsx
+# Expected: ≥ 2 (import + JSX)
+
+# 10. Accessibility: role=button on podium cells
+grep -c 'role="button"' client/src/app/page.tsx
+# Expected: ≥ 3
+```
 
 ## Rollback
 
-```sh
-rm client/src/components/haki-tutorial-modal.tsx
+```bash
+rm client/src/components/player-profile-modal.tsx
 git checkout -- client/src/app/page.tsx
 ```

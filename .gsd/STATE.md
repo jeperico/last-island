@@ -2,7 +2,7 @@
 
 ## Position
 
-Plan written — Add Haki Tutorial Modal on Home Page
+Plan written — Add Player Profile Modal to Leaderboard
 
 ## Decisions
 
@@ -18,4 +18,4 @@ Plan written — Add Haki Tutorial Modal on Home Page
 
 ## Last verification
 
-PASS at 2026-07-20T11:29 — build clean, eslint 0 errors (2 pre-existing warnings), all 8 grep checks green (localStorage key ≥1, hakiPointsAvailable ≥1, HakiTutorialModal ≥2, getHakiProfile ≥2, bg-surface-elevated ≥1, /haki link ≥1, Modal ≥2, per-branch colors ≥3)
+PASS at 2026-07-20T11:53 — banner fix verified: build clean, rotate=0, 300%=0, bg-cover bg-top present, all original functionality intact (Modal/AvatarIcon/getRankTier/tierStyles/formatBounty/grid — 13 matches)

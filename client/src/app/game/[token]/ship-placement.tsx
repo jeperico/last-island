@@ -1,12 +1,14 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { placeShips, surrender, getGame } from "@/lib/api";
+import { placeShips, surrender, getGame, getHakiProfile, assignArmament } from "@/lib/api";
 import type {
   GamePhase,
   Orientation,
   ShipType,
   PlaceShipsRequest,
+  HakiProfileResponse,
+  ShipResponse,
 } from "@/lib/api/types";
 import {
   PIRATE_FLEET,
@@ -17,7 +19,7 @@ import {
   hasOverlap,
   cellKey,
 } from "@/lib/game";
-import { Alert, Button } from "@/components/ui";
+import { Alert, Button, Modal } from "@/components/ui";
 import { SurrenderModal } from "@/components/surrender-modal";
 
 const GRID_SIZE = 10;
@@ -55,6 +57,14 @@ export function ShipPlacement({
   const [error, setError] = useState<string | null>(null);
   const [surrenderOpen, setSurrenderOpen] = useState(false);
   const [surrendering, setSurrendering] = useState(false);
+
+  // Armament Haki state
+  const [hakiProfile, setHakiProfile] = useState<HakiProfileResponse | null>(null);
+  const [armamentStep, setArmamentStep] = useState(false);
+  const [deployedShips, setDeployedShips] = useState<ShipResponse[]>([]);
+  const [selectedShipIds, setSelectedShipIds] = useState<string[]>([]);
+  const [deployedGamePhase, setDeployedGamePhase] = useState<GamePhase | "">("");
+  const [armamentSubmitting, setArmamentSubmitting] = useState(false);
 
   const occupiedCells = useMemo(() => {
     const cells = new Set<string>();
@@ -104,6 +114,11 @@ export function ShipPlacement({
     }
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  // Fetch Haki profile on mount (for armament step)
+  useEffect(() => {
+    getHakiProfile().then(setHakiProfile).catch(() => {});
   }, []);
 
   const toggleOrientation = useCallback(() => {
@@ -350,6 +365,23 @@ export function ShipPlacement({
 
     try {
       const response = await placeShips(gameToken, request);
+
+      // Race condition guard: if game already transitioned, skip armament step
+      if (response.gamePhase !== "PLACING_SHIPS") {
+        onPlacementComplete(response.gamePhase);
+        return;
+      }
+
+      // If player has armament haki, show selection step
+      if (hakiProfile && hakiProfile.armamentLevel >= 1) {
+        setDeployedShips(response.ships);
+        setDeployedGamePhase(response.gamePhase);
+        setSelectedShipIds([]);
+        setArmamentStep(true);
+        return;
+      }
+
+      // No armament — proceed immediately
       onPlacementComplete(response.gamePhase);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to deploy fleet");
@@ -370,6 +402,54 @@ export function ShipPlacement({
       setSurrendering(false);
       setSurrenderOpen(false);
     }
+  }
+
+  // Step 5: Armament ship selection toggle
+  function handleArmamentToggle(shipIdentifier: string) {
+    const maxSelections = (hakiProfile?.armamentLevel ?? 0) >= 2 ? 2 : 1;
+
+    setSelectedShipIds((prev) => {
+      if (prev.includes(shipIdentifier)) {
+        return prev.filter((id) => id !== shipIdentifier);
+      }
+      if (maxSelections === 1) {
+        // Level 1: always replace
+        return [shipIdentifier];
+      }
+      if (prev.length < maxSelections) {
+        return [...prev, shipIdentifier];
+      }
+      // At max for level 2: user must deselect first
+      return prev;
+    });
+  }
+
+  // Step 6: Confirm armament assignment
+  async function handleArmamentConfirm() {
+    setArmamentSubmitting(true);
+    try {
+      // Resolve actual ship UUIDs from selectedShipIds (which may be id or type fallback)
+      const resolveShipId = (identifier: string): string => {
+        const ship = deployedShips.find((s) => s.id === identifier || s.type === identifier);
+        return ship?.id ?? identifier;
+      };
+
+      await assignArmament(gameToken, {
+        ship1Id: resolveShipId(selectedShipIds[0]),
+        ship2Id: selectedShipIds[1] ? resolveShipId(selectedShipIds[1]) : null,
+      });
+    } catch {
+      // Graceful degradation: if assignArmament fails (race condition),
+      // game proceeds without armament protection
+    } finally {
+      setArmamentSubmitting(false);
+      onPlacementComplete(deployedGamePhase as GamePhase);
+    }
+  }
+
+  // Step 7: Skip armament step
+  function handleArmamentSkip() {
+    onPlacementComplete(deployedGamePhase as GamePhase);
   }
 
   function getCellState(
@@ -603,6 +683,80 @@ export function ShipPlacement({
         onConfirm={handleSurrender}
         loading={surrendering}
       />
+
+      {/* Armament Haki selection modal */}
+      <Modal open={armamentStep} onClose={handleArmamentSkip} title="Armament Haki">
+        <div className="bg-surface-elevated rounded-xl border border-border p-5 flex flex-col gap-4">
+          <div className="text-center">
+            <h3 className="text-lg font-bold text-text-primary">🛡️ Armament Haki</h3>
+            <p className="text-sm text-red-400 font-medium mt-1">
+              Select {(hakiProfile?.armamentLevel ?? 0) >= 2 ? "2 ships" : "1 ship"} to harden with Armament Haki
+            </p>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            {deployedShips.map((ship) => {
+              const shipKey = ship.id || ship.type;
+              const isSelected = ship.id
+                ? selectedShipIds.includes(ship.id)
+                : selectedShipIds.includes(ship.type);
+              return (
+                <button
+                  key={shipKey}
+                  type="button"
+                  onClick={() => handleArmamentToggle(ship.id || ship.type)}
+                  className={`flex items-center gap-3 rounded-lg border p-3 transition-all cursor-pointer ${
+                    isSelected
+                      ? "border-red-500 bg-red-500/20 shadow-[0_0_8px_rgba(239,68,68,0.3)]"
+                      : "border-border bg-surface hover:bg-surface-secondary/60"
+                  }`}
+                >
+                  <div className="flex gap-0.5">
+                    {Array.from({ length: ship.size }).map((_, i) => (
+                      <div
+                        key={i}
+                        className={`h-3 w-3 rounded-[2px] ${
+                          isSelected ? "bg-red-500" : "bg-text-muted"
+                        }`}
+                      />
+                    ))}
+                  </div>
+                  <span className={`font-medium text-sm ${isSelected ? "text-red-300" : "text-text-primary"}`}>
+                    {SHIP_DISPLAY_NAMES[ship.type]}
+                  </span>
+                  <span className="text-xs text-text-muted ml-auto">
+                    Size {ship.size}
+                  </span>
+                  {isSelected && (
+                    <span className="text-red-400 text-xs font-bold">🛡️</span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="flex flex-col gap-2 mt-2">
+            <Button
+              variant="danger"
+              onClick={handleArmamentConfirm}
+              loading={armamentSubmitting}
+              disabled={
+                selectedShipIds.length !== ((hakiProfile?.armamentLevel ?? 0) >= 2 ? 2 : 1)
+              }
+              className="w-full"
+            >
+              Activate Armament
+            </Button>
+            <Button
+              variant="ghost"
+              onClick={handleArmamentSkip}
+              className="w-full"
+            >
+              Skip
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

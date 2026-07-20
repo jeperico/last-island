@@ -13,6 +13,8 @@ import com.last_island.api.domain.game.mapper.GameMapper;
 import com.last_island.api.domain.game.entity.GameResult;
 import com.last_island.api.domain.game.repository.GameRepository;
 import com.last_island.api.domain.game.repository.GameResultRepository;
+import com.last_island.api.domain.haki.entity.HakiProfile;
+import com.last_island.api.domain.haki.repository.HakiProfileRepository;
 import com.last_island.api.domain.user.entity.User;
 import com.last_island.api.domain.user.repository.UserRepository;
 import com.last_island.api.domain.user.service.BountyService;
@@ -40,17 +42,19 @@ public class GameService {
     private final GameEventEmitter gameEventEmitter;
     private final LobbyEventEmitter lobbyEventEmitter;
     private final BountyService bountyService;
+    private final HakiProfileRepository hakiProfileRepository;
 
     public GameService(GameRepository gameRepository, GameResultRepository gameResultRepository,
                        UserRepository userRepository,
                        GameEventEmitter gameEventEmitter, LobbyEventEmitter lobbyEventEmitter,
-                       BountyService bountyService) {
+                       BountyService bountyService, HakiProfileRepository hakiProfileRepository) {
         this.gameRepository = gameRepository;
         this.gameResultRepository = gameResultRepository;
         this.userRepository = userRepository;
         this.gameEventEmitter = gameEventEmitter;
         this.lobbyEventEmitter = lobbyEventEmitter;
         this.bountyService = bountyService;
+        this.hakiProfileRepository = hakiProfileRepository;
     }
 
     @Transactional
@@ -155,7 +159,27 @@ public class GameService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You are not a participant in this battle");
         }
 
-        return GameMapper.toStateResponse(game, userId);
+        UUID blueOwnerId = game.getBlueBoard().getOwner().getId();
+        Integer blueObs = null, blueArm = null, blueConq = null;
+        HakiProfile blueHaki = hakiProfileRepository.findByUserId(blueOwnerId).orElse(null);
+        if (blueHaki != null) {
+            blueObs = blueHaki.getObservationLevel();
+            blueArm = blueHaki.getArmamentLevel();
+            blueConq = blueHaki.getConquerorsLevel();
+        }
+
+        Integer redObs = null, redArm = null, redConq = null;
+        if (game.getRedBoard() != null) {
+            UUID redOwnerId = game.getRedBoard().getOwner().getId();
+            HakiProfile redHaki = hakiProfileRepository.findByUserId(redOwnerId).orElse(null);
+            if (redHaki != null) {
+                redObs = redHaki.getObservationLevel();
+                redArm = redHaki.getArmamentLevel();
+                redConq = redHaki.getConquerorsLevel();
+            }
+        }
+
+        return GameMapper.toStateResponse(game, userId, blueObs, blueArm, blueConq, redObs, redArm, redConq);
     }
 
     @Transactional(readOnly = true)
