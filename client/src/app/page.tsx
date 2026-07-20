@@ -615,13 +615,21 @@ export default function Home() {
                     {gamesPage.content.map((game) => {
                       const tier = getRankTier(game.bluePlayerRank);
                       const style = tierStyles[tier];
+                      const gameRankBg: Record<string, string> = {
+                        default: "bg-surface",
+                        rising: "bg-blue-950/40",
+                        elite: "bg-yellow-950/30",
+                        legendary: "bg-purple-950/30",
+                        mythical: "bg-red-950/30",
+                        king: "bg-white/5",
+                      };
                       return (
                         <button
                           key={game.id || game.token}
                           type="button"
                           onClick={() => handleJoinFromList(game.token)}
                           disabled={joiningGame}
-                          className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg ${style.border} ${style.glow} bg-surface hover:bg-surface-secondary transition-all duration-150 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed`}
+                          className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg ${style.border} ${style.glow} ${gameRankBg[tier] || gameRankBg.default} hover:bg-surface-secondary transition-all duration-150 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed`}
                         >
                           <AvatarIcon
                             avatar={game.bluePlayerAvatar}

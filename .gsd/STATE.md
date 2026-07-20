@@ -2,7 +2,7 @@
 
 ## Position
 
-Plan written — Add Player Profile Modal to Leaderboard
+Plan written — Fix Armament Haki Turn-Skip Stacking Bug
 
 ## Decisions
 
