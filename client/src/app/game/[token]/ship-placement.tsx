@@ -432,8 +432,8 @@ export function ShipPlacement({
       };
 
       await assignArmament(gameToken, {
-        ship1Id: resolveShipId(selectedShipIds[0]),
-        ship2Id: selectedShipIds[1] ? resolveShipId(selectedShipIds[1]) : null,
+        ship1Id: selectedShipIds[1] ? resolveShipId(selectedShipIds[1]) : resolveShipId(selectedShipIds[0]),
+        ship2Id: selectedShipIds[1] ? resolveShipId(selectedShipIds[0]) : null,
       });
     } catch {
       // Graceful degradation: if assignArmament fails (race condition),
@@ -690,14 +690,14 @@ export function ShipPlacement({
               Level {hakiProfile?.armamentLevel ?? 0}
             </p>
             <p className="text-sm text-text-secondary font-medium mt-1">
-              Select {(hakiProfile?.armamentLevel ?? 0) >= 2 ? "2 ships" : "1 ship"} to harden
+              Select {(hakiProfile?.armamentLevel ?? 0) >= 2 ? "2 ships to protect" : "1 ship to protect (3 hits)"}
             </p>
             {(hakiProfile?.armamentLevel ?? 0) >= 2 && (
               <p className="text-xs text-text-muted mt-1">
                 {selectedShipIds.length === 0
-                  ? "Pick ship 1 of 2"
+                  ? "Select ship for full protection (unlimited)"
                   : selectedShipIds.length === 1
-                    ? "Pick ship 2 of 2"
+                    ? "Select ship for 3-hit protection"
                     : "✓ Both ships selected"}
               </p>
             )}
@@ -737,7 +737,13 @@ export function ShipPlacement({
                     Size {ship.size}
                   </span>
                   {isSelected && (
-                    <span className="text-red-400 text-xs font-bold">🛡️</span>
+                    <span className="text-red-400 text-xs font-bold">
+                      {(hakiProfile?.armamentLevel ?? 0) >= 2
+                        ? selectedShipIds.indexOf(ship.id || ship.type) === 0
+                          ? "∞"
+                          : "3×"
+                        : "3×"}
+                    </span>
                   )}
                 </button>
               );
@@ -752,7 +758,7 @@ export function ShipPlacement({
               disabled={
                 selectedShipIds.length !== ((hakiProfile?.armamentLevel ?? 0) >= 2 ? 2 : 1)
               }
-              className="w-full"
+              className="w-full bg-red-900 hover:bg-red-800 text-red-100"
             >
               Activate Armament
             </Button>

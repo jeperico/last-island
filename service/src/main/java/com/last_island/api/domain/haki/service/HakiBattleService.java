@@ -194,7 +194,7 @@ public class HakiBattleService {
 
         // Check ship1 (weak buff)
         if (hitShipId.equals(state.getArmamentShip1Id())) {
-            if (state.getArmamentShip1HitsAbsorbed() < 1) {
+            if (state.getArmamentShip1HitsAbsorbed() < 3) {
                 state.setArmamentShip1HitsAbsorbed(state.getArmamentShip1HitsAbsorbed() + 1);
                 hakiBattleStateRepository.save(state);
                 return new ArmamentTriggerResult(null);
@@ -204,18 +204,15 @@ public class HakiBattleService {
 
         // Check ship2 (strong/awakened buff) — only for Lv2+
         if (state.getArmamentLevel() >= 2 && hitShipId.equals(state.getArmamentShip2Id())) {
-            if (state.getArmamentShip2HitsAbsorbed() < 3) {
-                state.setArmamentShip2HitsAbsorbed(state.getArmamentShip2HitsAbsorbed() + 1);
+            state.setArmamentShip2HitsAbsorbed(state.getArmamentShip2HitsAbsorbed() + 1);
 
-                CounterFireResult counterFire = null;
-                if (state.getArmamentLevel() == 3) {
-                    counterFire = resolveCounterFire(attackerBoard, hitRow, hitCol, defenderBoard.getOwner());
-                }
-
-                hakiBattleStateRepository.save(state);
-                return new ArmamentTriggerResult(counterFire);
+            CounterFireResult counterFire = null;
+            if (state.getArmamentLevel() == 3) {
+                counterFire = resolveCounterFire(attackerBoard, hitRow, hitCol, defenderBoard.getOwner());
             }
-            return null;
+
+            hakiBattleStateRepository.save(state);
+            return new ArmamentTriggerResult(counterFire);
         }
 
         return null;

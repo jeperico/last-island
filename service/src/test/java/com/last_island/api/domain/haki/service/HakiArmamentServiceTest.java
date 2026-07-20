@@ -294,7 +294,7 @@ class HakiArmamentServiceTest {
     }
 
     @Test
-    void checkArmament_lv1_secondHitOnShip1_noTrigger() {
+    void checkArmament_lv1_fourthHitOnShip1_noTrigger() {
         Board defenderBoard = Board.builder().owner(redPlayer).ships(new ArrayList<>()).shots(new ArrayList<>()).build();
         defenderBoard.setId(UUID.randomUUID());
         Ship ship1 = buildShip(defenderBoard, ShipType.STRIKER, 0, 0, Orientation.HORIZONTAL);
@@ -304,7 +304,7 @@ class HakiArmamentServiceTest {
 
         HakiBattleState state = buildState(defenderBoard.getId(), 1);
         state.setArmamentShip1Id(ship1.getId());
-        state.setArmamentShip1HitsAbsorbed(1); // Already absorbed one hit
+        state.setArmamentShip1HitsAbsorbed(3); // Already absorbed one hit
 
         when(hakiBattleStateRepository.findByBoardId(defenderBoard.getId())).thenReturn(Optional.of(state));
 
@@ -314,7 +314,30 @@ class HakiArmamentServiceTest {
     }
 
     @Test
-    void checkArmament_lv2_ship2_first3Hits_eachTriggers() {
+    void checkArmament_lv1_thirdHitOnShip1_triggerReturned() {
+        Board defenderBoard = Board.builder().owner(redPlayer).ships(new ArrayList<>()).shots(new ArrayList<>()).build();
+        defenderBoard.setId(UUID.randomUUID());
+        Ship ship1 = buildShip(defenderBoard, ShipType.STRIKER, 0, 0, Orientation.HORIZONTAL);
+
+        Board attackerBoard = Board.builder().owner(bluePlayer).ships(new ArrayList<>()).shots(new ArrayList<>()).build();
+        attackerBoard.setId(UUID.randomUUID());
+
+        HakiBattleState state = buildState(defenderBoard.getId(), 1);
+        state.setArmamentShip1Id(ship1.getId());
+        state.setArmamentShip1HitsAbsorbed(2); // Already absorbed 2 hits
+
+        when(hakiBattleStateRepository.findByBoardId(defenderBoard.getId())).thenReturn(Optional.of(state));
+
+        ArmamentTriggerResult result = hakiBattleService.checkArmamentTrigger(defenderBoard, ship1, 0, 2, attackerBoard);
+
+        assertThat(result).isNotNull();
+        assertThat(result.counterFire()).isNull();
+        assertThat(state.getArmamentShip1HitsAbsorbed()).isEqualTo(3);
+        assertThat(state.getOpponentSkipTurns()).isEqualTo(0);
+    }
+
+    @Test
+    void checkArmament_lv2_ship2_multipleHits_eachTriggers() {
         Board defenderBoard = Board.builder().owner(redPlayer).ships(new ArrayList<>()).shots(new ArrayList<>()).build();
         defenderBoard.setId(UUID.randomUUID());
         Ship ship2 = buildShip(defenderBoard, ShipType.MOBY_DICK, 0, 0, Orientation.HORIZONTAL);
@@ -348,7 +371,7 @@ class HakiArmamentServiceTest {
     }
 
     @Test
-    void checkArmament_lv2_ship2_fourthHit_noTrigger() {
+    void checkArmament_lv2_ship2_manyHits_allTrigger() {
         Board defenderBoard = Board.builder().owner(redPlayer).ships(new ArrayList<>()).shots(new ArrayList<>()).build();
         defenderBoard.setId(UUID.randomUUID());
         Ship ship2 = buildShip(defenderBoard, ShipType.MOBY_DICK, 0, 0, Orientation.HORIZONTAL);
@@ -358,13 +381,39 @@ class HakiArmamentServiceTest {
 
         HakiBattleState state = buildState(defenderBoard.getId(), 2);
         state.setArmamentShip2Id(ship2.getId());
-        state.setArmamentShip2HitsAbsorbed(3); // Already maxed out
+        state.setArmamentShip2HitsAbsorbed(50); // Already absorbed 50 hits
 
         when(hakiBattleStateRepository.findByBoardId(defenderBoard.getId())).thenReturn(Optional.of(state));
 
         ArmamentTriggerResult result = hakiBattleService.checkArmamentTrigger(defenderBoard, ship2, 0, 3, attackerBoard);
 
-        assertThat(result).isNull();
+        assertThat(result).isNotNull();
+        assertThat(result.counterFire()).isNull();
+        assertThat(state.getArmamentShip2HitsAbsorbed()).isEqualTo(51);
+        assertThat(state.getOpponentSkipTurns()).isEqualTo(0);
+    }
+
+    @Test
+    void checkArmament_lv2_ship2_unlimitedAbsorption_stillTriggers() {
+        Board defenderBoard = Board.builder().owner(redPlayer).ships(new ArrayList<>()).shots(new ArrayList<>()).build();
+        defenderBoard.setId(UUID.randomUUID());
+        Ship ship2 = buildShip(defenderBoard, ShipType.MOBY_DICK, 0, 0, Orientation.HORIZONTAL);
+
+        Board attackerBoard = Board.builder().owner(bluePlayer).ships(new ArrayList<>()).shots(new ArrayList<>()).build();
+        attackerBoard.setId(UUID.randomUUID());
+
+        HakiBattleState state = buildState(defenderBoard.getId(), 2);
+        state.setArmamentShip2Id(ship2.getId());
+        state.setArmamentShip2HitsAbsorbed(99); // Already absorbed 99 hits
+
+        when(hakiBattleStateRepository.findByBoardId(defenderBoard.getId())).thenReturn(Optional.of(state));
+
+        ArmamentTriggerResult result = hakiBattleService.checkArmamentTrigger(defenderBoard, ship2, 0, 0, attackerBoard);
+
+        assertThat(result).isNotNull();
+        assertThat(result.counterFire()).isNull();
+        assertThat(state.getArmamentShip2HitsAbsorbed()).isEqualTo(100);
+        assertThat(state.getOpponentSkipTurns()).isEqualTo(0);
     }
 
     @Test
