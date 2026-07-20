@@ -62,7 +62,10 @@ export function HakiBar({
 
   function getObservationInfo(): string {
     if (!hakiProfile) return "";
-    const size = hakiProfile.observationLevel >= 2 ? "3×3" : "2×2";
+    // First use is always 2×2, second use is 3×3 (at level 2+)
+    const totalUses = hakiProfile.observationLevel >= 2 ? 2 : 1;
+    const consumed = totalUses - observationUsesLeft;
+    const size = consumed === 0 ? "2×2" : "3×3";
     return `${size} scan`;
   }
 

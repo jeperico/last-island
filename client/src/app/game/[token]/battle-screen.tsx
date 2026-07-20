@@ -56,9 +56,7 @@ export function BattleScreen({
 
   // Haki state
   const [hakiProfile, setHakiProfile] = useState<HakiProfileResponse | null>(null);
-  // Track which turn the haki was used in — reset when turn changes
-  const [hakiUsedInTurn, setHakiUsedInTurn] = useState<string | null>(null);
-  const hakiUsedThisTurn = hakiUsedInTurn === gameState.currentTurnPlayerName;
+  const [hakiUsedThisTurn, setHakiUsedThisTurn] = useState(false);
   const [observationUsesLeft, setObservationUsesLeft] = useState(0);
   const [conquerorsUsesLeft, setConquerorsUsesLeft] = useState(0);
   const [conquerorsCooldown, _setConquerorsCooldown] = useState(0);
@@ -84,6 +82,25 @@ export function BattleScreen({
   }, [readOnly]);
 
   const isMyTurn = gameState.currentTurnPlayerName === user.name;
+
+  // Reset hakiUsedThisTurn when the turn passes to opponent (currentTurnPlayerName changes)
+  useEffect(() => {
+    if (!isMyTurn) {
+      setHakiUsedThisTurn(false);
+    }
+  }, [isMyTurn]);
+
+  // Escape key cancels observation/conquerors mode
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        if (observationMode) setObservationMode(false);
+        if (conquerorsMode) setConquerorsMode(false);
+      }
+    }
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [observationMode, conquerorsMode]);
 
   const myAvatar =
     gameState.bluePlayerName === user.name
@@ -121,7 +138,7 @@ export function BattleScreen({
       if (!cells.has(key)) {
         // Only show reveal if not already shot
         cells.set(key, {
-          type: rc.status === "HAS_SHIP" ? "ship" : "empty",
+          type: rc.status === "HAS_SHIP" ? "revealed-ship" : "revealed-empty",
         });
       }
     }
@@ -243,7 +260,7 @@ export function BattleScreen({
         const result = await activateObservation(gameToken, { row, col });
         setRevealedCells((prev) => [...prev, ...result.revealedCells]);
         setObservationUsesLeft((prev) => prev - 1);
-        setHakiUsedInTurn(gameState.currentTurnPlayerName);
+        setHakiUsedThisTurn(true);
         setHakiMessage(`Observation Haki reveals ${result.revealedCells.length} cells!`);
         setTimeout(() => setHakiMessage(null), 3000);
       } catch (err) {
@@ -262,7 +279,7 @@ export function BattleScreen({
           col: col ?? null,
         });
         setConquerorsUsesLeft((prev) => prev - 1);
-        setHakiUsedInTurn(gameState.currentTurnPlayerName);
+        setHakiUsedThisTurn(true);
         if (result.xPatternShots) {
           const newShots: ShotCellResponse[] = result.xPatternShots.map((s) => ({
             row: s.row,
@@ -330,8 +347,11 @@ export function BattleScreen({
     const previewKeys = new Set<string>();
 
     if (observationMode && hakiProfile) {
-      // Observation: 2×2 at level 1, 3×3 at level 2+
-      const size = hakiProfile.observationLevel >= 2 ? 3 : 2;
+      // Server logic: first use (WEAK) = 2×2, second use (STRONG/AWAKENED) = 3×3
+      // Uses consumed = total - remaining
+      const totalUses = hakiProfile.observationLevel >= 2 ? 2 : 1;
+      const consumed = totalUses - observationUsesLeft;
+      const size = consumed === 0 ? 2 : 3;
       for (let dr = 0; dr < size; dr++) {
         for (let dc = 0; dc < size; dc++) {
           const r = hoveredCell.row + dr;
@@ -357,7 +377,7 @@ export function BattleScreen({
     }
 
     return previewKeys.size > 0 ? previewKeys : undefined;
-  }, [hoveredCell, observationMode, conquerorsMode, hakiProfile]);
+  }, [hoveredCell, observationMode, conquerorsMode, hakiProfile, observationUsesLeft]);
 
   const handleBoardCellHover = useCallback((row: number, col: number) => {
     if (observationMode || conquerorsMode) {
@@ -420,7 +440,7 @@ export function BattleScreen({
               observationUsesLeft={observationUsesLeft}
               conquerorsUsesLeft={conquerorsUsesLeft}
               conquerorsCooldown={conquerorsCooldown}
-              onHakiUsed={() => setHakiUsedInTurn(gameState.currentTurnPlayerName)}
+              onHakiUsed={() => setHakiUsedThisTurn(true)}
               onObservationResult={(cells) => setRevealedCells((prev) => [...prev, ...cells])}
               onConquerorsResult={() => {}}
               onError={(msg) => setError(msg)}

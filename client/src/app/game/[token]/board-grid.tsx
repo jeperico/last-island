@@ -1,7 +1,7 @@
 "use client";
 
 export type CellState = {
-  type: "empty" | "ship" | "hit" | "miss" | "sunk";
+  type: "empty" | "ship" | "hit" | "miss" | "sunk" | "revealed-ship" | "revealed-empty";
 };
 
 interface BoardGridProps {
@@ -48,6 +48,10 @@ function getCellClasses(state: CellState, interactive: boolean, isPreview: boole
       return `${base} bg-blue-900/50 text-blue-400/70 border border-blue-700/30`;
     case "sunk":
       return `${base} bg-gradient-to-br from-purple-700 to-purple-900 text-white border border-purple-400/50 shadow-[0_0_10px_rgba(168,85,247,0.5)]`;
+    case "revealed-ship":
+      return `${base} bg-purple-500/25 border border-purple-400/50 shadow-[0_0_6px_rgba(168,85,247,0.25)] ${interactive ? "cursor-pointer hover:bg-purple-500/40" : ""}`;
+    case "revealed-empty":
+      return `${base} bg-blue-400/15 border border-blue-400/35 ${interactive ? "cursor-pointer hover:bg-blue-400/25" : ""}`;
     default:
       return base;
   }
@@ -128,7 +132,7 @@ export function BoardGrid({
               {COL_LABELS.map((_, colIdx) => {
                 const key = cellKey(rowIdx, colIdx);
                 const state = cells.get(key) ?? { type: "empty" as const };
-                const isClickable = interactive && (state.type === "empty" || (mode !== "normal" && state.type !== "hit" && state.type !== "miss" && state.type !== "sunk"));
+                const isClickable = interactive && (state.type === "empty" || state.type === "revealed-ship" || state.type === "revealed-empty" || (mode !== "normal" && state.type !== "hit" && state.type !== "miss" && state.type !== "sunk"));
                 const isPreview = previewCells?.has(key) ?? false;
                 return (
                   <div
