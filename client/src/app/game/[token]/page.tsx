@@ -91,6 +91,10 @@ export default function GamePage() {
   useGameEvents(
     token,
     {
+      onConnected: () => {
+        // Refetch on every SSE (re)connection to catch missed events
+        refetchGame();
+      },
       onOpponentJoined: () => {
         refetchGame();
       },
