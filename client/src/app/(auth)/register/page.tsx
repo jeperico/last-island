@@ -13,6 +13,7 @@ import {
 } from "@/lib/validations/register";
 import { Alert, Input, Button } from "@/components/ui";
 import { CharacterSelect } from "@/components/character-select";
+import { trackAvatarSelected } from "@/lib/analytics";
 
 export default function RegisterPage() {
   const auth = useAuth();
@@ -47,6 +48,7 @@ export default function RegisterPage() {
     try {
       const data = getValues();
       await auth.register(data.name, data.email, data.password, avatar);
+      trackAvatarSelected(avatar, "register");
     } catch (err) {
       setIsRegistering(false);
       if (err instanceof ApiError) {
