@@ -15,6 +15,7 @@ import {
   tierStyles,
 } from "@/components/ui";
 import { formatBounty } from "@/lib/format";
+import { trackAvatarSelected } from "@/lib/analytics";
 
 // ─── Avatar options ──────────────────────────────────────────────────────────
 
@@ -66,6 +67,7 @@ export default function SettingsPage() {
     try {
       await updateProfile({ avatar: avatarKey });
       await refreshUser();
+      trackAvatarSelected(avatarKey, "settings");
     } catch (err) {
       const apiError = err as ApiError;
       setError(apiError.message ?? "Failed to update avatar");

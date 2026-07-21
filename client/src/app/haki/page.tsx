@@ -8,6 +8,7 @@ import { getHakiProfile, upgradeHaki } from "@/lib/api";
 import type { ApiError } from "@/lib/api/client";
 import type { HakiProfileResponse } from "@/lib/api/types";
 import type { HakiType } from "@/types";
+import { trackHakiUpgrade } from "@/lib/analytics";
 import {
   Alert,
   Button,
@@ -183,6 +184,7 @@ export default function HakiPage() {
     try {
       const updated = await upgradeHaki({ hakiType: type, targetLevel });
       setProfile(updated);
+      trackHakiUpgrade(type, targetLevel);
     } catch (err) {
       const apiError = err as ApiError;
       setError(apiError.message ?? "Failed to upgrade Haki");
