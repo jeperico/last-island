@@ -2,7 +2,7 @@
 
 ## Position
 
-Planning — Rename DOFLAMINGO avatar to USSOP
+Implementing — Fix USSOP → USOPP spelling across codebase
 
 ## Decisions
 
@@ -18,4 +18,4 @@ Planning — Rename DOFLAMINGO avatar to USSOP
 
 ## Last verification
 
-PASS at 2026-07-21T09:30 — backend 164/170 pass (6 pre-existing HakiConquerorsServiceTest failures unrelated), frontend build clean, no DOFLAMINGO in code (only migration WHERE clause), USSOP confirmed in Avatar.java + character-select.tsx + settings/page.tsx + domain.md + migration SQL
+PASS at 2026-07-21T09:42 — backend 164/170 pass (6 pre-existing HakiConquerorsServiceTest failures unrelated), frontend build clean, no USSOP in code (only V15/V16 migration WHERE clauses), USOPP confirmed in Avatar.java + character-select.tsx + settings/page.tsx + domain.md, asset dir usopp/ with 4 usopp-bg-*.jpg

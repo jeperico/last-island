@@ -50,7 +50,7 @@ Per-board state tracking Haki ability usage within a single game.
 | ShotResult | MISS, HIT, SUNK |
 | Orientation | HORIZONTAL, VERTICAL |
 | PirateRank | ROOKIE, SUPER_ROOKIE, SUPERNOVA, SHICHIBUKAI, YONKO, PIRATE_KING |
-| Avatar | LUFFY, ZORO, ROBIN, CHOPPER, ACE, USSOP |
+| Avatar | LUFFY, ZORO, ROBIN, CHOPPER, ACE, USOPP |
 | HakiType | OBSERVATION, ARMAMENT, CONQUERORS |
 | CellRevealStatus | HAS_SHIP, EMPTY |
 

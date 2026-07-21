@@ -147,3 +147,11 @@ Commit: uncommitted
 Implementer: Modified `service/src/main/java/com/last_island/api/domain/user/enums/Avatar.java` (1 line), created `service/src/main/resources/db/migration/V15__rename_doflamingo_to_ussop.sql` (+1 line), modified `client/src/components/character-select.tsx` (6 lines changed), modified `client/src/app/settings/page.tsx` (4 lines changed), modified `.kiro/steering/server/domain.md` (1 line changed). Net: 5 files touched, +1 new file.
 Reviewer: PASS — backend 164/170 pass (6 pre-existing HakiConquerorsServiceTest failures unrelated), frontend build clean, no DOFLAMINGO in code (only migration WHERE clause), USSOP confirmed in Avatar.java + character-select.tsx + settings/page.tsx + domain.md + migration SQL
 Commit: uncommitted
+
+## 2026-07-21T09:38 — Fix USSOP → USOPP Spelling Across Codebase
+
+Implementer: Renamed `client/public/avatars/ussop/` → `usopp/` and 4 background files inside. Modified `Avatar.java` (USSOP→USOPP), `character-select.tsx` (key+name+image path), `settings/page.tsx` (key+name+image path), `.kiro/steering/server/domain.md` (enum table). Created `V16__fix_usopp_spelling.sql` (+1). Net: +1 new file, 4 files modified, 5 files renamed.
+
+Reviewer: PASS — build clean, eslint clean, 164/170 backend tests green (6 pre-existing HakiConquerorsServiceTest failures unrelated), no USSOP in code, USOPP in Avatar.java, V16 migration exists, asset dir client/public/avatars/usopp/ with 4 usopp-bg-*.jpg files
+
+Commit: uncommitted

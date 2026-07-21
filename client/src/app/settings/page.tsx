@@ -25,9 +25,9 @@ const AVATAR_OPTIONS = [
   { key: "CHOPPER", name: "Chopper", image: "/avatars/chopper/profile.jpg" },
   { key: "ACE", name: "Ace", image: "/avatars/ace/profile.jpg" },
   {
-    key: "USSOP",
-    name: "Ussop",
-    image: "/avatars/ussop/profile.jpg",
+    key: "USOPP",
+    name: "Usopp",
+    image: "/avatars/usopp/profile.jpg",
   },
 ] as const;
 

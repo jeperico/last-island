@@ -54,10 +54,10 @@ const CHARACTER_OPTIONS: CharacterOption[] = [
     image: "/avatars/ace/full-body.jpg",
   },
   {
-    key: "USSOP",
-    name: "Ussop",
+    key: "USOPP",
+    name: "Usopp",
     quote: "I'll become a brave warrior of the sea!",
-    image: "/avatars/ussop/full-body.jpg",
+    image: "/avatars/usopp/full-body.jpg",
   },
 ];
 

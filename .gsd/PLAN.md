@@ -1,65 +1,93 @@
-# Rename DOFLAMINGO Avatar to USSOP
+# Fix USSOP → USOPP Spelling Across Codebase
 
 ## Objective
 
-Replace the DOFLAMINGO avatar with USSOP across backend enum, database, frontend components, and steering docs.
+Correct the misspelling of One Piece character "Usopp" (one 's', two 'p's) in the backend enum, database, frontend components, steering docs, and asset filenames.
 
 ## Files to touch
 
 - modify: `service/src/main/java/com/last_island/api/domain/user/enums/Avatar.java`
-- create: `service/src/main/resources/db/migration/V15__rename_doflamingo_to_ussop.sql`
+- create: `service/src/main/resources/db/migration/V16__fix_usopp_spelling.sql`
 - modify: `client/src/components/character-select.tsx`
 - modify: `client/src/app/settings/page.tsx`
 - modify: `.kiro/steering/server/domain.md`
+- rename: `client/public/avatars/ussop/` → `client/public/avatars/usopp/`
+- rename: `client/public/avatars/usopp/ussop-bg-01.jpg` → `usopp-bg-01.jpg`
+- rename: `client/public/avatars/usopp/ussop-bg-02.jpg` → `usopp-bg-02.jpg`
+- rename: `client/public/avatars/usopp/ussop-bg-03.jpg` → `usopp-bg-03.jpg`
+- rename: `client/public/avatars/usopp/ussop-bg-04.jpg` → `usopp-bg-04.jpg`
 
 ## Steps
 
-1. In `service/src/main/java/com/last_island/api/domain/user/enums/Avatar.java`, change `DOFLAMINGO` to `USSOP` in the enum values list.
-
-2. Create `service/src/main/resources/db/migration/V15__rename_doflamingo_to_ussop.sql` with contents:
+1. Rename asset directory `client/public/avatars/ussop/` → `client/public/avatars/usopp/` (mv the whole directory)
+2. Rename background files inside the new directory:
+   - `ussop-bg-01.jpg` → `usopp-bg-01.jpg`
+   - `ussop-bg-02.jpg` → `usopp-bg-02.jpg`
+   - `ussop-bg-03.jpg` → `usopp-bg-03.jpg`
+   - `ussop-bg-04.jpg` → `usopp-bg-04.jpg`
+3. Modify `Avatar.java`: change `USSOP` → `USOPP` in the enum constant list
+4. Create `V16__fix_usopp_spelling.sql` with content:
    ```sql
-   UPDATE users SET avatar = 'USSOP' WHERE avatar = 'DOFLAMINGO';
+   UPDATE users SET avatar = 'USOPP' WHERE avatar = 'USSOP';
    ```
-
-3. In `client/src/components/character-select.tsx` (lines ~57-61), update the Doflamingo entry:
-   - `key`: `"USSOP"`
-   - `name`: `"Ussop"`
-   - `quote`: `"I'll become a brave warrior of the sea!"`
-   - `image`: `"/avatars/ussop/full-body.jpg"`
-
-4. In `client/src/app/settings/page.tsx` (lines ~28-31), update the Doflamingo entry:
-   - `key`: `"USSOP"`
-   - `name`: `"Ussop"`
-   - `image`: `"/avatars/ussop/profile.jpg"`
-
-5. In `.kiro/steering/server/domain.md` (line ~53), replace `DOFLAMINGO` with `USSOP` in the Avatar enum list.
+5. Modify `client/src/components/character-select.tsx`:
+   - key: `"USSOP"` → `"USOPP"`
+   - name: `"Ussop"` → `"Usopp"`
+   - image: `"/avatars/ussop/full-body.jpg"` → `"/avatars/usopp/full-body.jpg"`
+6. Modify `client/src/app/settings/page.tsx`:
+   - key: `"USSOP"` → `"USOPP"`
+   - name: `"Ussop"` → `"Usopp"`
+   - image: `"/avatars/ussop/profile.jpg"` → `"/avatars/usopp/profile.jpg"`
+7. Modify `.kiro/steering/server/domain.md` line 53: `USSOP` → `USOPP`
 
 ## Verification
 
 ```bash
-# Backend build + tests pass
-cd service && mvn clean test -q
+# 1. Backend build + tests pass
+cd service && mvn compile -q && mvn test -q; cd ..
 
-# Frontend build passes
-cd client && npm run build
+# 2. Frontend build passes
+cd client && npx next build; cd ..
 
-# No remaining references to DOFLAMINGO or doflamingo in code
-grep -ri "doflamingo" service/src/ client/src/ .kiro/
+# 3. No remaining USSOP/Ussop/ussop references in code (excluding V15 migration, .gsd/SUMMARY.md, .git/)
+grep -ri "ussop" --include="*.java" --include="*.tsx" --include="*.ts" --include="*.md" --include="*.sql" \
+  --exclude-dir=.git --exclude-dir=node_modules . \
+  | grep -v "V15__rename_doflamingo_to_ussop" \
+  | grep -v ".gsd/SUMMARY.md" \
+  | grep -v ".gsd/PLAN.md"
+# Expected: empty (no matches)
 
-# USSOP present in all expected locations
-grep -n "USSOP" service/src/main/java/com/last_island/api/domain/user/enums/Avatar.java
-grep -n "USSOP" client/src/components/character-select.tsx
-grep -n "USSOP" client/src/app/settings/page.tsx
-grep -n "USSOP" .kiro/steering/server/domain.md
-cat service/src/main/resources/db/migration/V15__rename_doflamingo_to_ussop.sql
+# 4. New migration file exists
+test -f service/src/main/resources/db/migration/V16__fix_usopp_spelling.sql && echo "OK"
+
+# 5. Avatar enum has USOPP
+grep "USOPP" service/src/main/java/com/last_island/api/domain/user/enums/Avatar.java
+
+# 6. Asset directory renamed correctly
+test -d client/public/avatars/usopp && echo "OK"
+test ! -d client/public/avatars/ussop && echo "OK"
+ls client/public/avatars/usopp/usopp-bg-*.jpg | wc -l
+# Expected: 4
 ```
 
 ## Rollback
 
 ```bash
+# Undo asset renames
+mv client/public/avatars/usopp client/public/avatars/ussop
+cd client/public/avatars/ussop
+mv usopp-bg-01.jpg ussop-bg-01.jpg
+mv usopp-bg-02.jpg ussop-bg-02.jpg
+mv usopp-bg-03.jpg ussop-bg-03.jpg
+mv usopp-bg-04.jpg ussop-bg-04.jpg
+cd -
+
+# Revert code changes
 git checkout -- service/src/main/java/com/last_island/api/domain/user/enums/Avatar.java
 git checkout -- client/src/components/character-select.tsx
 git checkout -- client/src/app/settings/page.tsx
 git checkout -- .kiro/steering/server/domain.md
-rm -f service/src/main/resources/db/migration/V15__rename_doflamingo_to_ussop.sql
+
+# Remove new migration
+rm -f service/src/main/resources/db/migration/V16__fix_usopp_spelling.sql
 ```
