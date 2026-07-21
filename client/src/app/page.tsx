@@ -47,7 +47,7 @@ import { formatBounty } from "@/lib/format";
 
 export default function Home() {
   const { user, isLoading } = useRequireAuth();
-  const { logout } = useAuth();
+  const { logout, refreshUser } = useAuth();
   const router = useRouter();
 
   const [error, setError] = useState<string | null>(null);
@@ -73,6 +73,9 @@ export default function Home() {
     if (isLoading || !user) return;
 
     let cancelled = false;
+
+    // Refresh user profile to pick up rank/bounty changes from recent games
+    refreshUser().catch(() => {});
 
     async function fetchGames() {
       setLoadingGames(true);
