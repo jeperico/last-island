@@ -506,7 +506,12 @@ export default function Home() {
                     battleLog.content.map((entry) => (
                     <div
                       key={entry.gameId}
-                      className="group flex items-center gap-3 px-3 py-3 rounded-lg border border-border-light cursor-pointer hover:border-primary/50 hover:bg-surface-secondary transition-all duration-150"
+                      className={[
+                        "group flex items-center gap-3 px-3 py-3 rounded-lg border cursor-pointer hover:border-primary/50 transition-all duration-150",
+                        entry.result === "VICTORY"
+                          ? "bg-green-950/20 border-green-500/20 hover:bg-green-950/30"
+                          : "bg-red-950/20 border-red-500/20 hover:bg-red-950/30",
+                      ].join(" ")}
                       onClick={async () => {
                         setLoadingBattle(true);
                         try {
