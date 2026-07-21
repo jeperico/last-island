@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRequireAuth } from "@/lib/auth";
@@ -151,31 +151,25 @@ export default function HakiPage() {
   const [error, setError] = useState<string | null>(null);
   const [upgrading, setUpgrading] = useState<HakiType | null>(null);
 
+  const hasFetched = useRef(false);
   useEffect(() => {
-    if (isLoading) return;
-
-    let cancelled = false;
+    if (isLoading || hasFetched.current) return;
+    hasFetched.current = true;
 
     async function fetchProfile() {
       setLoadingProfile(true);
       try {
         const data = await getHakiProfile();
-        if (!cancelled) setProfile(data);
+        setProfile(data);
       } catch (err) {
-        if (!cancelled) {
-          const apiError = err as ApiError;
-          setError(apiError.message ?? "Failed to load Haki profile");
-        }
+        const apiError = err as ApiError;
+        setError(apiError.message ?? "Failed to load Haki profile");
       } finally {
-        if (!cancelled) setLoadingProfile(false);
+        setLoadingProfile(false);
       }
     }
 
     fetchProfile();
-
-    return () => {
-      cancelled = true;
-    };
   }, [isLoading]);
 
   async function handleUpgrade(type: HakiType, targetLevel: number) {

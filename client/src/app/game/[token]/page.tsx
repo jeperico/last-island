@@ -37,36 +37,26 @@ export default function GamePage() {
   const [wallpaperModalOpen, setWallpaperModalOpen] = useState(false);
 
   // Initial fetch on mount (after auth resolves)
+  const hasFetchedGame = useRef(false);
   useEffect(() => {
-    if (authLoading || !user) return;
-
-    let cancelled = false;
+    if (authLoading || !user || hasFetchedGame.current) return;
+    hasFetchedGame.current = true;
 
     async function load() {
       try {
         const response = await getGame(token);
-        if (!cancelled) {
-          setGameState(response);
-          setError(null);
-        }
+        setGameState(response);
+        setError(null);
       } catch (err) {
-        if (!cancelled) {
-          setError(
-            err instanceof Error ? err.message : "Failed to load game state",
-          );
-        }
+        setError(
+          err instanceof Error ? err.message : "Failed to load game state",
+        );
       } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
+        setLoading(false);
       }
     }
 
     load();
-
-    return () => {
-      cancelled = true;
-    };
   }, [authLoading, user, token]);
 
   // SSE: subscribe to real-time game events

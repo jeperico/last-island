@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 
 import Link from "next/link";
@@ -47,7 +47,7 @@ import { formatBounty } from "@/lib/format";
 
 export default function Home() {
   const { user, isLoading } = useRequireAuth();
-  const { logout, refreshUser } = useAuth();
+  const { logout } = useAuth();
   const router = useRouter();
 
   const [error, setError] = useState<string | null>(null);
@@ -69,91 +69,53 @@ export default function Home() {
   const [hakiTutorialOpen, setHakiTutorialOpen] = useState(false);
   const [profilePlayer, setProfilePlayer] = useState<LeaderboardEntryResponse | null>(null);
 
+  const hasFetched = useRef(false);
   useEffect(() => {
-    if (isLoading || !user) return;
+    if (isLoading || !user || hasFetched.current) return;
+    hasFetched.current = true;
 
-    let cancelled = false;
+    async function fetchAll() {
+      const hakiTutorialSeen = localStorage.getItem("last-island-haki-tutorial-seen");
+      const [gamesResult, logResult, leaderboardResult] = await Promise.allSettled([
+        listGames({ page: 0, size: 5 }),
+        getBattleLog({ page: 0, size: 5 }),
+        getLeaderboard(),
+      ]);
 
-    // Refresh user profile to pick up rank/bounty changes from recent games
-    refreshUser().catch(() => {});
-
-    async function fetchGames() {
-      setLoadingGames(true);
-      setLoadingBattleLog(true);
-      try {
-        const response = await listGames({ page: 0, size: 5 });
-        if (!cancelled) {
-          setGamesPage(response);
-        }
-      } catch (err) {
-        if (!cancelled) {
-          const apiError = err as ApiError;
-          setError(apiError.message ?? "Failed to load games");
-        }
-      } finally {
-        if (!cancelled) {
-          setLoadingGames(false);
-        }
+      if (gamesResult.status === "fulfilled") {
+        setGamesPage(gamesResult.value);
+      } else {
+        setError("Failed to load games");
       }
-      try {
-        const log = await getBattleLog({ page: 0, size: 5 });
-        if (!cancelled) {
-          setBattleLog(log);
-        }
-      } catch {
-        // Battle log is non-critical, silently ignore
-      } finally {
-        if (!cancelled) {
-          setLoadingBattleLog(false);
-        }
+      setLoadingGames(false);
+
+      if (logResult.status === "fulfilled") {
+        setBattleLog(logResult.value);
       }
-      try {
-        const hakiProfile = await getHakiProfile();
-        if (!cancelled && hakiProfile.hakiPointsAvailable > 0) {
-          const seen = localStorage.getItem("last-island-haki-tutorial-seen");
-          if (!seen) {
+      setLoadingBattleLog(false);
+
+      if (leaderboardResult.status === "fulfilled") {
+        setLeaderboard(leaderboardResult.value);
+      }
+      setLoadingLeaderboard(false);
+
+      if (!hakiTutorialSeen) {
+        try {
+          const hakiProfile = await getHakiProfile();
+          if (hakiProfile.hakiPointsAvailable > 0) {
             setHakiTutorialOpen(true);
           }
-        }
-      } catch {
-        // Haki tutorial check is non-critical, silently ignore
-      }
-    }
-
-    fetchGames();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [isLoading, user]);
-
-  useEffect(() => {
-    if (isLoading || !user) return;
-
-    let cancelled = false;
-
-    async function fetchLeaderboard() {
-      if (!leaderboard) setLoadingLeaderboard(true);
-      try {
-        const data = await getLeaderboard();
-        if (!cancelled) {
-          setLeaderboard(data);
-        }
-      } catch {
-        // Leaderboard is non-critical, silently ignore
-      } finally {
-        if (!cancelled) {
-          setLoadingLeaderboard(false);
+        } catch {
+          // Non-critical
         }
       }
     }
 
-    fetchLeaderboard();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [isLoading, user]);
+    setLoadingGames(true);
+    setLoadingBattleLog(true);
+    setLoadingLeaderboard(true);
+    fetchAll();
+  }, [isLoading]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useLobbyEvents(
     {
