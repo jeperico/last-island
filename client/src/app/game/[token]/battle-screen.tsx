@@ -90,10 +90,14 @@ export function BattleScreen({
   const isMyTurn = gameState.currentTurnPlayerName === user.name;
 
   // Reset hakiUsedThisTurn and dismiss haki notification when the turn passes to opponent
+  const hakiMessageTimeoutActive = useRef(false);
   useEffect(() => {
     if (!isMyTurn) {
       setHakiUsedThisTurn(false);
-      setHakiMessage(null);
+      // Don't clear hakiMessage if a timeout is actively managing it (e.g. armament notification)
+      if (!hakiMessageTimeoutActive.current) {
+        setHakiMessage(null);
+      }
     }
   }, [isMyTurn]);
 
@@ -203,10 +207,14 @@ export function BattleScreen({
         // Handle Armament Haki trigger
         if (response.armamentTriggered) {
           setHakiMessage("⚡ Armament Haki hardens the hull! You'll lose a future turn.");
+          hakiMessageTimeoutActive.current = true;
+          setTimeout(() => { setHakiMessage(null); hakiMessageTimeoutActive.current = false; }, 5000);
         }
         if (response.counterFire) {
           const cf = response.counterFire;
           setHakiMessage(`⚡ Counter-fire! Your board hit at (${cf.row + 1}, ${cf.col + 1})!`);
+          hakiMessageTimeoutActive.current = true;
+          setTimeout(() => { setHakiMessage(null); hakiMessageTimeoutActive.current = false; }, 5000);
         }
 
         if (response.gameOver) {
