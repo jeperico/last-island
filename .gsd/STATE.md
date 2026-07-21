@@ -2,7 +2,7 @@
 
 ## Position
 
-Planning — Refactor img tags to Next.js Image component
+Planning — Rename DOFLAMINGO avatar to USSOP
 
 ## Decisions
 
@@ -18,4 +18,4 @@ Planning — Refactor img tags to Next.js Image component
 
 ## Last verification
 
-PASS at 2026-07-21T08:44 — build clean, eslint clean (0 new errors, 7 pre-existing), no stale no-img-element disables, no <img> in target files, AvatarIcon has Image+fallback img+priority+sizesMap, next.config has avif, priority on header+podium avatars
+PASS at 2026-07-21T09:30 — backend 164/170 pass (6 pre-existing HakiConquerorsServiceTest failures unrelated), frontend build clean, no DOFLAMINGO in code (only migration WHERE clause), USSOP confirmed in Avatar.java + character-select.tsx + settings/page.tsx + domain.md + migration SQL

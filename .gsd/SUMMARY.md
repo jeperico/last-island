@@ -141,3 +141,9 @@ Commit: uncommitted
 Implementer: Modified `client/next.config.ts` (+1), `client/src/components/ui/avatar-icon.tsx` (+22 −4), `client/src/app/(auth)/login/page.tsx` (+3 −3), `client/src/app/(auth)/register/page.tsx` (+3 −3), `client/src/app/haki/page.tsx` (+4 −3), `client/src/app/settings/page.tsx` (+4 −3), `client/src/app/page.tsx` (+2). Net: +39 −16 lines across 7 files.
 Reviewer: PASS — build clean, eslint clean (0 new errors, 7 pre-existing), no stale no-img-element disables, no <img> in target files, AvatarIcon has Image+fallback img+priority+sizesMap, next.config has avif, priority on header+podium avatars
 Commit: uncommitted
+
+## 2026-07-21T09:27 — Rename DOFLAMINGO Avatar to USSOP
+
+Implementer: Modified `service/src/main/java/com/last_island/api/domain/user/enums/Avatar.java` (1 line), created `service/src/main/resources/db/migration/V15__rename_doflamingo_to_ussop.sql` (+1 line), modified `client/src/components/character-select.tsx` (6 lines changed), modified `client/src/app/settings/page.tsx` (4 lines changed), modified `.kiro/steering/server/domain.md` (1 line changed). Net: 5 files touched, +1 new file.
+Reviewer: PASS — backend 164/170 pass (6 pre-existing HakiConquerorsServiceTest failures unrelated), frontend build clean, no DOFLAMINGO in code (only migration WHERE clause), USSOP confirmed in Avatar.java + character-select.tsx + settings/page.tsx + domain.md + migration SQL
+Commit: uncommitted

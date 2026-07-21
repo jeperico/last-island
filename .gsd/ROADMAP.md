@@ -23,6 +23,7 @@
 - Lobby SSE — auto-update available battles (2026-07-14)
 - Battle expiration timers (turn 120s + game 30min) (2026-07-14) — c79db6e
 - Leaderboard UI improvements: table layout, scrollbar, bounty formula (2026-07-14) — c79db6e
+- Refactor img tags to Next.js Image component (2026-07-21) — 747721a
 
 ## Next
 
