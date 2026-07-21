@@ -52,7 +52,7 @@ export function Modal({ open, onClose, title, className, children }: ModalProps)
         {/* Close button */}
         <button
           onClick={onClose}
-          className="absolute top-3 right-3 z-20 text-text-muted hover:text-text-primary transition-colors text-xl leading-none cursor-pointer"
+          className="absolute top-2 right-2 z-20 w-8 h-8 flex items-center justify-center rounded-lg bg-surface-secondary/80 text-text-secondary hover:text-text-primary hover:bg-surface-secondary transition-colors text-xl leading-none cursor-pointer"
           aria-label="Close dialog"
         >
           ×
