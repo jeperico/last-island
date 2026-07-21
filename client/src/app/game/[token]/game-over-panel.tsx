@@ -7,8 +7,9 @@ import type {
   UserResponse,
   MyBoardResponse,
   ShotCellResponse,
+  ShipType,
 } from "@/lib/api/types";
-import { getShipCells, cellKey } from "@/lib/game";
+import { getShipCells, cellKey, SHIP_SIZES } from "@/lib/game";
 import { formatBounty } from "@/lib/format";
 import { BoardGrid, type CellState } from "./board-grid";
 
@@ -29,6 +30,15 @@ const FLEET_SHIP_SIZES = [5, 4, 3, 3, 2];
 function buildMyBoardCells(myBoard: MyBoardResponse): Map<string, CellState> {
   const cells = new Map<string, CellState>();
 
+  // Build a set of hit positions for quick lookup
+  const hitPositions = new Set<string>();
+  for (const shot of myBoard.shotsReceived) {
+    if (shot.result === "HIT" || shot.result === "SUNK") {
+      hitPositions.add(cellKey(shot.row, shot.col));
+    }
+  }
+
+  // Mark ship cells — check if ship is fully sunk (all cells hit)
   for (const ship of myBoard.ships) {
     const shipCells = getShipCells(
       ship.row,
@@ -36,19 +46,23 @@ function buildMyBoardCells(myBoard: MyBoardResponse): Map<string, CellState> {
       ship.size,
       ship.orientation,
     );
+    const isSunk = shipCells.every((c) => hitPositions.has(cellKey(c.row, c.col)));
     for (const cell of shipCells) {
-      cells.set(cellKey(cell.row, cell.col), { type: "ship" });
+      const key = cellKey(cell.row, cell.col);
+      if (isSunk) {
+        cells.set(key, { type: "sunk" });
+      } else if (hitPositions.has(key)) {
+        cells.set(key, { type: "hit" });
+      } else {
+        cells.set(key, { type: "ship" });
+      }
     }
   }
 
+  // Mark misses (shots that didn't hit any ship)
   for (const shot of myBoard.shotsReceived) {
     const key = cellKey(shot.row, shot.col);
-    const existing = cells.get(key);
-    if (shot.result === "SUNK") {
-      cells.set(key, { type: "sunk" });
-    } else if (existing?.type === "ship" || shot.result === "HIT") {
-      cells.set(key, { type: "hit" });
-    } else {
+    if (shot.result === "MISS" && !cells.has(key)) {
       cells.set(key, { type: "miss" });
     }
   }
@@ -61,18 +75,91 @@ function buildOpponentBoardCells(
 ): Map<string, CellState> {
   const cells = new Map<string, CellState>();
 
+  // First pass: identify sunk ship types and their final-hit positions
+  const sunkShots = shotsFired.filter((s) => s.result === "SUNK" && s.sunkShipType);
+
+  // For each sunk ship, find all HIT/SUNK cells that belong to it
+  // by tracing contiguous hit cells from the SUNK cell in a line
+  const sunkCellKeys = new Set<string>();
+
+  for (const sunkShot of sunkShots) {
+    const shipSize = SHIP_SIZES[sunkShot.sunkShipType as ShipType] ?? 0;
+    if (shipSize === 0) continue;
+
+    const hitSet = new Set(
+      shotsFired
+        .filter((s) => s.result === "HIT" || s.result === "SUNK")
+        .map((s) => `${s.row},${s.col}`),
+    );
+
+    // Try horizontal line
+    const hCells = traceShipLine(sunkShot.row, sunkShot.col, 0, 1, shipSize, hitSet);
+    // Try vertical line
+    const vCells = traceShipLine(sunkShot.row, sunkShot.col, 1, 0, shipSize, hitSet);
+
+    const shipCells = hCells ?? vCells;
+    if (shipCells) {
+      for (const key of shipCells) {
+        sunkCellKeys.add(key);
+      }
+    } else {
+      sunkCellKeys.add(cellKey(sunkShot.row, sunkShot.col));
+    }
+  }
+
+  // Second pass: assign cell states
   for (const shot of shotsFired) {
     const key = cellKey(shot.row, shot.col);
-    if (shot.result === "SUNK") {
+    if (sunkCellKeys.has(key)) {
       cells.set(key, { type: "sunk" });
     } else if (shot.result === "HIT") {
       cells.set(key, { type: "hit" });
-    } else {
+    } else if (shot.result === "MISS") {
       cells.set(key, { type: "miss" });
+    } else if (shot.result === "SUNK") {
+      cells.set(key, { type: "sunk" });
     }
   }
 
   return cells;
+}
+
+/**
+ * Trace a contiguous line of hit cells through (startRow, startCol) in direction (dr, dc).
+ * Returns the cell keys if exactly `size` cells are found in a line, otherwise null.
+ */
+function traceShipLine(
+  startRow: number,
+  startCol: number,
+  dr: number,
+  dc: number,
+  size: number,
+  hitSet: Set<string>,
+): string[] | null {
+  let r = startRow;
+  let c = startCol;
+  // Go backward to find the start of the ship
+  while (r - dr >= 0 && r - dr <= 9 && c - dc >= 0 && c - dc <= 9 && hitSet.has(`${r - dr},${c - dc}`)) {
+    r -= dr;
+    c -= dc;
+  }
+  // Now go forward collecting cells
+  const cells: string[] = [];
+  while (r >= 0 && r <= 9 && c >= 0 && c <= 9 && hitSet.has(`${r},${c}`)) {
+    cells.push(`${r},${c}`);
+    r += dr;
+    c += dc;
+  }
+  // Check if we found exactly the right size and it includes the start cell
+  if (cells.length >= size && cells.includes(`${startRow},${startCol}`)) {
+    if (cells.length === size) return cells;
+    const startIdx = cells.indexOf(`${startRow},${startCol}`);
+    for (let i = Math.max(0, startIdx - size + 1); i <= Math.min(startIdx, cells.length - size); i++) {
+      const window = cells.slice(i, i + size);
+      if (window.includes(`${startRow},${startCol}`)) return window;
+    }
+  }
+  return null;
 }
 
 // ─── Ships sunk calculation ──────────────────────────────────────────────────
@@ -146,6 +233,15 @@ export function GameOverPanel({ gameState, user, onClose }: GameOverPanelProps) 
 
   const isWinner = gameState.winnerName === user.name;
   const bountyDelta = gameState.bountyDelta ?? 0;
+
+  // Haki levels
+  const myObservation = (isBlue ? gameState.bluePlayerObservation : gameState.redPlayerObservation) ?? 0;
+  const myArmament = (isBlue ? gameState.bluePlayerArmament : gameState.redPlayerArmament) ?? 0;
+  const myConquerors = (isBlue ? gameState.bluePlayerConquerors : gameState.redPlayerConquerors) ?? 0;
+
+  const oppObservation = (isBlue ? gameState.redPlayerObservation : gameState.bluePlayerObservation) ?? 0;
+  const oppArmament = (isBlue ? gameState.redPlayerArmament : gameState.bluePlayerArmament) ?? 0;
+  const oppConquerors = (isBlue ? gameState.redPlayerConquerors : gameState.bluePlayerConquerors) ?? 0;
 
   // Compute previous bounty
   const prevBounty = isWinner ? myBounty - bountyDelta : myBounty + bountyDelta;
@@ -237,10 +333,18 @@ export function GameOverPanel({ gameState, user, onClose }: GameOverPanelProps) 
             wins={myWins}
             accuracy={myAccuracy}
             isWinner={isWinner}
+            observation={myObservation}
+            armament={myArmament}
+            conquerors={myConquerors}
           />
 
           {/* Middle column */}
           <div className="flex flex-col items-center justify-between py-6 px-4 bg-surface-elevated overflow-hidden">
+            {/* Victory/Defeat banner */}
+            <p className={`text-4xl font-black uppercase tracking-widest mb-4 ${isWinner ? "text-success" : "text-danger"}`}>
+              {isWinner ? "VICTORY" : "DEFEAT"}
+            </p>
+
             {/* Top score card */}
             <div className={`w-full max-w-sm rounded-lg p-4 text-center ${isWinner ? "bg-success/10 border border-success/20" : "bg-danger/10 border border-danger/20"}`}>
               {/* Ships sunk comparison */}
@@ -275,11 +379,16 @@ export function GameOverPanel({ gameState, user, onClose }: GameOverPanelProps) 
               ) : (
                 <p className="text-sm text-text-muted">—</p>
               )}
+
+              {/* +1 Haki Point badge */}
+              {isWinner && (isWinner ? myWins : oppWins) <= 3 && (
+                <span className="inline-block mt-2 px-2 py-0.5 rounded text-xs font-bold bg-success/10 text-success border border-success/20">+1 Haki Point</span>
+              )}
             </div>
 
             {/* Boards section */}
             <div className="flex-1 flex items-center justify-center w-full overflow-hidden">
-              <div className="flex gap-4 justify-center items-center" style={{ transform: "scale(0.85)" }}>
+              <div className="flex gap-4 justify-center items-center" style={{ transform: "scale(0.7)" }}>
                 {gameState.myBoard && (
                   <BoardGrid title="My Fleet" cells={myBoardCells} />
                 )}
@@ -308,6 +417,9 @@ export function GameOverPanel({ gameState, user, onClose }: GameOverPanelProps) 
             wins={oppWins}
             accuracy={oppAccuracy}
             isWinner={!isWinner}
+            observation={oppObservation}
+            armament={oppArmament}
+            conquerors={oppConquerors}
           />
         </div>
       </div>
@@ -327,6 +439,9 @@ function PlayerColumn({
   wins,
   accuracy,
   isWinner,
+  observation,
+  armament,
+  conquerors,
 }: {
   name: string;
   avatar: string | null;
@@ -335,6 +450,9 @@ function PlayerColumn({
   wins: number;
   accuracy: number;
   isWinner: boolean;
+  observation: number;
+  armament: number;
+  conquerors: number;
 }) {
   const hasAvatar = avatar !== null;
   const avatarPath = hasAvatar
@@ -417,6 +535,15 @@ function PlayerColumn({
           <span>•</span>
           <span>{accuracy}%</span>
         </div>
+
+        {/* Haki levels */}
+        {(observation > 0 || armament > 0 || conquerors > 0) && (
+          <div className="flex items-center gap-2 text-xs mt-1">
+            {observation > 0 && <span className="text-blue-400">👁 {observation}</span>}
+            {armament > 0 && <span className="text-red-400">🦾 {armament}</span>}
+            {conquerors > 0 && <span className="text-purple-400">👑 {conquerors}</span>}
+          </div>
+        )}
       </div>
     </div>
   );

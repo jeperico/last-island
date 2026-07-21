@@ -15,3 +15,123 @@ Implementer: Modified `client/src/interfaces/api.ts` (+49 — Haki battle interf
 Reviewer: PASS — build clean, no new lint errors, grep confirms all 3 SSE event types + listeners + 3 API functions + armamentTriggered + id:string on ShipResponse
 
 Commit: uncommitted
+
+## 2026-07-20T11:00 — Refactor Haki Skill Tree Page — Visual Richness Upgrade
+
+Implementer: `client/src/app/haki/page.tsx` rewritten (net +220 lines, from ~173 to ~393)
+Reviewer: PASS — build clean, all 9 grep checks green (useRequireAuth, hero card wiring, per-branch colors, formatBounty, descriptions×6, awakened glow, business logic×10, backdrop-blur-md)
+Commit: uncommitted
+
+## 2026-07-20T11:18 — Refactor Ship Placement Component — Visual Richness Upgrade
+
+Implementer: Modified `client/src/app/game/[token]/ship-placement.tsx` (was ~310 lines, now 608 lines, net +298). Visual-only rewrite: accent strip, backdrop-blur-md, fleet manifest card with divide-y + color-coded states, orientation toggle as tactical control with kbd badge, grid chart frame with ocean-depth cells + glow effects, actions mini-card, surrender migrated to Button ghost variant, full text-token migration.
+
+Reviewer: PASS — build clean, eslint clean, business logic 25 matches, all 11 verification checks green (build, lint, logic functions, backdrop-blur, bg-surface×8, ship imports, text tokens×11, props interface, SurrenderModal, gradient accent, 10×10 grid+handlers+cell states+keyboard shortcut)
+
+Commit: uncommitted
+
+## 2026-07-20T11:26 — Add Haki Tutorial Modal on Home Page
+
+Implementer: Created `client/src/components/haki-tutorial-modal.tsx` (+71). Modified `client/src/app/page.tsx` (+16). Net: +87 lines across 2 files.
+
+Reviewer: PASS — build clean, eslint clean (0 errors, 2 pre-existing warnings), all 8 grep checks green (localStorage key 1, hakiPointsAvailable 1, HakiTutorialModal 2, getHakiProfile 2, bg-surface-elevated 1, /haki 1, Modal 5, per-branch colors 3)
+
+Commit: uncommitted
+
+## 2026-07-20T11:33 — Battle Screen, Board Grid & Haki Bar Visual Refactor
+
+Implementer: Modified 3 files — `client/src/app/game/[token]/board-grid.tsx` (+53 lines), `client/src/app/game/[token]/haki-bar.tsx` (+40 lines), `client/src/app/game/[token]/battle-screen.tsx` (+15 lines net). BoardGrid gains `mode` prop with ring-2 blue/purple glow overlays, chart frame, gradient hit/sunk cells, and ocean-depth empties. HakiBar becomes a per-ability themed panel (blue observation, red passive armament, purple conquerors) with pip charge dots, pulsing active states, and Esc cancel hints. BattleScreen gets accent strip, separate board cards (teal defensive, amber offensive), enhanced turn indicator with medium avatar + inline countdown, and passes mode prop to enemy grid. Fixed pre-existing React 19 lint issue (setState-in-effect → derived state pattern).
+
+Reviewer: PASS — build clean, all 10 checks green (7 logic functions confirmed, BoardGrid CellState+mode+10×10+onCellClick/interactive/disabled, HakiBar all props, 5 distinct cell visual classes, mode-based ring-2 glow overlays, backdrop-blur-md+bg-surface, hakiNotification banner, SurrenderModal×2, CountdownTimer×2)
+
+Commit: uncommitted
+
+## 2026-07-20T11:40 — Armament Haki Ship Assignment UI During PLACING_SHIPS Phase
+
+Implementer: Modified `client/src/app/game/[token]/ship-placement.tsx` (+~80 lines). Added haki profile fetch on mount, armament selection state (6 new state vars), modified handleDeploy with race-condition guard (PLACING_SHIPS check), added handleArmamentToggle/handleArmamentConfirm/handleArmamentSkip handlers, rendered red-themed Modal with selectable ship list and level-aware confirm logic. Imports added: getHakiProfile, assignArmament, Modal, HakiProfileResponse, ShipResponse.
+
+Reviewer: PASS — build clean, eslint clean, 51 business logic matches, armamentLevel>=1 guard present, assignArmament called with {ship1Id, ship2Id} from deployedShips, red theme (6 red-* classes), 19 design system token usages, race-condition guard on PLACING_SHIPS
+
+Commit: uncommitted
+
+## 2026-07-20T11:42 — Add Haki Levels and "+1 Haki Point" Badge to Game-Over Panel
+
+Implementer: Modified 6 files — `service/src/main/java/com/last_island/api/domain/game/dto/GameStateResponse.java` (+4 lines — 6 haki Integer fields), `service/src/main/java/com/last_island/api/domain/game/service/GameService.java` (+22 lines — HakiProfileRepository injection + haki fetch in getGame), `service/src/main/java/com/last_island/api/domain/game/mapper/GameMapper.java` (+8 lines — new toStateResponse overload accepting haki params, old delegates with nulls), `service/src/test/java/com/last_island/api/domain/game/service/GameServiceTest.java` (+25 lines — @Mock HakiProfileRepository, haki stubs + assertions in getGame tests), `client/src/interfaces/api.ts` (+6 lines — 6 haki fields on GameStateResponse), `client/src/app/game/[token]/game-over-panel.tsx` (+22 lines — haki derivation, PlayerColumn haki props, conditional haki bar with O/A/C colored levels, "+1 Haki Point" badge for winner with ≤3 wins).
+
+Reviewer: PASS — build clean, eslint clean, all grep checks confirmed (verified as part of profile modal review batch)
+
+Commit: uncommitted
+
+## 2026-07-20T11:55 — Add Player Profile Modal to Leaderboard
+
+Implementer: Created `client/src/components/player-profile-modal.tsx` (+92 lines). Modified `client/src/app/page.tsx` (+20 lines — import, state, onClick/role/tabIndex/onKeyDown on podium+list+footer, modal render). Net: +112 lines across 2 files.
+
+Reviewer: PASS — build clean, eslint clean (0 errors, 2 pre-existing warnings), all grep checks green (PlayerProfileModal 2, setProfilePlayer 8, getRankTier+tierStyles+formatBounty 5, bg-surface-elevated 1, AvatarIcon 2, Modal 5, role="button" 3)
+
+Commit: uncommitted
+
+## 2026-07-20T12:32 — Fix Armament Haki Notification — Clarity & Duration
+
+Implementer: Modified `client/src/app/game/[token]/battle-screen.tsx` (net 0 lines — text change + two timeout value changes). Changed armament message from "Turn lost!" to "You'll lose a future turn.", armament setTimeout 3000→5000, counter-fire setTimeout 3000→5000.
+
+Reviewer: PASS — build clean, "future turn" message present, no "Turn lost" remains, both setTimeouts confirmed 5000
+
+Commit: uncommitted
+
+## 2026-07-20T12:46 — Fix Armament Haki Turn-Skip Stacking Bug
+
+Implementer: Modified 7 files — `service/src/main/java/com/last_island/api/domain/haki/service/HakiBattleService.java` (1 line: set→increment), `service/src/main/java/com/last_island/api/domain/board/dto/ShotResponse.java` (+2 lines: added `currentTurnPlayerName` field to record and compact constructor), `service/src/main/java/com/last_island/api/domain/board/service/BoardService.java` (+2 lines: pass `game.getCurrentTurn().getName()` to ShotResponse), `service/src/test/java/com/last_island/api/domain/haki/service/HakiArmamentServiceTest.java` (1 line: assertion 3→1), `service/src/test/java/com/last_island/api/domain/board/service/BoardServiceFireShotTest.java` (+4 lines: assert currentTurnPlayerName in 4 tests), `client/src/interfaces/api.ts` (+1 line: `currentTurnPlayerName` field), `client/src/app/game/[token]/battle-screen.tsx` (net −3 lines: replaced 4-line optimistic derivation with 2-line server-authoritative lookup). Build passes, 167/167 tests green, client builds, all grep checks pass.
+
+Reviewer: PASS — build clean, eslint clean, 167/167 backend tests green, all grep checks confirm wiring
+
+Commit: uncommitted
+
+## 2026-07-20T14:25 — Refactor Armament Haki Turn Logic — Immediate Turn Switch
+
+Implementer: Modified 7 files — `service/src/main/java/com/last_island/api/domain/haki/service/HakiBattleService.java` (−25 lines: deleted `applyArmamentSkipOrEat` method + 2 call sites, removed `setOpponentSkipTurns(0)` from `assignArmament`, removed stale comment), `service/src/main/java/com/last_island/api/domain/haki/dto/ArmamentTriggerResult.java` (−1 field: removed `turnSkipped` boolean), `service/src/main/java/com/last_island/api/domain/board/service/BoardService.java` (refactored turn-switch: condition `MISS || armamentTriggered`, guarded `consumeSkipTurn` for natural MISSes only, removed `turnSkippedByArmament` SSE mechanism), `service/src/main/java/com/last_island/api/infrastructure/sse/GameEventEmitter.java` (removed `boolean turnSkipped` param, hardcoded `true` for backward compat), `service/src/test/java/com/last_island/api/domain/board/service/BoardServiceFireShotTest.java` (updated 3 tests + added 1 new test for armament turn switch without Conqueror's consumption), `service/src/test/java/com/last_island/api/domain/haki/service/HakiArmamentServiceTest.java` (updated 3 tests: removed `turnSkipped`/`opponentSkipTurns` assertions), `service/src/test/java/com/last_island/api/domain/haki/service/HakiConquerorsServiceTest.java` (updated 3 tests: removed eat-skip assertions, verified opponentSkipTurns unchanged by Armament). Full backend test suite passes, client builds clean, grep confirms no Armament code path touches opponentSkipTurns.
+
+Reviewer: PASS — 168/168 tests green, armament no longer touches opponentSkipTurns, turn switches immediately on armament trigger, Conqueror's skip logic independent, counter-fire (Lv3) works, eat-skip interaction preserved
+
+Commit: uncommitted
+
+## 2026-07-20T14:32 — Add Player Profile Modal to Leaderboard
+
+Implementer: Created `client/src/components/player-profile-modal.tsx` (+80 lines). Modified `client/src/app/page.tsx` (+20 lines — import, LeaderboardEntryResponse type, profilePlayer state, onClick/role/tabIndex/onKeyDown on podium+list+footer, modal render). Net: +100 lines across 2 files.
+
+Reviewer: PASS — build clean, eslint clean (0 errors, 2 pre-existing warnings), all grep checks green (PlayerProfileModal 2, setProfilePlayer 8, getRankTier+tierStyles+formatBounty 5, bg-surface-elevated 1, AvatarIcon 2, role="button" 3, Modal 5)
+
+Commit: uncommitted
+
+## 2026-07-20T14:48 — Refactor Armament Haki Absorption Limits
+
+Implementer: Modified `service/src/main/java/com/last_island/api/domain/haki/service/HakiBattleService.java` (−4 lines net: ship1 cap 1→3, ship2 cap removed entirely). Modified `service/src/test/java/com/last_island/api/domain/haki/service/HakiArmamentServiceTest.java` (+42 lines net: renamed 3 tests, rewrote 1 test, added 2 new tests for 3-hit cap and unlimited absorption). Full test suite passes (168/168 green), all grep checks confirm changes.
+
+Reviewer: PASS — 170/170 tests green, ship1 cap `< 3` at line 197, ship2 has no cap guard, counter-fire `level == 3` at line 210, all 5 test methods present
+
+Commit: uncommitted
+
+## 2026-07-20T14:57 — Refactor Armament Haki Ship Selection UI — Protection Labels & Swapped Assignment
+
+Implementer: Modified `client/src/app/game/[token]/ship-placement.tsx` (net +6 lines). Changed header text from "harden" to "protect" with level-specific phrasing, updated Level 2+ selection prompts to show protection type at each step ("full protection (unlimited)" → "3-hit protection"), swapped `handleArmamentConfirm` assignment so first pick = ship2Id (unlimited) and second = ship1Id (3-hit cap), replaced 🛡️ badge with ∞/3× protection-type badges.
+
+Reviewer: PASS — build clean, selection order "full protection (unlimited)" → "3-hit protection" confirmed, handleArmamentConfirm swap verified (first→ship2Id, second→ship1Id), badge ∞ at index 0 / 3× otherwise, Level 1 single pick→ship1Id with null ship2Id
+
+Commit: uncommitted
+
+## 2026-07-20T15:23 — Fix Awakened Observation Haki — Pre-visualize + Row/Col Toggle
+
+Implementer: Modified `client/src/app/game/[token]/battle-screen.tsx` (net +45 lines). Added useEffect to pre-set hoveredCell to center (4,4) on observation/conquerors mode entry, added `awakenedAxis` state and `isAwakenedObservation` useMemo, extended `observationPreviewCells` to include full row/col highlight for awakened, updated `handleObservationConfirm` to send `revealRowIndex`/`revealColIndex`, added row/col axis toggle UI above opponent board grid.
+
+Reviewer: PASS — build clean, all 7 checks green (awakenedAxis state, isAwakenedObservation useMemo, revealRowIndex/revealColIndex dispatch, full row/col preview, center (4,4) auto-set, axis toggle UI conditional)
+
+Commit: uncommitted
+
+## 2026-07-20T15:33 — Awakened observation: cross pattern (row + col)
+
+Implementer: Changed 3 files (+18 / -30 net)
+- `service/src/main/java/com/last_island/api/domain/haki/service/HakiBattleService.java` — validation now requires BOTH revealRowIndex and revealColIndex; reveal logic reveals full row AND column (cross)
+- `client/src/app/game/[token]/battle-screen.tsx` — removed awakenedAxis state & toggle UI; always sends both row+col; preview shows cross pattern
+- `service/src/test/java/com/last_island/api/domain/haki/service/HakiBattleServiceTest.java` — updated awakened tests to send both params, fixed expected cell counts for cross pattern
+
+Reviewer: pending
+Commit: uncommitted

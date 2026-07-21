@@ -16,5 +16,9 @@ public record GameStateResponse(UUID id, String token, String phase, String blue
                                 String currentTurnPlayerName, String winnerName,
                                 LocalDateTime startedAt, LocalDateTime endedAt, LocalDateTime turnStartedAt,
                                 LocalDateTime createdAt,
-                                MyBoardResponse myBoard, OpponentBoardResponse opponentBoard) {
+                                MyBoardResponse myBoard, OpponentBoardResponse opponentBoard,
+                                Integer bluePlayerObservation, Integer bluePlayerArmament,
+                                Integer bluePlayerConquerors,
+                                Integer redPlayerObservation, Integer redPlayerArmament,
+                                Integer redPlayerConquerors) {
 }

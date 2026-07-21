@@ -65,6 +65,7 @@ public final class BoardMapper {
 
     public static ShipResponse toShipResponse(Ship ship) {
         return new ShipResponse(
+                ship.getId(),
                 ship.getType().name(),
                 ship.getOrientation().name(),
                 ship.getRow(),

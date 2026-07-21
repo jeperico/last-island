@@ -109,8 +109,8 @@ public class HakiBattleService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Battle not found"));
 
         // Validate phase
-        if (game.getPhase() != GamePhase.PLACING_SHIPS) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Armament can only be assigned during fleet deployment");
+        if (game.getPhase() != GamePhase.PLACING_SHIPS && game.getPhase() != GamePhase.IN_PROGRESS) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Armament can only be assigned during fleet deployment or early battle");
         }
 
         // Identify player's board
@@ -175,7 +175,6 @@ public class HakiBattleService {
         // Reset absorbed hits in case of reassignment
         state.setArmamentShip1HitsAbsorbed(0);
         state.setArmamentShip2HitsAbsorbed(0);
-        state.setOpponentSkipTurns(0);
 
         hakiBattleStateRepository.save(state);
     }
@@ -195,51 +194,28 @@ public class HakiBattleService {
 
         // Check ship1 (weak buff)
         if (hitShipId.equals(state.getArmamentShip1Id())) {
-            if (state.getArmamentShip1HitsAbsorbed() < 1) {
+            if (state.getArmamentShip1HitsAbsorbed() < 3) {
                 state.setArmamentShip1HitsAbsorbed(state.getArmamentShip1HitsAbsorbed() + 1);
-                applyArmamentSkipOrEat(state, attackerBoard);
                 hakiBattleStateRepository.save(state);
-                return new ArmamentTriggerResult(true, null);
+                return new ArmamentTriggerResult(null);
             }
             return null;
         }
 
         // Check ship2 (strong/awakened buff) — only for Lv2+
         if (state.getArmamentLevel() >= 2 && hitShipId.equals(state.getArmamentShip2Id())) {
-            if (state.getArmamentShip2HitsAbsorbed() < 3) {
-                state.setArmamentShip2HitsAbsorbed(state.getArmamentShip2HitsAbsorbed() + 1);
-                applyArmamentSkipOrEat(state, attackerBoard);
+            state.setArmamentShip2HitsAbsorbed(state.getArmamentShip2HitsAbsorbed() + 1);
 
-                CounterFireResult counterFire = null;
-                if (state.getArmamentLevel() == 3) {
-                    counterFire = resolveCounterFire(attackerBoard, hitRow, hitCol, defenderBoard.getOwner());
-                }
-
-                hakiBattleStateRepository.save(state);
-                return new ArmamentTriggerResult(true, counterFire);
+            CounterFireResult counterFire = null;
+            if (state.getArmamentLevel() == 3) {
+                counterFire = resolveCounterFire(attackerBoard, hitRow, hitCol, defenderBoard.getOwner());
             }
-            return null;
+
+            hakiBattleStateRepository.save(state);
+            return new ArmamentTriggerResult(counterFire);
         }
 
         return null;
-    }
-
-    /**
-     * Applies the Armament skip-turn effect. If the attacker has an active Conqueror's window
-     * (opponentSkipTurns > 0 on attacker's state), Armament "eats" one skip turn instead of
-     * adding to defender's skip counter.
-     */
-    private void applyArmamentSkipOrEat(HakiBattleState defenderState, Board attackerBoard) {
-        HakiBattleState attackerState = hakiBattleStateRepository.findByBoardId(attackerBoard.getId())
-                .orElse(null);
-        if (attackerState != null && attackerState.getOpponentSkipTurns() > 0) {
-            // Conqueror's window active — "eat" one skip turn
-            attackerState.setOpponentSkipTurns(attackerState.getOpponentSkipTurns() - 1);
-            hakiBattleStateRepository.save(attackerState);
-        } else {
-            // Normal Armament behavior — opponent (attacker) owes a skip
-            defenderState.setOpponentSkipTurns(defenderState.getOpponentSkipTurns() + 1);
-        }
     }
 
     // --- Armament Haki: Counter-fire ---
@@ -417,21 +393,22 @@ public class HakiBattleService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Conqueror's Haki is on cooldown");
         }
 
-        // Determine effect level
+        // Determine effect level based on conqueror's level (first use = full power, second use = WEAK)
         String effectLevel;
-        if (state.getConquerorsUsesConsumed() == 0) {
+        if (state.getConquerorsUsesConsumed() > 0) {
             effectLevel = "WEAK";
+        } else if (state.getConquerorsLevel() >= 3) {
+            effectLevel = "AWAKENED";
         } else if (state.getConquerorsLevel() == 2) {
             effectLevel = "STRONG";
         } else {
-            effectLevel = "AWAKENED";
+            effectLevel = "WEAK";
         }
 
         // Compute skip turns
         int skipTurns = "WEAK".equals(effectLevel) ? 3 : 5;
 
         // Add skip turns to playerBoard's opponentSkipTurns BEFORE X-pattern resolution
-        // (so Armament eat-skip mechanic can detect the active Conqueror's window)
         HakiBattleState playerState = hakiBattleStateRepository.findByBoardId(playerBoard.getId())
                 .orElse(state);
         playerState.setOpponentSkipTurns(playerState.getOpponentSkipTurns() + skipTurns);
@@ -464,8 +441,9 @@ public class HakiBattleService {
     // --- Conqueror's Haki: X-pattern resolution ---
 
     private List<XPatternShotResult> resolveXPattern(Board opponentBoard, int centerRow, int centerCol, Board playerBoard, Game game, String token) {
-        // 4 diagonal cells only (center is left for normal fireShot)
-        int[][] diagonals = {
+        // Center + 4 diagonal cells
+        int[][] cells = {
+                {centerRow, centerCol},
                 {centerRow - 1, centerCol - 1},
                 {centerRow - 1, centerCol + 1},
                 {centerRow + 1, centerCol - 1},
@@ -474,7 +452,7 @@ public class HakiBattleService {
 
         List<XPatternShotResult> results = new ArrayList<>();
 
-        for (int[] cell : diagonals) {
+        for (int[] cell : cells) {
             int row = cell[0];
             int col = cell[1];
 
@@ -616,17 +594,17 @@ public class HakiBattleService {
             }
         }
 
-        // For AWAKENED: validate row/col reveal params
+        // For AWAKENED: validate row AND col reveal params (reveals full cross)
         if ("AWAKENED".equals(effectLevel)) {
             boolean hasRow = request.revealRowIndex() != null;
             boolean hasCol = request.revealColIndex() != null;
-            if ((!hasRow && !hasCol) || (hasRow && hasCol)) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Awakened observation requires exactly one of revealRowIndex or revealColIndex");
+            if (!hasRow || !hasCol) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Awakened observation requires both revealRowIndex and revealColIndex");
             }
-            if (hasRow && (request.revealRowIndex() < 0 || request.revealRowIndex() > 9)) {
+            if (request.revealRowIndex() < 0 || request.revealRowIndex() > 9) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "revealRowIndex must be between 0 and 9");
             }
-            if (hasCol && (request.revealColIndex() < 0 || request.revealColIndex() > 9)) {
+            if (request.revealColIndex() < 0 || request.revealColIndex() > 9) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "revealColIndex must be between 0 and 9");
             }
         }
@@ -644,16 +622,13 @@ public class HakiBattleService {
             }
         }
 
-        // For AWAKENED: add entire row or column
+        // For AWAKENED: add entire row AND entire column (cross pattern)
         if ("AWAKENED".equals(effectLevel)) {
-            if (request.revealRowIndex() != null) {
-                for (int c = 0; c <= 9; c++) {
-                    revealedPositions.add(request.revealRowIndex() * 10 + c);
-                }
-            } else {
-                for (int r = 0; r <= 9; r++) {
-                    revealedPositions.add(r * 10 + request.revealColIndex());
-                }
+            for (int c = 0; c <= 9; c++) {
+                revealedPositions.add(request.revealRowIndex() * 10 + c);
+            }
+            for (int r = 0; r <= 9; r++) {
+                revealedPositions.add(r * 10 + request.revealColIndex());
             }
         }
 
@@ -680,14 +655,18 @@ public class HakiBattleService {
     }
 
     private String determineEffectLevel(HakiBattleState state) {
-        if (state.getObservationUsesConsumed() == 0) {
+        // Second use is always WEAK (2×2)
+        if (state.getObservationUsesConsumed() > 0) {
             return "WEAK";
         }
-        // Second use (consumed == 1)
-        if (state.getObservationLevel() == 3) {
+        // First use depends on level
+        if (state.getObservationLevel() >= 3) {
             return "AWAKENED";
         }
-        return "STRONG";
+        if (state.getObservationLevel() == 2) {
+            return "STRONG";
+        }
+        return "WEAK";
     }
 
     private Set<Integer> computeOccupiedCells(Board board) {

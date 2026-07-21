@@ -2,7 +2,7 @@
 
 ## Position
 
-Plan written — Frontend Battle Haki UI (Plan #6a: Foundation — Types, API functions, SSE event wiring)
+Verified — Fix Awakened Observation Haki (pre-visualize + row/col toggle)
 
 ## Decisions
 
@@ -18,4 +18,4 @@ Plan written — Frontend Battle Haki UI (Plan #6a: Foundation — Types, API fu
 
 ## Last verification
 
-PASS at 2026-07-17T18:48 — next build clean, no new eslint errors (only pre-existing react-hooks/set-state-in-effect and no-empty-object-type), all grep checks confirm 3 SSE events wired, 3 API functions exported, armamentTriggered on ShotResponse, id on ShipResponse
+PASS at 2026-07-20T15:26 — build clean (Next.js 16.2.9 Turbopack), awakenedAxis state present, isAwakenedObservation useMemo present, handleObservationConfirm sends revealRowIndex/revealColIndex based on axis, preview includes full row/col for awakened, hoveredCell auto-set to (4,4) on mode entry, axis toggle UI conditional on observationMode && isAwakenedObservation

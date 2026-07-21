@@ -13,12 +13,14 @@ import {
   getGame,
   getBattleLog,
   getLeaderboard,
+  getHakiProfile,
 } from "@/lib/api";
 import type { ApiError } from "@/lib/api/client";
 import type {
   BattleLogEntryResponse,
   GameStateResponse,
   GameSummaryResponse,
+  LeaderboardEntryResponse,
   LeaderboardResponse,
   PageResponse,
 } from "@/lib/api/types";
@@ -39,6 +41,8 @@ import {
   tierStyles,
 } from "@/components/ui";
 import { GameOverPanel } from "./game/[token]/game-over-panel";
+import { HakiTutorialModal } from "@/components/haki-tutorial-modal";
+import { PlayerProfileModal } from "@/components/player-profile-modal";
 import { formatBounty } from "@/lib/format";
 
 export default function Home() {
@@ -62,6 +66,8 @@ export default function Home() {
   const [selectedBattle, setSelectedBattle] =
     useState<GameStateResponse | null>(null);
   const [loadingBattle, setLoadingBattle] = useState(false);
+  const [hakiTutorialOpen, setHakiTutorialOpen] = useState(false);
+  const [profilePlayer, setProfilePlayer] = useState<LeaderboardEntryResponse | null>(null);
 
   useEffect(() => {
     if (isLoading || !user) return;
@@ -97,6 +103,17 @@ export default function Home() {
         if (!cancelled) {
           setLoadingBattleLog(false);
         }
+      }
+      try {
+        const hakiProfile = await getHakiProfile();
+        if (!cancelled && hakiProfile.hakiPointsAvailable > 0) {
+          const seen = localStorage.getItem("last-island-haki-tutorial-seen");
+          if (!seen) {
+            setHakiTutorialOpen(true);
+          }
+        }
+      } catch {
+        // Haki tutorial check is non-critical, silently ignore
       }
     }
 
@@ -329,7 +346,11 @@ export default function Home() {
                           return (
                             <div
                               key={pos}
-                              className={`relative p-3 flex flex-col items-center gap-1.5 overflow-hidden ${entry.isCurrentUser ? "ring-2 ring-inset ring-primary/50" : ""}`}
+                              className={`relative p-3 flex flex-col items-center gap-1.5 overflow-hidden cursor-pointer ${entry.isCurrentUser ? "ring-2 ring-inset ring-primary/50" : ""}`}
+                              onClick={() => setProfilePlayer(entry)}
+                              role="button"
+                              tabIndex={0}
+                              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setProfilePlayer(entry); } }}
                             >
                               {/* Avatar background */}
                               {avatarBg && (
@@ -363,9 +384,13 @@ export default function Home() {
                       {leaderboard.entries.filter(e => e.position > 3).map((entry) => (
                         <div
                           key={`${entry.position}-${entry.name}`}
-                          className={`flex items-center gap-3 px-4 py-2.5 transition-colors hover:bg-surface-secondary ${
+                          className={`flex items-center gap-3 px-4 py-2.5 transition-colors hover:bg-surface-secondary cursor-pointer ${
                             entry.isCurrentUser ? "bg-primary/5 border-l-2 border-l-primary" : ""
                           }`}
+                          onClick={() => setProfilePlayer(entry)}
+                          role="button"
+                          tabIndex={0}
+                          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setProfilePlayer(entry); } }}
                         >
                           <span className="w-6 text-center text-xs font-bold text-text-muted">
                             {entry.position}
@@ -396,9 +421,24 @@ export default function Home() {
                       const userEntry =
                         leaderboard.currentUserEntry ??
                         leaderboard.entries.find((e) => e.isCurrentUser);
-                      if (!userEntry || userEntry.position <= 3) return null;
+                      if (!userEntry) return null;
+                      const rankBg: Record<string, string> = {
+                        default: "bg-surface-secondary/50",
+                        rising: "bg-blue-950/40 border-t-blue-500/30",
+                        elite: "bg-yellow-950/30 border-t-yellow-500/30",
+                        legendary: "bg-purple-950/30 border-t-purple-500/30",
+                        mythical: "bg-red-950/30 border-t-red-500/30",
+                        king: "bg-white/5 border-t-white/30",
+                      };
+                      const tier = getRankTier(userEntry.rank);
                       return (
-                        <div className="border-t border-border bg-surface-secondary/50 flex items-center gap-3 px-4 py-2.5">
+                        <div
+                          className={`border-t flex items-center gap-3 px-4 py-2.5 cursor-pointer ${rankBg[tier] || rankBg.default}`}
+                          onClick={() => setProfilePlayer(userEntry)}
+                          role="button"
+                          tabIndex={0}
+                          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setProfilePlayer(userEntry); } }}
+                        >
                           <span className="w-6 text-center text-xs font-bold text-primary">
                             {userEntry.position}
                           </span>
@@ -590,13 +630,21 @@ export default function Home() {
                     {gamesPage.content.map((game) => {
                       const tier = getRankTier(game.bluePlayerRank);
                       const style = tierStyles[tier];
+                      const gameRankBg: Record<string, string> = {
+                        default: "bg-surface",
+                        rising: "bg-blue-950/40",
+                        elite: "bg-yellow-950/30",
+                        legendary: "bg-purple-950/30",
+                        mythical: "bg-red-950/30",
+                        king: "bg-white/5",
+                      };
                       return (
                         <button
                           key={game.id || game.token}
                           type="button"
                           onClick={() => handleJoinFromList(game.token)}
                           disabled={joiningGame}
-                          className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg ${style.border} ${style.glow} bg-surface hover:bg-surface-secondary transition-all duration-150 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed`}
+                          className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg ${style.border} ${style.glow} ${gameRankBg[tier] || gameRankBg.default} hover:bg-surface-secondary transition-all duration-150 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed`}
                         >
                           <AvatarIcon
                             avatar={game.bluePlayerAvatar}
@@ -633,6 +681,17 @@ export default function Home() {
           onClose={() => setSelectedBattle(null)}
         />
       )}
+
+      <HakiTutorialModal
+        open={hakiTutorialOpen}
+        onClose={() => setHakiTutorialOpen(false)}
+      />
+
+      <PlayerProfileModal
+        open={!!profilePlayer}
+        onClose={() => setProfilePlayer(null)}
+        player={profilePlayer}
+      />
     </div>
   );
 }

@@ -310,35 +310,24 @@ public class BoardService {
             return new ShotResponse(result, sunkShipType, request.row(), request.col(), true, attacker.getName());
         }
 
-        // 11. Switch turn only on MISS (player keeps firing on HIT/SUNK)
+        // 11. Switch turn on MISS or when Armament Haki triggers (immediate turn switch to defender)
         boolean turnSwitched = false;
-        boolean turnSkippedByArmament = false;
-        if (result == ShotResult.MISS) {
+        boolean armamentTriggered = (armamentResult != null);
+        if (result == ShotResult.MISS || armamentTriggered) {
             game.setCurrentTurn(opponentBoard.getOwner());
             game.setTurnStartedAt(LocalDateTime.now());
             turnSwitched = true;
             hakiBattleService.resetHakiUsedThisTurn(opponentBoard.getId());
 
-            // 11b. Check if the player who just missed (attacker) owes skip turns.
-            // opponentSkipTurns on the DEFENDER's (opponentBoard) state means
-            // "the attacker of this board owes N skipped turns."
-            // But here the attacker already MISSED and turn went to defender.
-            // The skip is consumed when the attacker's turn would START again.
-            // So we DON'T consume here — the skip will be consumed when the NEW current
-            // player (defender/opponent) fires and misses, switching turn back to attacker.
-            // At THAT point, the code below handles it.
-
-            // However, we must also check: is the RECEIVER (opponentBoard.owner = defender)
-            // owed any skips from the OTHER direction? I.e., does playerBoard.state have
-            // opponentSkipTurns > 0 meaning "the opponent of playerBoard (= defender) owes skips"?
-            // If so, defender's turn is skipped and turn goes back to attacker.
-            if (hakiBattleService.consumeSkipTurn(playerBoard)) {
-                // The defender (who just received the turn) owes a skip.
-                // Switch turn BACK to attacker.
-                game.setCurrentTurn(playerBoard.getOwner());
-                game.setTurnStartedAt(LocalDateTime.now());
-                turnSkippedByArmament = true;
-                hakiBattleService.resetHakiUsedThisTurn(playerBoard.getId());
+            // Conqueror's skip consumption only applies to natural MISSes, not armament-forced turn switches
+            if (result == ShotResult.MISS && !armamentTriggered) {
+                if (hakiBattleService.consumeSkipTurn(playerBoard)) {
+                    // The defender (who just received the turn) owes a skip.
+                    // Switch turn BACK to attacker.
+                    game.setCurrentTurn(playerBoard.getOwner());
+                    game.setTurnStartedAt(LocalDateTime.now());
+                    hakiBattleService.resetHakiUsedThisTurn(playerBoard.getId());
+                }
             }
         } else {
             // HIT or SUNK — same player continues, reset turn timer
@@ -356,26 +345,22 @@ public class BoardService {
         String sunkType = sunkShipType;
         boolean isOpponentTurn = turnSwitched;
         final ArmamentTriggerResult finalArmamentResult = armamentResult;
-        final boolean finalTurnSkippedByArmament = turnSkippedByArmament;
         if (TransactionSynchronizationManager.isSynchronizationActive()) {
             TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
                 @Override
                 public void afterCommit() {
                     gameEventEmitter.emitShotReceived(token, targetPlayerId, shotRow, shotCol, shotResult, sunkType, isOpponentTurn);
                     if (finalArmamentResult != null) {
-                        gameEventEmitter.emitArmamentHakiTriggered(token, userId, finalArmamentResult.turnSkipped(),
+                        gameEventEmitter.emitArmamentHakiTriggered(token, userId,
                                 finalArmamentResult.counterFire());
-                    }
-                    if (finalTurnSkippedByArmament) {
-                        gameEventEmitter.emitArmamentHakiTriggered(token, targetPlayerId, true, null);
                     }
                 }
             });
         }
 
         // 14. Return response
-        boolean armamentTriggered = armamentResult != null;
         return new ShotResponse(result, sunkShipType, request.row(), request.col(), false, null,
-                armamentTriggered, armamentResult != null ? armamentResult.counterFire() : null);
+                armamentTriggered, armamentResult != null ? armamentResult.counterFire() : null,
+                game.getCurrentTurn().getName());
     }
 }

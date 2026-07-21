@@ -28,6 +28,7 @@ export default function GamePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isRedeploying, setIsRedeploying] = useState(false);
+  const [isAssigningArmament, setIsAssigningArmament] = useState(false);
 
 
   const { swapSoundtrack, resumeGlobalSoundtrack, playLaugh, playSunk, playIncomingHit } = useSound();
@@ -213,7 +214,7 @@ export default function GamePage() {
               <AvatarIcon avatar={user.avatar} rank={user.rank} size="lg" />
               <span className="text-lg font-bold text-text-primary">{user.name}</span>
               <span className="text-sm text-text-secondary">{user.rank.replace(/_/g, " ")}</span>
-              <span className="text-primary text-sm font-semibold">
+              <span className="text-secondary text-sm font-semibold">
                 {formatBounty(user.bounty)} ₿
               </span>
             </div>
@@ -251,11 +252,11 @@ export default function GamePage() {
     }
 
     // Phase: PLACING_SHIPS
-    if (gameState.phase === "PLACING_SHIPS") {
+    if (gameState.phase === "PLACING_SHIPS" || isAssigningArmament) {
       const hasPlacedShips =
         gameState.myBoard !== null && gameState.myBoard.ships.length > 0;
 
-      if (!hasPlacedShips || isRedeploying) {
+      if (!hasPlacedShips || isRedeploying || isAssigningArmament) {
         const bgImage = getWallpaperPath(myAvatar);
         return (
           <div className="flex flex-1 flex-col h-full">
@@ -271,8 +272,10 @@ export default function GamePage() {
               gameToken={token}
               onPlacementComplete={(gamePhase) => {
                 setIsRedeploying(false);
+                setIsAssigningArmament(false);
                 handlePlacementComplete(gamePhase);
               }}
+              onArmamentStart={() => setIsAssigningArmament(true)}
             />
           </div>
         );
