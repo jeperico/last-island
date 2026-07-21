@@ -190,6 +190,7 @@ export interface LeaderboardEntryResponse {
   position: number;
   name: string;
   wins: number;
+  losses: number;
   winRate: number;
   rank: string;
   bounty: number;
