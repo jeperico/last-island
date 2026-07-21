@@ -19,7 +19,7 @@ import { WallpaperModal } from "@/components/wallpaper-modal";
 
 export default function GamePage() {
   const { user, isLoading: authLoading } = useRequireAuth();
-  useAuth();
+  const { refreshUser } = useAuth();
   const params = useParams();
   const token = params.token as string;
   const router = useRouter();
@@ -29,6 +29,7 @@ export default function GamePage() {
   const [error, setError] = useState<string | null>(null);
   const [isRedeploying, setIsRedeploying] = useState(false);
   const [isAssigningArmament, setIsAssigningArmament] = useState(false);
+  const [opponentHakiMessage, setOpponentHakiMessage] = useState<string | null>(null);
 
 
   const { swapSoundtrack, resumeGlobalSoundtrack, playLaugh, playSunk, playIncomingHit } = useSound();
@@ -47,6 +48,7 @@ export default function GamePage() {
         const response = await getGame(token);
         setGameState(response);
         setError(null);
+        refreshUser();
       } catch (err) {
         setError(
           err instanceof Error ? err.message : "Failed to load game state",
@@ -64,9 +66,16 @@ export default function GamePage() {
 
 
 
-  // Soundtrack lifecycle: play battle music on mount, resume global on unmount
+  // Soundtrack lifecycle: swap to battle music when PLACING_SHIPS begins, resume global on unmount
+  const hasSwappedRef = useRef(false);
   useEffect(() => {
-    swapSoundtrack();
+    if (!hasSwappedRef.current && gameState?.phase && gameState.phase !== "WAITING_OPPONENT") {
+      swapSoundtrack();
+      hasSwappedRef.current = true;
+    }
+  }, [gameState?.phase, swapSoundtrack]);
+
+  useEffect(() => {
     return () => { resumeGlobalSoundtrack(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -91,6 +100,10 @@ export default function GamePage() {
   useGameEvents(
     token,
     {
+      onConnected: () => {
+        // Refetch on every SSE (re)connection to catch missed events
+        refetchGame();
+      },
       onOpponentJoined: () => {
         refetchGame();
       },
@@ -103,6 +116,10 @@ export default function GamePage() {
         }
         if (data.result === "SUNK") {
           playSunk();
+          // Play opponent's laugh when they sink one of your ships
+          const opponentAvatar = gameState?.bluePlayerName === user?.name
+            ? gameState?.redPlayerAvatar : gameState?.bluePlayerAvatar;
+          playLaugh(opponentAvatar ?? null);
         }
         refetchGame();
       },
@@ -125,6 +142,14 @@ export default function GamePage() {
       onSurrender: () => {
         resumeGlobalSoundtrack();
         refetchGame();
+      },
+      onObservationHakiUsed: () => {
+        setOpponentHakiMessage("👁 Opponent used Observation Haki — they're scanning your fleet!");
+        setTimeout(() => setOpponentHakiMessage(null), 5000);
+      },
+      onArmamentHakiDefended: () => {
+        setOpponentHakiMessage("🛡️ Your Armament Haki blocked the attack!");
+        setTimeout(() => setOpponentHakiMessage(null), 5000);
       },
     },
     sseEnabled,
@@ -345,6 +370,7 @@ export default function GamePage() {
           gameToken={token}
           onGameStateUpdate={setGameState}
           bgImage={getWallpaperPath(myAvatar)}
+          opponentHakiMessage={opponentHakiMessage}
         />
       );
     }

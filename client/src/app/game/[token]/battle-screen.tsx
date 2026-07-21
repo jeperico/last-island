@@ -33,6 +33,7 @@ interface BattleScreenProps {
   bgImage?: string | null;
   skipTurnsLeft?: number;
   onHakiNotification?: (msg: string) => void;
+  opponentHakiMessage?: string | null;
 }
 
 export function BattleScreen({
@@ -44,6 +45,7 @@ export function BattleScreen({
   bgImage: bgImageProp,
   skipTurnsLeft = 0,
   onHakiNotification: _onHakiNotification,
+  opponentHakiMessage,
 }: BattleScreenProps) {
   const [firing, setFiring] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -88,10 +90,14 @@ export function BattleScreen({
   const isMyTurn = gameState.currentTurnPlayerName === user.name;
 
   // Reset hakiUsedThisTurn and dismiss haki notification when the turn passes to opponent
+  const hakiMessageTimeoutActive = useRef(false);
   useEffect(() => {
     if (!isMyTurn) {
       setHakiUsedThisTurn(false);
-      setHakiMessage(null);
+      // Don't clear hakiMessage if a timeout is actively managing it (e.g. armament notification)
+      if (!hakiMessageTimeoutActive.current) {
+        setHakiMessage(null);
+      }
     }
   }, [isMyTurn]);
 
@@ -201,10 +207,14 @@ export function BattleScreen({
         // Handle Armament Haki trigger
         if (response.armamentTriggered) {
           setHakiMessage("⚡ Armament Haki hardens the hull! You'll lose a future turn.");
+          hakiMessageTimeoutActive.current = true;
+          setTimeout(() => { setHakiMessage(null); hakiMessageTimeoutActive.current = false; }, 5000);
         }
         if (response.counterFire) {
           const cf = response.counterFire;
           setHakiMessage(`⚡ Counter-fire! Your board hit at (${cf.row + 1}, ${cf.col + 1})!`);
+          hakiMessageTimeoutActive.current = true;
+          setTimeout(() => { setHakiMessage(null); hakiMessageTimeoutActive.current = false; }, 5000);
         }
 
         if (response.gameOver) {
@@ -565,14 +575,19 @@ export function BattleScreen({
         className={[
           "fixed bottom-6 left-1/2 -translate-x-1/2 z-50 pointer-events-none",
           "transition-all duration-300 ease-out",
-          hakiMessage
+          (hakiMessage || opponentHakiMessage)
             ? "opacity-100 translate-y-0"
             : "opacity-0 translate-y-4",
         ].join(" ")}
         aria-live="polite"
       >
-        <div className="pointer-events-auto px-5 py-3 bg-surface-elevated/95 backdrop-blur-md border border-purple-500/50 rounded-xl shadow-[0_8px_32px_rgba(168,85,247,0.3)] text-sm text-purple-100 text-center whitespace-nowrap">
-          ⚡ {hakiMessage || ""}
+        <div className={[
+          "pointer-events-auto px-5 py-3 backdrop-blur-md rounded-xl text-sm text-center whitespace-nowrap",
+          opponentHakiMessage && !hakiMessage
+            ? "bg-surface-elevated/95 border border-blue-500/50 shadow-[0_8px_32px_rgba(59,130,246,0.3)] text-blue-100"
+            : "bg-surface-elevated/95 border border-purple-500/50 shadow-[0_8px_32px_rgba(168,85,247,0.3)] text-purple-100",
+        ].join(" ")}>
+          {hakiMessage ? `⚡ ${hakiMessage}` : opponentHakiMessage || ""}
         </div>
       </div>
 

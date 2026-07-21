@@ -74,6 +74,7 @@ export interface GameEventHandlers {
   onSurrender?: (data: SurrenderEventData) => void;
   onObservationHakiUsed?: (data: ObservationHakiUsedEventData) => void;
   onArmamentHakiTriggered?: (data: ArmamentHakiTriggeredEventData) => void;
+  onArmamentHakiDefended?: () => void;
   onConquerorsHakiUsed?: (data: ConquerorsHakiUsedEventData) => void;
   onError?: (error: Event) => void;
 }

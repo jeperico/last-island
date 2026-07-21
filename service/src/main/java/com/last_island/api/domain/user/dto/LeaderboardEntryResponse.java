@@ -4,6 +4,7 @@ public record LeaderboardEntryResponse(
         int position,
         String name,
         int wins,
+        int losses,
         double winRate,
         String rank,
         long bounty,

@@ -353,6 +353,8 @@ public class BoardService {
                     if (finalArmamentResult != null) {
                         gameEventEmitter.emitArmamentHakiTriggered(token, userId,
                                 finalArmamentResult.counterFire());
+                        // Notify the defender their armament protected them
+                        gameEventEmitter.emitArmamentHakiDefended(token, targetPlayerId);
                     }
                 }
             });

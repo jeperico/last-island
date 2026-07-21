@@ -25,10 +25,7 @@ export function PlayerProfileModal({ open, onClose, player }: PlayerProfileModal
     king: "bg-gradient-to-b from-black to-gray-950/60 border border-gray-800",
   };
 
-  const losses =
-    player.winRate > 0
-      ? Math.round(player.wins / player.winRate) - player.wins
-      : 0;
+  const losses = player.losses;
   const winRatePercent = Math.round(player.winRate * 100);
 
   const avatarKey = player.avatar?.toLowerCase();
