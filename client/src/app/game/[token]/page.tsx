@@ -29,6 +29,7 @@ export default function GamePage() {
   const [error, setError] = useState<string | null>(null);
   const [isRedeploying, setIsRedeploying] = useState(false);
   const [isAssigningArmament, setIsAssigningArmament] = useState(false);
+  const [opponentHakiMessage, setOpponentHakiMessage] = useState<string | null>(null);
 
 
   const { swapSoundtrack, resumeGlobalSoundtrack, playLaugh, playSunk, playIncomingHit } = useSound();
@@ -107,6 +108,10 @@ export default function GamePage() {
         }
         if (data.result === "SUNK") {
           playSunk();
+          // Play opponent's laugh when they sink one of your ships
+          const opponentAvatar = gameState?.bluePlayerName === user?.name
+            ? gameState?.redPlayerAvatar : gameState?.bluePlayerAvatar;
+          playLaugh(opponentAvatar ?? null);
         }
         refetchGame();
       },
@@ -129,6 +134,10 @@ export default function GamePage() {
       onSurrender: () => {
         resumeGlobalSoundtrack();
         refetchGame();
+      },
+      onObservationHakiUsed: () => {
+        setOpponentHakiMessage("👁 Opponent used Observation Haki — they're scanning your fleet!");
+        setTimeout(() => setOpponentHakiMessage(null), 5000);
       },
     },
     sseEnabled,
@@ -349,6 +358,7 @@ export default function GamePage() {
           gameToken={token}
           onGameStateUpdate={setGameState}
           bgImage={getWallpaperPath(myAvatar)}
+          opponentHakiMessage={opponentHakiMessage}
         />
       );
     }
