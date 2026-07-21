@@ -263,6 +263,7 @@ export default function Home() {
               avatar={user?.avatar ?? null}
               rank={user?.rank ?? null}
               size="sm"
+              priority
             />
             <h1 className="text-2xl font-bold text-text-primary">
               {`Welcome${user ? `, ${user.name}` : ""}`}
@@ -363,7 +364,7 @@ export default function Home() {
                               )}
                               {/* Color gradient overlay */}
                               <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-black/30" />
-                              <AvatarIcon avatar={entry.avatar} rank={entry.rank} size="lg" className="relative z-10" />
+                              <AvatarIcon avatar={entry.avatar} rank={entry.rank} size="lg" className="relative z-10" priority />
                               <p className="relative z-10 text-sm font-bold text-white truncate max-w-full text-center drop-shadow-md">
                                 {entry.name}
                               </p>

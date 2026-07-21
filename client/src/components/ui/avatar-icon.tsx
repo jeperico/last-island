@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 
 interface AvatarIconProps {
   avatar: string | null;
@@ -8,12 +9,25 @@ interface AvatarIconProps {
   size?: "sm" | "md" | "lg";
   className?: string;
   highlight?: "gold" | "none";
+  priority?: boolean;
 }
 
 const sizeClasses = {
   sm: "w-8 h-8",
   md: "w-12 h-12",
   lg: "w-16 h-16",
+} as const;
+
+const sizesMap = {
+  sm: "32px",
+  md: "48px",
+  lg: "64px",
+} as const;
+
+const pixelSizeMap = {
+  sm: 32,
+  md: 48,
+  lg: 64,
 } as const;
 
 const wrapperSizeClasses = {
@@ -99,6 +113,7 @@ export function AvatarIcon({
   size = "md",
   className = "",
   highlight = "none",
+  priority,
 }: AvatarIconProps) {
   const [hasError, setHasError] = useState(false);
 
@@ -131,13 +146,25 @@ export function AvatarIcon({
         <div className={`absolute inset-0 rounded-full ${glowClass}`} />
       )}
       {/* Avatar image */}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={src}
-        alt={avatar ?? "Default avatar"}
-        className={`rounded-full object-cover ${sizeClasses[size]} ${borderClass} ${animateClass}`}
-        onError={() => setHasError(true)}
-      />
+      {hasError ? (
+        // Plain img for data-URI fallback — next/image cannot optimize data URIs
+        <img
+          src={FALLBACK}
+          alt={avatar ?? "Default avatar"}
+          className={`rounded-full object-cover ${sizeClasses[size]} ${borderClass} ${animateClass}`}
+        />
+      ) : (
+        <Image
+          src={src}
+          alt={avatar ?? "Default avatar"}
+          width={pixelSizeMap[size]}
+          height={pixelSizeMap[size]}
+          sizes={sizesMap[size]}
+          priority={priority}
+          className={`rounded-full object-cover ${sizeClasses[size]} ${borderClass} ${animateClass}`}
+          onError={() => setHasError(true)}
+        />
+      )}
     </div>
   );
 }

@@ -54,10 +54,10 @@ const CHARACTER_OPTIONS: CharacterOption[] = [
     image: "/avatars/ace/full-body.jpg",
   },
   {
-    key: "DOFLAMINGO",
-    name: "Doflamingo",
-    quote: "Those who stand at the top decide what's wrong and what's right",
-    image: "/avatars/doflamingo/full-body.jpg",
+    key: "USOPP",
+    name: "Usopp",
+    quote: "I'll become a brave warrior of the sea!",
+    image: "/avatars/usopp/full-body.jpg",
   },
 ];
 

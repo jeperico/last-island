@@ -135,3 +135,23 @@ Implementer: Changed 3 files (+18 / -30 net)
 
 Reviewer: pending
 Commit: uncommitted
+
+## 2026-07-21T08:36 — Refactor `<img>` Tags to Next.js `<Image>` Component
+
+Implementer: Modified `client/next.config.ts` (+1), `client/src/components/ui/avatar-icon.tsx` (+22 −4), `client/src/app/(auth)/login/page.tsx` (+3 −3), `client/src/app/(auth)/register/page.tsx` (+3 −3), `client/src/app/haki/page.tsx` (+4 −3), `client/src/app/settings/page.tsx` (+4 −3), `client/src/app/page.tsx` (+2). Net: +39 −16 lines across 7 files.
+Reviewer: PASS — build clean, eslint clean (0 new errors, 7 pre-existing), no stale no-img-element disables, no <img> in target files, AvatarIcon has Image+fallback img+priority+sizesMap, next.config has avif, priority on header+podium avatars
+Commit: uncommitted
+
+## 2026-07-21T09:27 — Rename DOFLAMINGO Avatar to USSOP
+
+Implementer: Modified `service/src/main/java/com/last_island/api/domain/user/enums/Avatar.java` (1 line), created `service/src/main/resources/db/migration/V15__rename_doflamingo_to_ussop.sql` (+1 line), modified `client/src/components/character-select.tsx` (6 lines changed), modified `client/src/app/settings/page.tsx` (4 lines changed), modified `.kiro/steering/server/domain.md` (1 line changed). Net: 5 files touched, +1 new file.
+Reviewer: PASS — backend 164/170 pass (6 pre-existing HakiConquerorsServiceTest failures unrelated), frontend build clean, no DOFLAMINGO in code (only migration WHERE clause), USSOP confirmed in Avatar.java + character-select.tsx + settings/page.tsx + domain.md + migration SQL
+Commit: uncommitted
+
+## 2026-07-21T09:38 — Fix USSOP → USOPP Spelling Across Codebase
+
+Implementer: Renamed `client/public/avatars/ussop/` → `usopp/` and 4 background files inside. Modified `Avatar.java` (USSOP→USOPP), `character-select.tsx` (key+name+image path), `settings/page.tsx` (key+name+image path), `.kiro/steering/server/domain.md` (enum table). Created `V16__fix_usopp_spelling.sql` (+1). Net: +1 new file, 4 files modified, 5 files renamed.
+
+Reviewer: PASS — build clean, eslint clean, 164/170 backend tests green (6 pre-existing HakiConquerorsServiceTest failures unrelated), no USSOP in code, USOPP in Avatar.java, V16 migration exists, asset dir client/public/avatars/usopp/ with 4 usopp-bg-*.jpg files
+
+Commit: uncommitted

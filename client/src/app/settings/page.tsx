@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRequireAuth, useAuth } from "@/lib/auth";
 import { updateProfile } from "@/lib/api";
 import type { ApiError } from "@/lib/api/client";
@@ -24,9 +25,9 @@ const AVATAR_OPTIONS = [
   { key: "CHOPPER", name: "Chopper", image: "/avatars/chopper/profile.jpg" },
   { key: "ACE", name: "Ace", image: "/avatars/ace/profile.jpg" },
   {
-    key: "DOFLAMINGO",
-    name: "Doflamingo",
-    image: "/avatars/doflamingo/profile.jpg",
+    key: "USOPP",
+    name: "Usopp",
+    image: "/avatars/usopp/profile.jpg",
   },
 ] as const;
 
@@ -102,10 +103,12 @@ export default function SettingsPage() {
           {/* Background wallpaper */}
           {user.avatar && (
             <div className="absolute inset-0 opacity-10 pointer-events-none overflow-hidden">
-              <img
+              <Image
                 src={`/avatars/${user.avatar.toLowerCase()}/banner.jpg`}
                 alt=""
-                className="absolute inset-0 w-full h-full object-cover"
+                fill
+                className="object-cover"
+                sizes="(max-width: 768px) 100vw, 50vw"
               />
             </div>
           )}
