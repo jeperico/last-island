@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
+import { GoogleAnalytics } from "@next/third-parties/google";
 import "@/styles/globals.css";
 import { Providers } from "./providers";
 
@@ -30,6 +32,10 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col">
         <Providers>{children}</Providers>
+        <Analytics />
+        {process.env.NEXT_PUBLIC_GA_ID && (
+          <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID} />
+        )}
       </body>
     </html>
   );
