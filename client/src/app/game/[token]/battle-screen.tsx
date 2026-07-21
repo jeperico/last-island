@@ -33,6 +33,7 @@ interface BattleScreenProps {
   bgImage?: string | null;
   skipTurnsLeft?: number;
   onHakiNotification?: (msg: string) => void;
+  opponentHakiMessage?: string | null;
 }
 
 export function BattleScreen({
@@ -44,6 +45,7 @@ export function BattleScreen({
   bgImage: bgImageProp,
   skipTurnsLeft = 0,
   onHakiNotification: _onHakiNotification,
+  opponentHakiMessage,
 }: BattleScreenProps) {
   const [firing, setFiring] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -565,14 +567,19 @@ export function BattleScreen({
         className={[
           "fixed bottom-6 left-1/2 -translate-x-1/2 z-50 pointer-events-none",
           "transition-all duration-300 ease-out",
-          hakiMessage
+          (hakiMessage || opponentHakiMessage)
             ? "opacity-100 translate-y-0"
             : "opacity-0 translate-y-4",
         ].join(" ")}
         aria-live="polite"
       >
-        <div className="pointer-events-auto px-5 py-3 bg-surface-elevated/95 backdrop-blur-md border border-purple-500/50 rounded-xl shadow-[0_8px_32px_rgba(168,85,247,0.3)] text-sm text-purple-100 text-center whitespace-nowrap">
-          ⚡ {hakiMessage || ""}
+        <div className={[
+          "pointer-events-auto px-5 py-3 backdrop-blur-md rounded-xl text-sm text-center whitespace-nowrap",
+          opponentHakiMessage && !hakiMessage
+            ? "bg-surface-elevated/95 border border-blue-500/50 shadow-[0_8px_32px_rgba(59,130,246,0.3)] text-blue-100"
+            : "bg-surface-elevated/95 border border-purple-500/50 shadow-[0_8px_32px_rgba(168,85,247,0.3)] text-purple-100",
+        ].join(" ")}>
+          {hakiMessage ? `⚡ ${hakiMessage}` : opponentHakiMessage || ""}
         </div>
       </div>
 
