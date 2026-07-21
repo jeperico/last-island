@@ -17,12 +17,12 @@ export function PlayerProfileModal({ open, onClose, player }: PlayerProfileModal
   const styles = tierStyles[tier];
 
   const tierCardStyles: Record<string, string> = {
-    default: "bg-surface-elevated border border-border",
-    rising: "bg-blue-950 border border-blue-500/60",
-    elite: "bg-yellow-950 border border-yellow-500/60",
-    legendary: "bg-purple-950 border border-purple-500/60",
-    mythical: "bg-red-950 border border-red-500/60",
-    king: "bg-black border border-gray-800",
+    default: "bg-gradient-to-b from-surface-elevated to-surface border border-border",
+    rising: "bg-gradient-to-b from-blue-950 to-blue-950/60 border border-blue-500/60",
+    elite: "bg-gradient-to-b from-yellow-950 to-yellow-950/60 border border-yellow-500/60",
+    legendary: "bg-gradient-to-b from-purple-950 to-purple-950/60 border border-purple-500/60",
+    mythical: "bg-gradient-to-b from-red-950 to-red-950/60 border border-red-500/60",
+    king: "bg-gradient-to-b from-black to-gray-950/60 border border-gray-800",
   };
 
   const losses =
