@@ -2,7 +2,7 @@
 
 ## Position
 
-Verified — Fix Awakened Observation Haki (pre-visualize + row/col toggle)
+Planning — Refactor img tags to Next.js Image component
 
 ## Decisions
 
@@ -18,4 +18,4 @@ Verified — Fix Awakened Observation Haki (pre-visualize + row/col toggle)
 
 ## Last verification
 
-PASS at 2026-07-20T15:26 — build clean (Next.js 16.2.9 Turbopack), awakenedAxis state present, isAwakenedObservation useMemo present, handleObservationConfirm sends revealRowIndex/revealColIndex based on axis, preview includes full row/col for awakened, hoveredCell auto-set to (4,4) on mode entry, axis toggle UI conditional on observationMode && isAwakenedObservation
+PASS at 2026-07-21T08:44 — build clean, eslint clean (0 new errors, 7 pre-existing), no stale no-img-element disables, no <img> in target files, AvatarIcon has Image+fallback img+priority+sizesMap, next.config has avif, priority on header+podium avatars

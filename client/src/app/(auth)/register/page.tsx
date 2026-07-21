@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useAuth, useRedirectIfAuthenticated } from "@/lib/auth";
@@ -62,12 +63,12 @@ export default function RegisterPage() {
   return (
     <div>
       <div className="mb-6 flex flex-col items-center gap-2">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
+        <Image
           src="/skull-icon.png"
           alt="Jolly Roger"
           width={64}
           height={64}
+          priority
           className="drop-shadow-[0_0_8px_rgba(37,99,235,0.4)]"
         />
         <h1 className="text-2xl font-bold text-text-primary">Join the Crew!</h1>

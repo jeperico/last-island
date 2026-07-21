@@ -135,3 +135,9 @@ Implementer: Changed 3 files (+18 / -30 net)
 
 Reviewer: pending
 Commit: uncommitted
+
+## 2026-07-21T08:36 — Refactor `<img>` Tags to Next.js `<Image>` Component
+
+Implementer: Modified `client/next.config.ts` (+1), `client/src/components/ui/avatar-icon.tsx` (+22 −4), `client/src/app/(auth)/login/page.tsx` (+3 −3), `client/src/app/(auth)/register/page.tsx` (+3 −3), `client/src/app/haki/page.tsx` (+4 −3), `client/src/app/settings/page.tsx` (+4 −3), `client/src/app/page.tsx` (+2). Net: +39 −16 lines across 7 files.
+Reviewer: PASS — build clean, eslint clean (0 new errors, 7 pre-existing), no stale no-img-element disables, no <img> in target files, AvatarIcon has Image+fallback img+priority+sizesMap, next.config has avif, priority on header+podium avatars
+Commit: uncommitted
