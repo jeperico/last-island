@@ -19,7 +19,7 @@ import { WallpaperModal } from "@/components/wallpaper-modal";
 
 export default function GamePage() {
   const { user, isLoading: authLoading } = useRequireAuth();
-  useAuth();
+  const { refreshUser } = useAuth();
   const params = useParams();
   const token = params.token as string;
   const router = useRouter();
@@ -48,6 +48,7 @@ export default function GamePage() {
         const response = await getGame(token);
         setGameState(response);
         setError(null);
+        refreshUser();
       } catch (err) {
         setError(
           err instanceof Error ? err.message : "Failed to load game state",
@@ -147,7 +148,7 @@ export default function GamePage() {
         setTimeout(() => setOpponentHakiMessage(null), 5000);
       },
       onArmamentHakiDefended: () => {
-        setOpponentHakiMessage("🛡️ Armament Haki hardened your hull — opponent loses a turn!");
+        setOpponentHakiMessage("🛡️ Your Armament Haki blocked the attack!");
         setTimeout(() => setOpponentHakiMessage(null), 5000);
       },
     },
