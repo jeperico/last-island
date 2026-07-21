@@ -65,9 +65,16 @@ export default function GamePage() {
 
 
 
-  // Soundtrack lifecycle: play battle music on mount, resume global on unmount
+  // Soundtrack lifecycle: swap to battle music when PLACING_SHIPS begins, resume global on unmount
+  const hasSwappedRef = useRef(false);
   useEffect(() => {
-    swapSoundtrack();
+    if (!hasSwappedRef.current && gameState?.phase && gameState.phase !== "WAITING_OPPONENT") {
+      swapSoundtrack();
+      hasSwappedRef.current = true;
+    }
+  }, [gameState?.phase, swapSoundtrack]);
+
+  useEffect(() => {
     return () => { resumeGlobalSoundtrack(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
