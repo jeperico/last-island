@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useForm } from "react-hook-form";
@@ -32,6 +32,15 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [showCharacterSelect, setShowCharacterSelect] = useState(false);
   const [isRegistering, setIsRegistering] = useState(false);
+
+  // Preload character images so they're cached when the select opens
+  useEffect(() => {
+    const avatars = ["luffy", "zoro", "robin", "chopper", "ace", "usopp"];
+    avatars.forEach((name) => {
+      const img = new window.Image();
+      img.src = `/avatars/${name}/full-body.jpg`;
+    });
+  }, []);
 
   if (isLoading || isAuthenticated) {
     return null;
