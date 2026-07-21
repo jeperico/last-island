@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { placeShips, surrender, getGame, getHakiProfile, assignArmament } from "@/lib/api";
 import type {
   GamePhase,
@@ -119,7 +119,11 @@ export function ShipPlacement({
   }, []);
 
   // Fetch Haki profile on mount (for armament step)
+  // Fetch Haki profile on mount (for armament step)
+  const hasFetchedHaki = useRef(false);
   useEffect(() => {
+    if (hasFetchedHaki.current) return;
+    hasFetchedHaki.current = true;
     getHakiProfile().then(setHakiProfile).catch(() => {});
   }, []);
 

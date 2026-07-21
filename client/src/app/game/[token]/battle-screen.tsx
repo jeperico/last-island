@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useMemo, useEffect } from "react";
+import { useState, useCallback, useMemo, useEffect, useRef } from "react";
 import { fireShot, getGame, surrender } from "@/lib/api";
 import {
   getHakiProfile,
@@ -69,8 +69,10 @@ export function BattleScreen({
   const [hoveredCell, setHoveredCell] = useState<{ row: number; col: number } | null>(null);
 
   // Fetch Haki profile once
+  const hasFetchedHaki = useRef(false);
   useEffect(() => {
-    if (readOnly) return;
+    if (readOnly || hasFetchedHaki.current) return;
+    hasFetchedHaki.current = true;
     getHakiProfile()
       .then((profile) => {
         setHakiProfile(profile);
