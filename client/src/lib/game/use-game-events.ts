@@ -110,6 +110,10 @@ export function useGameEvents(
         handlersRef.current.onArmamentHakiTriggered?.(data);
       }
 
+      function handleArmamentHakiDefended() {
+        handlersRef.current.onArmamentHakiDefended?.();
+      }
+
       function handleConquerorsHakiUsed(event: MessageEvent) {
         const data: ConquerorsHakiUsedEventData = JSON.parse(event.data);
         handlersRef.current.onConquerorsHakiUsed?.(data);
@@ -149,6 +153,7 @@ export function useGameEvents(
       es.addEventListener("SURRENDER", handleSurrender);
       es.addEventListener("OBSERVATION_HAKI_USED", handleObservationHakiUsed);
       es.addEventListener("ARMAMENT_HAKI_TRIGGERED", handleArmamentHakiTriggered);
+      es.addEventListener("ARMAMENT_HAKI_DEFENDED", handleArmamentHakiDefended);
       es.addEventListener("CONQUERORS_HAKI_USED", handleConquerorsHakiUsed);
       es.onerror = handleError;
     }

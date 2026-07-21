@@ -94,6 +94,12 @@ public class GameEventEmitter {
         registry.send(gameToken, attackerId, event);
     }
 
+    public void emitArmamentHakiDefended(String gameToken, UUID defenderId) {
+        long id = registry.nextEventId(gameToken);
+        GameEvent event = GameEvent.of(id, "ARMAMENT_HAKI_DEFENDED", Map.of());
+        registry.send(gameToken, defenderId, event);
+    }
+
     public void emitConquerorsHakiUsed(String gameToken, UUID opponentId, int skipTurns, String effectLevel) {
         long id = registry.nextEventId(gameToken);
         GameEvent event = GameEvent.of(id, GameEvent.CONQUERORS_HAKI_USED, Map.of(

@@ -146,6 +146,10 @@ export default function GamePage() {
         setOpponentHakiMessage("👁 Opponent used Observation Haki — they're scanning your fleet!");
         setTimeout(() => setOpponentHakiMessage(null), 5000);
       },
+      onArmamentHakiDefended: () => {
+        setOpponentHakiMessage("🛡️ Armament Haki hardened your hull — opponent loses a turn!");
+        setTimeout(() => setOpponentHakiMessage(null), 5000);
+      },
     },
     sseEnabled,
   );
