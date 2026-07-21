@@ -47,7 +47,7 @@ import { formatBounty } from "@/lib/format";
 
 export default function Home() {
   const { user, isLoading } = useRequireAuth();
-  const { logout } = useAuth();
+  const { logout, refreshUser } = useAuth();
   const router = useRouter();
 
   const [error, setError] = useState<string | null>(null);
@@ -73,6 +73,9 @@ export default function Home() {
     if (isLoading || !user) return;
 
     let cancelled = false;
+
+    // Refresh user profile to pick up rank/bounty changes from recent games
+    refreshUser().catch(() => {});
 
     async function fetchGames() {
       setLoadingGames(true);
@@ -272,21 +275,25 @@ export default function Home() {
           <div className="flex items-center gap-2">
             <Link
               href="/haki"
-              className="inline-flex items-center justify-center w-8 h-8 rounded-md text-text-secondary hover:bg-surface-secondary hover:text-primary transition-colors"
+              className="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-purple-950/60 border border-purple-500/40 text-purple-300 hover:bg-purple-900/60 hover:border-purple-400 hover:text-purple-200 transition-colors"
               aria-label="Haki"
             >
               👁
             </Link>
             <Link
               href="/settings"
-              className="inline-flex items-center justify-center w-8 h-8 rounded-md text-text-secondary hover:bg-surface-secondary hover:text-primary transition-colors"
+              className="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-surface-secondary border border-border text-text-secondary hover:bg-surface-elevated hover:border-primary/40 hover:text-primary transition-colors"
               aria-label="Settings"
             >
               ⚙️
             </Link>
-            <Button variant="secondary" size="sm" onClick={logout}>
-              Logout
-            </Button>
+            <button
+              onClick={logout}
+              className="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-red-950/40 border border-red-500/30 text-red-400 hover:bg-red-900/50 hover:border-red-400 hover:text-red-300 transition-colors cursor-pointer"
+              aria-label="Logout"
+            >
+              ⏻
+            </button>
           </div>
         </div>
 
@@ -502,7 +509,12 @@ export default function Home() {
                     battleLog.content.map((entry) => (
                     <div
                       key={entry.gameId}
-                      className="group flex items-center gap-3 px-3 py-3 rounded-lg border border-border-light cursor-pointer hover:border-primary/50 hover:bg-surface-secondary transition-all duration-150"
+                      className={[
+                        "group flex items-center gap-3 px-3 py-3 rounded-lg border cursor-pointer hover:border-primary/50 transition-all duration-150",
+                        entry.result === "VICTORY"
+                          ? "bg-green-950/20 border-green-500/20 hover:bg-green-950/30"
+                          : "bg-red-950/20 border-red-500/20 hover:bg-red-950/30",
+                      ].join(" ")}
                       onClick={async () => {
                         setLoadingBattle(true);
                         try {
