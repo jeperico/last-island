@@ -24,9 +24,9 @@
 - Battle expiration timers (turn 120s + game 30min) (2026-07-14) — c79db6e
 - Leaderboard UI improvements: table layout, scrollbar, bounty formula (2026-07-14) — c79db6e
 - Refactor img tags to Next.js Image component (2026-07-21) — 747721a
+- Deploy publicly accessible: backend + DB on Render (Dockerfile), client on Vercel (2026-07-22)
 
 ## Next
 
 1. Responsive mobile layout
-2. Deploy publicly accessible (service + client)
-3. Reconnection handling (rejoin mid-game after disconnect)
+2. Reconnection handling (rejoin mid-game after disconnect)

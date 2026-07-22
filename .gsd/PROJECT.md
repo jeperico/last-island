@@ -12,7 +12,15 @@ Last Island is a multiplayer naval battle game (Battleship) themed around One Pi
 | Frontend | Next.js 16, React 19, TypeScript, Tailwind CSS 4, Zod, react-hook-form |
 | Real-time | Server-Sent Events (SSE) |
 | Testing | JUnit 5 + Mockito (backend), ESLint (frontend) |
-| Infra | Docker Compose (Postgres), Makefile orchestration |
+| Infra (local) | Docker Compose (Postgres), Makefile orchestration |
+
+## Production Infrastructure
+
+| Component | Platform | Details |
+|-----------|----------|---------|
+| Backend service | Render (Web Service) | Deployed via Dockerfile |
+| Database | Render (PostgreSQL) | Managed Postgres instance |
+| Frontend | Vercel | Next.js deployment |
 
 ## Hard Constraints
 

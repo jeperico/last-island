@@ -1,0 +1,16 @@
+{
+  "name": "Last Island — One Piece Naval Battle",
+  "short_name": "Last Island",
+  "description": "Real-time multiplayer Battleship with One Piece theming",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a1628",
+  "theme_color": "#0a1628",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "any",
+      "type": "image/x-icon"
+    }
+  ]
+}
