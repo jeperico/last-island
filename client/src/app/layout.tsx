@@ -18,6 +18,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "Last Island",
   description: "Multiplayer naval battle game with One Piece theming",
+  icons: {
+    icon: "/favicon.ico",
+  },
 };
 
 export default function RootLayout({
