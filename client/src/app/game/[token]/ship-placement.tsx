@@ -450,11 +450,6 @@ export function ShipPlacement({
     }
   }
 
-  // Step 7: Skip armament step
-  function handleArmamentSkip() {
-    onPlacementComplete(deployedGamePhase as GamePhase);
-  }
-
   function getCellState(
     row: number,
     col: number,
@@ -690,7 +685,7 @@ export function ShipPlacement({
       />
 
       {/* Armament Haki selection modal */}
-      <Modal open={armamentStep} onClose={handleArmamentSkip} title="Armament Haki">
+      <Modal open={armamentStep} onClose={() => {}} title="Armament Haki">
         <div className="bg-surface-elevated rounded-xl border border-border p-5 flex flex-col gap-4">
           <div className="text-center">
             <h3 className="text-lg font-bold text-text-primary">🛡️ Armament Haki</h3>
@@ -769,13 +764,6 @@ export function ShipPlacement({
               className="w-full bg-red-900 hover:bg-red-800 text-red-100"
             >
               Activate Armament
-            </Button>
-            <Button
-              variant="ghost"
-              onClick={handleArmamentSkip}
-              className="w-full"
-            >
-              Skip
             </Button>
           </div>
         </div>
