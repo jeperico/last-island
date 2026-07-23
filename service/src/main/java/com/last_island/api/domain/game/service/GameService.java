@@ -1,5 +1,7 @@
 package com.last_island.api.domain.game.service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.last_island.api.common.dto.PageResponse;
 import com.last_island.api.common.mapper.PageMapper;
 import com.last_island.api.domain.board.entity.Board;
@@ -13,6 +15,7 @@ import com.last_island.api.domain.game.mapper.GameMapper;
 import com.last_island.api.domain.game.entity.GameResult;
 import com.last_island.api.domain.game.repository.GameRepository;
 import com.last_island.api.domain.game.repository.GameResultRepository;
+import com.last_island.api.domain.haki.dto.RevealedCell;
 import com.last_island.api.domain.haki.entity.HakiBattleState;
 import com.last_island.api.domain.haki.entity.HakiProfile;
 import com.last_island.api.domain.haki.repository.HakiBattleStateRepository;
@@ -32,11 +35,14 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
 
 @Service
 public class GameService {
+
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     private final GameRepository gameRepository;
     private final GameResultRepository gameResultRepository;
@@ -203,8 +209,19 @@ public class GameService {
             hakiUsedThisTurn = battleState.isHakiUsedThisTurn();
         }
 
+        // Deserialize persisted revealed cells
+        List<RevealedCell> revealedCells = null;
+        if (battleState != null && battleState.getRevealedCells() != null) {
+            try {
+                revealedCells = OBJECT_MAPPER.readValue(battleState.getRevealedCells(), new TypeReference<List<RevealedCell>>() {});
+            } catch (Exception e) {
+                revealedCells = null;
+            }
+        }
+
         return GameMapper.toStateResponse(game, userId, blueObs, blueArm, blueConq, redObs, redArm, redConq,
-                obsUsesRemaining, obsUsesConsumed, conqUsesRemaining, conqUsesConsumed, conqCooldownTurns, hakiUsedThisTurn);
+                obsUsesRemaining, obsUsesConsumed, conqUsesRemaining, conqUsesConsumed, conqCooldownTurns, hakiUsedThisTurn,
+                revealedCells);
     }
 
     @Transactional(readOnly = true)

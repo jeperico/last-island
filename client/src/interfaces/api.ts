@@ -154,6 +154,7 @@ export interface GameStateResponse {
   conquerorsUsesConsumed: number | null;
   conquerorsCooldownTurns: number | null;
   hakiUsedThisTurn: boolean | null;
+  revealedCells: RevealedCell[] | null;
 }
 
 export interface ShotResponse {

@@ -1,5 +1,7 @@
 package com.last_island.api.domain.haki.service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.last_island.api.domain.board.entity.Board;
 import com.last_island.api.domain.board.entity.Ship;
 import com.last_island.api.domain.board.entity.Shot;
@@ -24,6 +26,8 @@ import java.util.*;
 
 @Service
 public class HakiBattleService {
+
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     private final HakiBattleStateRepository hakiBattleStateRepository;
     private final HakiProfileRepository hakiProfileRepository;
@@ -645,6 +649,18 @@ public class HakiBattleService {
         state.setObservationUsesRemaining(state.getObservationUsesRemaining() - 1);
         state.setObservationUsesConsumed(state.getObservationUsesConsumed() + 1);
         state.setHakiUsedThisTurn(true);
+
+        // Persist revealed cells (accumulate across uses)
+        try {
+            List<RevealedCell> accumulated = state.getRevealedCells() != null
+                    ? OBJECT_MAPPER.readValue(state.getRevealedCells(), new TypeReference<List<RevealedCell>>() {})
+                    : new ArrayList<>();
+            accumulated.addAll(revealedCells);
+            state.setRevealedCells(OBJECT_MAPPER.writeValueAsString(accumulated));
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to persist revealed cells");
+        }
+
         hakiBattleStateRepository.save(state);
 
         // Emit SSE to opponent

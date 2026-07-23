@@ -263,6 +263,7 @@ class GameServiceTest {
         assertThat(response.conquerorsUsesConsumed()).isEqualTo(0);
         assertThat(response.conquerorsCooldownTurns()).isEqualTo(3);
         assertThat(response.hakiUsedThisTurn()).isTrue();
+        assertThat(response.revealedCells()).isNull();
     }
 
     @Test
@@ -296,6 +297,7 @@ class GameServiceTest {
         assertThat(response.conquerorsUsesConsumed()).isNull();
         assertThat(response.conquerorsCooldownTurns()).isNull();
         assertThat(response.hakiUsedThisTurn()).isNull();
+        assertThat(response.revealedCells()).isNull();
     }
 
     @Test

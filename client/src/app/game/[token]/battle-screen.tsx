@@ -86,6 +86,7 @@ export function BattleScreen({
           setConquerorsUsesConsumed(gameState.conquerorsUsesConsumed ?? 0);
           _setConquerorsCooldown(gameState.conquerorsCooldownTurns ?? 0);
           setHakiUsedThisTurn(gameState.hakiUsedThisTurn ?? false);
+          if (gameState.revealedCells) setRevealedCells(gameState.revealedCells);
         } else {
           // Fall back to profile-based initialization (no HakiBattleState exists yet)
           const obsUses = profile.observationLevel >= 2 ? 2 : profile.observationLevel >= 1 ? 1 : 0;
