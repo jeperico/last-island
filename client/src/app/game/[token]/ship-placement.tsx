@@ -67,7 +67,6 @@ export function ShipPlacement({
   const [armamentStep, setArmamentStep] = useState(false);
   const [deployedShips, setDeployedShips] = useState<ShipResponse[]>([]);
   const [selectedShipIds, setSelectedShipIds] = useState<string[]>([]);
-  const [deployedGamePhase, setDeployedGamePhase] = useState<GamePhase | "">("");
   const [armamentSubmitting, setArmamentSubmitting] = useState(false);
 
   const occupiedCells = useMemo(() => {
@@ -362,6 +361,28 @@ export function ShipPlacement({
     setError(null);
     setSubmitting(true);
 
+    // If player has armament haki, show selection modal BEFORE sending placeShips
+    if (hakiProfile && hakiProfile.armamentLevel >= 1) {
+      // Build local ship list from placements for display in armament modal
+      const localShips: ShipResponse[] = Array.from(placements.entries()).map(
+        ([shipType, placement]) => ({
+          id: shipType, // Use type as temporary identifier (resolved after placeShips)
+          type: shipType,
+          orientation: placement.orientation,
+          row: placement.row,
+          col: placement.col,
+          size: SHIP_SIZES[shipType],
+        }),
+      );
+      setDeployedShips(localShips);
+      setSelectedShipIds([]);
+      setArmamentStep(true);
+      setSubmitting(false);
+      onArmamentStart?.();
+      return;
+    }
+
+    // No armament — place ships and proceed immediately
     const request: PlaceShipsRequest = {
       ships: Array.from(placements.entries()).map(([shipType, placement]) => ({
         type: shipType,
@@ -373,18 +394,6 @@ export function ShipPlacement({
 
     try {
       const response = await placeShips(gameToken, request);
-
-      // If player has armament haki, show selection step before completing
-      if (hakiProfile && hakiProfile.armamentLevel >= 1) {
-        setDeployedShips(response.ships);
-        setDeployedGamePhase(response.gamePhase);
-        setSelectedShipIds([]);
-        setArmamentStep(true);
-        onArmamentStart?.();
-        return;
-      }
-
-      // No armament — proceed immediately
       onPlacementComplete(response.gamePhase);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to deploy fleet");
@@ -427,26 +436,47 @@ export function ShipPlacement({
     });
   }
 
-  // Step 6: Confirm armament assignment
+  // Step 6: Confirm armament assignment — places ships AND assigns armament
   async function handleArmamentConfirm() {
     setArmamentSubmitting(true);
+    setError(null);
+
+    const request: PlaceShipsRequest = {
+      ships: Array.from(placements.entries()).map(([shipType, placement]) => ({
+        type: shipType,
+        row: placement.row,
+        col: placement.col,
+        orientation: placement.orientation,
+      })),
+    };
+
     try {
-      // Resolve actual ship UUIDs from selectedShipIds (which may be id or type fallback)
-      const resolveShipId = (identifier: string): string => {
-        const ship = deployedShips.find((s) => s.id === identifier || s.type === identifier);
-        return ship?.id ?? identifier;
+      // Step 1: Place ships on the server
+      const response = await placeShips(gameToken, request);
+
+      // Step 2: Resolve selected ship types to actual server-assigned UUIDs
+      const resolveShipId = (shipType: string): string => {
+        const ship = response.ships.find((s) => s.type === shipType);
+        return ship?.id ?? shipType;
       };
 
-      await assignArmament(gameToken, {
-        ship1Id: selectedShipIds[1] ? resolveShipId(selectedShipIds[1]) : resolveShipId(selectedShipIds[0]),
-        ship2Id: selectedShipIds[1] ? resolveShipId(selectedShipIds[0]) : null,
-      });
-    } catch {
-      // Graceful degradation: if assignArmament fails (race condition),
-      // game proceeds without armament protection
+      // Step 3: Assign armament to selected ships
+      try {
+        await assignArmament(gameToken, {
+          ship1Id: selectedShipIds[1] ? resolveShipId(selectedShipIds[1]) : resolveShipId(selectedShipIds[0]),
+          ship2Id: selectedShipIds[1] ? resolveShipId(selectedShipIds[0]) : null,
+        });
+      } catch {
+        // Graceful degradation: if assignArmament fails,
+        // game proceeds without armament protection
+      }
+
+      onPlacementComplete(response.gamePhase);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to deploy fleet");
+      setArmamentStep(false);
     } finally {
       setArmamentSubmitting(false);
-      onPlacementComplete(deployedGamePhase as GamePhase);
     }
   }
 
