@@ -11,7 +11,8 @@ export type GameEventType =
   | "SURRENDER"
   | "OBSERVATION_HAKI_USED"
   | "ARMAMENT_HAKI_TRIGGERED"
-  | "CONQUERORS_HAKI_USED";
+  | "CONQUERORS_HAKI_USED"
+  | "DEPLOYMENT_CANCELLED";
 
 export interface ConnectedEventData {}
 
@@ -63,6 +64,9 @@ export interface ConquerorsHakiUsedEventData {
   effectLevel: string;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+export interface DeploymentCancelledEventData {}
+
 export interface GameEventHandlers {
   onConnected?: (data: ConnectedEventData) => void;
   onOpponentJoined?: (data: OpponentJoinedEventData) => void;
@@ -76,6 +80,7 @@ export interface GameEventHandlers {
   onArmamentHakiTriggered?: (data: ArmamentHakiTriggeredEventData) => void;
   onArmamentHakiDefended?: () => void;
   onConquerorsHakiUsed?: (data: ConquerorsHakiUsedEventData) => void;
+  onDeploymentCancelled?: (data: DeploymentCancelledEventData) => void;
   onError?: (error: Event) => void;
 }
 

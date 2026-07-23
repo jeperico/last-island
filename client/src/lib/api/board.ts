@@ -19,3 +19,7 @@ export function fireShot(
 ): Promise<ShotResponse> {
   return apiPost<ShotResponse>(`/api/games/${gameToken}/shots`, data);
 }
+
+export function cancelDeployment(gameToken: string): Promise<void> {
+  return apiPost<void>(`/api/games/${gameToken}/cancel-deployment`);
+}

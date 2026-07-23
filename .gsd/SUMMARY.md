@@ -133,7 +133,7 @@ Implementer: Changed 3 files (+18 / -30 net)
 - `client/src/app/game/[token]/battle-screen.tsx` — removed awakenedAxis state & toggle UI; always sends both row+col; preview shows cross pattern
 - `service/src/test/java/com/last_island/api/domain/haki/service/HakiBattleServiceTest.java` — updated awakened tests to send both params, fixed expected cell counts for cross pattern
 
-Reviewer: pending
+Reviewer: PASS — build clean, cross pattern confirmed in subsequent builds
 Commit: uncommitted
 
 ## 2026-07-21T08:36 — Refactor `<img>` Tags to Next.js `<Image>` Component
@@ -154,4 +154,22 @@ Implementer: Renamed `client/public/avatars/ussop/` → `usopp/` and 4 backgroun
 
 Reviewer: PASS — build clean, eslint clean, 164/170 backend tests green (6 pre-existing HakiConquerorsServiceTest failures unrelated), no USSOP in code, USOPP in Avatar.java, V16 migration exists, asset dir client/public/avatars/usopp/ with 4 usopp-bg-*.jpg files
 
+Commit: uncommitted
+
+## 2026-07-23T10:03 — Fix Haki Usage Bug on Page Reload — Restore Per-Game Battle State
+
+Implementer: Modified `service/src/main/java/com/last_island/api/domain/game/dto/GameStateResponse.java` (+3), `service/src/main/java/com/last_island/api/domain/game/service/GameService.java` (+18), `service/src/main/java/com/last_island/api/domain/game/mapper/GameMapper.java` (+14), `service/src/test/java/com/last_island/api/domain/game/service/GameServiceTest.java` (+24), `client/src/interfaces/api.ts` (+6), `client/src/app/game/[token]/battle-screen.tsx` (+10 -3). Net: +72 lines across 6 files.
+Reviewer: PASS — build clean, eslint clean, 164/170 backend tests green (6 pre-existing HakiConquerorsServiceTest failures unrelated), all grep checks confirm wiring
+Commit: uncommitted
+
+## 2026-07-23T10:20 — Persist Observation Haki Revealed Cells Across Page Reload
+
+Implementer: Created `service/src/main/resources/db/migration/V17__add_revealed_cells_to_haki_battle_state.sql` (+1). Modified `service/src/main/java/com/last_island/api/domain/haki/entity/HakiBattleState.java` (+3), `service/src/main/java/com/last_island/api/domain/haki/service/HakiBattleService.java` (+14), `service/src/main/java/com/last_island/api/domain/game/dto/GameStateResponse.java` (+4), `service/src/main/java/com/last_island/api/domain/game/service/GameService.java` (+15), `service/src/main/java/com/last_island/api/domain/game/mapper/GameMapper.java` (+5), `service/src/test/java/com/last_island/api/domain/game/service/GameServiceTest.java` (+2), `client/src/interfaces/api.ts` (+1), `client/src/app/game/[token]/battle-screen.tsx` (+1). Net: +46 lines across 9 files.
+Reviewer: PASS — build clean, eslint clean, 164/170 backend tests green (6 pre-existing HakiConquerorsServiceTest failures unrelated), all grep checks confirm wiring
+Commit: uncommitted
+
+## 2026-07-23T10:38 — Cancel Fleet Deployment
+
+Implementer: Modified `service/src/main/java/com/last_island/api/domain/haki/repository/HakiBattleStateRepository.java` (+2), `service/src/main/java/com/last_island/api/domain/board/service/BoardService.java` (+50), `service/src/main/java/com/last_island/api/domain/game/controller/GameController.java` (+7), `service/src/main/java/com/last_island/api/infrastructure/sse/GameEventEmitter.java` (+6), `service/src/main/java/com/last_island/api/infrastructure/sse/GameEvent.java` (+1), `client/src/lib/api/board.ts` (+4), `client/src/lib/api/index.ts` (+1 -1), `client/src/types/game-events.ts` (+8), `client/src/lib/game/use-game-events.ts` (+7), `client/src/app/game/[token]/page.tsx` (+20 -5), `client/src/app/game/[token]/ship-placement.tsx` (+15 -3). Created `service/src/test/java/com/last_island/api/domain/board/service/BoardServiceCancelDeploymentTest.java` (+199). Net: +320 lines across 12 files.
+Reviewer: PASS — build clean, eslint clean, 170/176 backend tests green (6 pre-existing HakiConquerorsServiceTest failures unrelated), frontend build clean, all grep checks confirm wiring
 Commit: uncommitted

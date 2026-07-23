@@ -20,6 +20,7 @@ import com.last_island.api.domain.game.repository.GameResultRepository;
 import com.last_island.api.domain.user.entity.User;
 import com.last_island.api.domain.user.service.BountyService;
 import com.last_island.api.domain.haki.dto.ArmamentTriggerResult;
+import com.last_island.api.domain.haki.repository.HakiBattleStateRepository;
 import com.last_island.api.domain.haki.service.HakiBattleService;
 import com.last_island.api.infrastructure.sse.GameEventEmitter;
 import org.springframework.http.HttpStatus;
@@ -41,13 +42,15 @@ public class BoardService {
     private final GameEventEmitter gameEventEmitter;
     private final BountyService bountyService;
     private final HakiBattleService hakiBattleService;
+    private final HakiBattleStateRepository hakiBattleStateRepository;
 
-    public BoardService(GameRepository gameRepository, GameResultRepository gameResultRepository, GameEventEmitter gameEventEmitter, BountyService bountyService, HakiBattleService hakiBattleService) {
+    public BoardService(GameRepository gameRepository, GameResultRepository gameResultRepository, GameEventEmitter gameEventEmitter, BountyService bountyService, HakiBattleService hakiBattleService, HakiBattleStateRepository hakiBattleStateRepository) {
         this.gameRepository = gameRepository;
         this.gameResultRepository = gameResultRepository;
         this.gameEventEmitter = gameEventEmitter;
         this.bountyService = bountyService;
         this.hakiBattleService = hakiBattleService;
+        this.hakiBattleStateRepository = hakiBattleStateRepository;
     }
 
     @Transactional
@@ -364,5 +367,60 @@ public class BoardService {
         return new ShotResponse(result, sunkShipType, request.row(), request.col(), false, null,
                 armamentTriggered, armamentResult != null ? armamentResult.counterFire() : null,
                 game.getCurrentTurn().getName());
+    }
+
+    @Transactional
+    public void cancelDeployment(String token, UUID userId) {
+        // 1. Fetch game
+        Game game = gameRepository.findByTokenAndIsActiveTrue(token)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Battle not found"));
+
+        // 2. Validate user is a participant
+        Board board;
+        Board opponentBoard;
+        if (game.getBlueBoard().getOwner().getId().equals(userId)) {
+            board = game.getBlueBoard();
+            opponentBoard = game.getRedBoard();
+        } else if (game.getRedBoard().getOwner().getId().equals(userId)) {
+            board = game.getRedBoard();
+            opponentBoard = game.getBlueBoard();
+        } else {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You are not a participant in this battle");
+        }
+
+        // 3. Validate phase
+        if (game.getPhase() != GamePhase.PLACING_SHIPS) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Battle is no longer in placement phase");
+        }
+
+        // 4. Validate opponent has NO ships
+        if (!opponentBoard.getShips().isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Opponent has already deployed their fleet — too late to cancel");
+        }
+
+        // 5. Validate player HAS ships (nothing to cancel otherwise)
+        if (board.getShips().isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "No fleet deployed to cancel");
+        }
+
+        // 6. Delete HakiBattleState for this board (must happen before clearing ships due to FK on armament_ship_ids)
+        hakiBattleStateRepository.deleteByBoardId(board.getId());
+
+        // 7. Clear player's ships
+        board.getShips().clear();
+
+        // 8. Save game
+        gameRepository.save(game);
+
+        // 9. Emit SSE DEPLOYMENT_CANCELLED to opponent after commit
+        UUID opponentId = opponentBoard.getOwner().getId();
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    gameEventEmitter.emitDeploymentCancelled(token, opponentId);
+                }
+            });
+        }
     }
 }

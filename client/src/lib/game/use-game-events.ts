@@ -14,6 +14,7 @@ import type {
   ObservationHakiUsedEventData,
   ArmamentHakiTriggeredEventData,
   ConquerorsHakiUsedEventData,
+  DeploymentCancelledEventData,
 } from "@/types/game-events";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "";
@@ -119,6 +120,11 @@ export function useGameEvents(
         handlersRef.current.onConquerorsHakiUsed?.(data);
       }
 
+      function handleDeploymentCancelled(event: MessageEvent) {
+        const data: DeploymentCancelledEventData = event.data ? JSON.parse(event.data) : {};
+        handlersRef.current.onDeploymentCancelled?.(data);
+      }
+
       function handleError(event: Event) {
         es.close();
         setConnected(false);
@@ -155,6 +161,7 @@ export function useGameEvents(
       es.addEventListener("ARMAMENT_HAKI_TRIGGERED", handleArmamentHakiTriggered);
       es.addEventListener("ARMAMENT_HAKI_DEFENDED", handleArmamentHakiDefended);
       es.addEventListener("CONQUERORS_HAKI_USED", handleConquerorsHakiUsed);
+      es.addEventListener("DEPLOYMENT_CANCELLED", handleDeploymentCancelled);
       es.onerror = handleError;
     }
 

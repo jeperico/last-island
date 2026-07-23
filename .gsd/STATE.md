@@ -2,7 +2,7 @@
 
 ## Position
 
-Implementing — Fix USSOP → USOPP spelling across codebase
+Planned — Persist Observation Haki Revealed Cells Across Page Reload
 
 ## Decisions
 
@@ -18,4 +18,4 @@ Implementing — Fix USSOP → USOPP spelling across codebase
 
 ## Last verification
 
-PASS at 2026-07-21T09:42 — backend 164/170 pass (6 pre-existing HakiConquerorsServiceTest failures unrelated), frontend build clean, no USSOP in code (only V15/V16 migration WHERE clauses), USOPP confirmed in Avatar.java + character-select.tsx + settings/page.tsx + domain.md, asset dir usopp/ with 4 usopp-bg-*.jpg
+PASS at 2026-07-23T10:39 — backend 170/176 pass (6 pre-existing HakiConquerorsServiceTest failures unrelated), frontend build clean, all grep checks confirm wiring

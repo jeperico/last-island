@@ -108,6 +108,13 @@ public class GameController {
         gameService.surrender(token, principal.getId());
     }
 
+    @PostMapping("/{token}/cancel-deployment")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void cancelDeployment(@PathVariable String token,
+                                 @AuthenticationPrincipal AuthenticatedUser principal) {
+        boardService.cancelDeployment(token, principal.getId());
+    }
+
     @PostMapping("/{token}/haki/observation")
     public ObservationResponse useObservationHaki(@PathVariable String token,
                                                   @RequestBody ObservationRequest request,

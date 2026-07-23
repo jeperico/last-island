@@ -30,6 +30,7 @@ interface ShipPlacementProps {
   opponentName: string | null;
   onPlacementComplete: (gamePhase: GamePhase) => void;
   onArmamentStart?: () => void;
+  initialPlacements?: Map<string, { row: number; col: number; orientation: Orientation }>;
 }
 
 interface PlacementEntry {
@@ -43,15 +44,30 @@ export function ShipPlacement({
   opponentName,
   onPlacementComplete,
   onArmamentStart,
+  initialPlacements,
 }: ShipPlacementProps) {
   const fleet = useMemo(() => PIRATE_FLEET, []);
 
   const [selectedShipType, setSelectedShipType] = useState<ShipType | null>(
-    () => PIRATE_FLEET[0] ?? null,
+    () => {
+      if (initialPlacements && initialPlacements.size === PIRATE_FLEET.length) {
+        return null;
+      }
+      return PIRATE_FLEET[0] ?? null;
+    },
   );
   const [orientation, setOrientation] = useState<Orientation>("HORIZONTAL");
   const [placements, setPlacements] = useState<Map<ShipType, PlacementEntry>>(
-    new Map(),
+    () => {
+      if (initialPlacements) {
+        const map = new Map<ShipType, PlacementEntry>();
+        for (const [shipType, placement] of initialPlacements) {
+          map.set(shipType as ShipType, placement);
+        }
+        return map;
+      }
+      return new Map();
+    },
   );
   const [hoveredCell, setHoveredCell] = useState<{
     row: number;
