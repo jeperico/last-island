@@ -731,7 +731,7 @@ export function ShipPlacement({
       />
 
       {/* Armament Haki selection modal */}
-      <Modal open={armamentStep} onClose={() => {}} title="Armament Haki">
+      <Modal open={armamentStep} onClose={() => setArmamentStep(false)} title="Armament Haki">
         <div className="bg-surface-elevated rounded-xl border border-border p-5 flex flex-col gap-4">
           <div className="text-center">
             <h3 className="text-lg font-bold text-text-primary">🛡️ Armament Haki</h3>
