@@ -67,12 +67,22 @@ public final class GameMapper {
     }
 
     public static GameStateResponse toStateResponse(Game game, UUID userId) {
-        return toStateResponse(game, userId, null, null, null, null, null, null);
+        return toStateResponse(game, userId, null, null, null, null, null, null, null, null, null, null, null, null);
     }
 
     public static GameStateResponse toStateResponse(Game game, UUID userId,
                                                     Integer blueObs, Integer blueArm, Integer blueConq,
                                                     Integer redObs, Integer redArm, Integer redConq) {
+        return toStateResponse(game, userId, blueObs, blueArm, blueConq, redObs, redArm, redConq,
+                null, null, null, null, null, null);
+    }
+
+    public static GameStateResponse toStateResponse(Game game, UUID userId,
+                                                    Integer blueObs, Integer blueArm, Integer blueConq,
+                                                    Integer redObs, Integer redArm, Integer redConq,
+                                                    Integer obsUsesRemaining, Integer obsUsesConsumed,
+                                                    Integer conqUsesRemaining, Integer conqUsesConsumed,
+                                                    Integer conqCooldownTurns, Boolean hakiUsedThisTurn) {
         String redPlayerName = game.getRedBoard() != null
                 ? game.getRedBoard().getOwner().getName()
                 : null;
@@ -159,7 +169,13 @@ public final class GameMapper {
                 blueConq,
                 redObs,
                 redArm,
-                redConq
+                redConq,
+                obsUsesRemaining,
+                obsUsesConsumed,
+                conqUsesRemaining,
+                conqUsesConsumed,
+                conqCooldownTurns,
+                hakiUsedThisTurn
         );
     }
 

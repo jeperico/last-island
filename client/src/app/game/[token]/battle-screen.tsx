@@ -78,11 +78,21 @@ export function BattleScreen({
     getHakiProfile()
       .then((profile) => {
         setHakiProfile(profile);
-        // Init uses based on level
-        const obsUses = profile.observationLevel >= 2 ? 2 : profile.observationLevel >= 1 ? 1 : 0;
-        setObservationUsesLeft(obsUses);
-        const conqUses = profile.conquerorsLevel >= 2 ? 2 : profile.conquerorsLevel >= 1 ? 1 : 0;
-        setConquerorsUsesLeft(conqUses);
+        // If server provided per-game battle state, use it to restore haki usage
+        if (gameState.observationUsesRemaining !== null && gameState.observationUsesRemaining !== undefined) {
+          setObservationUsesLeft(gameState.observationUsesRemaining);
+          setObservationUsesConsumed(gameState.observationUsesConsumed ?? 0);
+          setConquerorsUsesLeft(gameState.conquerorsUsesRemaining ?? 0);
+          setConquerorsUsesConsumed(gameState.conquerorsUsesConsumed ?? 0);
+          _setConquerorsCooldown(gameState.conquerorsCooldownTurns ?? 0);
+          setHakiUsedThisTurn(gameState.hakiUsedThisTurn ?? false);
+        } else {
+          // Fall back to profile-based initialization (no HakiBattleState exists yet)
+          const obsUses = profile.observationLevel >= 2 ? 2 : profile.observationLevel >= 1 ? 1 : 0;
+          setObservationUsesLeft(obsUses);
+          const conqUses = profile.conquerorsLevel >= 2 ? 2 : profile.conquerorsLevel >= 1 ? 1 : 0;
+          setConquerorsUsesLeft(conqUses);
+        }
       })
       .catch(() => {/* no haki */});
   }, [readOnly]);

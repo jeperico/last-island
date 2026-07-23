@@ -148,6 +148,12 @@ export interface GameStateResponse {
   redPlayerObservation: number | null;
   redPlayerArmament: number | null;
   redPlayerConquerors: number | null;
+  observationUsesRemaining: number | null;
+  observationUsesConsumed: number | null;
+  conquerorsUsesRemaining: number | null;
+  conquerorsUsesConsumed: number | null;
+  conquerorsCooldownTurns: number | null;
+  hakiUsedThisTurn: boolean | null;
 }
 
 export interface ShotResponse {

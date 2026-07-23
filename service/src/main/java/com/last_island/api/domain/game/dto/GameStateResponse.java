@@ -20,5 +20,8 @@ public record GameStateResponse(UUID id, String token, String phase, String blue
                                 Integer bluePlayerObservation, Integer bluePlayerArmament,
                                 Integer bluePlayerConquerors,
                                 Integer redPlayerObservation, Integer redPlayerArmament,
-                                Integer redPlayerConquerors) {
+                                Integer redPlayerConquerors,
+                                Integer observationUsesRemaining, Integer observationUsesConsumed,
+                                Integer conquerorsUsesRemaining, Integer conquerorsUsesConsumed,
+                                Integer conquerorsCooldownTurns, Boolean hakiUsedThisTurn) {
 }

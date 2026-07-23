@@ -13,7 +13,9 @@ import com.last_island.api.domain.game.mapper.GameMapper;
 import com.last_island.api.domain.game.entity.GameResult;
 import com.last_island.api.domain.game.repository.GameRepository;
 import com.last_island.api.domain.game.repository.GameResultRepository;
+import com.last_island.api.domain.haki.entity.HakiBattleState;
 import com.last_island.api.domain.haki.entity.HakiProfile;
+import com.last_island.api.domain.haki.repository.HakiBattleStateRepository;
 import com.last_island.api.domain.haki.repository.HakiProfileRepository;
 import com.last_island.api.domain.user.entity.User;
 import com.last_island.api.domain.user.repository.UserRepository;
@@ -43,11 +45,13 @@ public class GameService {
     private final LobbyEventEmitter lobbyEventEmitter;
     private final BountyService bountyService;
     private final HakiProfileRepository hakiProfileRepository;
+    private final HakiBattleStateRepository hakiBattleStateRepository;
 
     public GameService(GameRepository gameRepository, GameResultRepository gameResultRepository,
                        UserRepository userRepository,
                        GameEventEmitter gameEventEmitter, LobbyEventEmitter lobbyEventEmitter,
-                       BountyService bountyService, HakiProfileRepository hakiProfileRepository) {
+                       BountyService bountyService, HakiProfileRepository hakiProfileRepository,
+                       HakiBattleStateRepository hakiBattleStateRepository) {
         this.gameRepository = gameRepository;
         this.gameResultRepository = gameResultRepository;
         this.userRepository = userRepository;
@@ -55,6 +59,7 @@ public class GameService {
         this.lobbyEventEmitter = lobbyEventEmitter;
         this.bountyService = bountyService;
         this.hakiProfileRepository = hakiProfileRepository;
+        this.hakiBattleStateRepository = hakiBattleStateRepository;
     }
 
     @Transactional
@@ -179,7 +184,27 @@ public class GameService {
             }
         }
 
-        return GameMapper.toStateResponse(game, userId, blueObs, blueArm, blueConq, redObs, redArm, redConq);
+        // Retrieve per-game haki battle state for the requesting player's board
+        Board myBoard = isBlue ? game.getBlueBoard() : game.getRedBoard();
+        Integer obsUsesRemaining = null;
+        Integer obsUsesConsumed = null;
+        Integer conqUsesRemaining = null;
+        Integer conqUsesConsumed = null;
+        Integer conqCooldownTurns = null;
+        Boolean hakiUsedThisTurn = null;
+
+        HakiBattleState battleState = hakiBattleStateRepository.findByBoardId(myBoard.getId()).orElse(null);
+        if (battleState != null) {
+            obsUsesRemaining = battleState.getObservationUsesRemaining();
+            obsUsesConsumed = battleState.getObservationUsesConsumed();
+            conqUsesRemaining = battleState.getConquerorsUsesRemaining();
+            conqUsesConsumed = battleState.getConquerorsUsesConsumed();
+            conqCooldownTurns = battleState.getConquerorsCooldownTurns();
+            hakiUsedThisTurn = battleState.isHakiUsedThisTurn();
+        }
+
+        return GameMapper.toStateResponse(game, userId, blueObs, blueArm, blueConq, redObs, redArm, redConq,
+                obsUsesRemaining, obsUsesConsumed, conqUsesRemaining, conqUsesConsumed, conqCooldownTurns, hakiUsedThisTurn);
     }
 
     @Transactional(readOnly = true)
