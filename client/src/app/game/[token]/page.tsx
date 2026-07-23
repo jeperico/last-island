@@ -285,6 +285,11 @@ export default function GamePage() {
             )}
             <ShipPlacement
               gameToken={token}
+              opponentName={
+                gameState.bluePlayerName === user.name
+                  ? gameState.redPlayerName
+                  : gameState.bluePlayerName
+              }
               onPlacementComplete={(gamePhase) => {
                 setIsRedeploying(false);
                 setIsAssigningArmament(false);

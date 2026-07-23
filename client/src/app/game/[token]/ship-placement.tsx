@@ -27,6 +27,7 @@ const ROW_LABELS = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"];
 
 interface ShipPlacementProps {
   gameToken: string;
+  opponentName: string | null;
   onPlacementComplete: (gamePhase: GamePhase) => void;
   onArmamentStart?: () => void;
 }
@@ -39,6 +40,7 @@ interface PlacementEntry {
 
 export function ShipPlacement({
   gameToken,
+  opponentName,
   onPlacementComplete,
   onArmamentStart,
 }: ShipPlacementProps) {
@@ -505,7 +507,9 @@ export function ShipPlacement({
             ⚓ Deploy Your Fleet
           </h1>
           <p className="text-xs text-text-muted mt-0.5">
-            Position your fleet on the sea chart
+            {opponentName
+              ? <>Battle against <span className="text-text-secondary font-medium">{opponentName}</span></>
+              : "Position your fleet on the sea chart"}
           </p>
         </div>
 
