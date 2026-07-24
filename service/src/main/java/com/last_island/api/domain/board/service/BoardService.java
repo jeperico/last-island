@@ -215,7 +215,7 @@ public class BoardService {
         }
 
         // 5b. Race condition guard — reject shots after turn expired
-        if (game.getTurnStartedAt() != null && game.getTurnStartedAt().plusSeconds(120).isBefore(LocalDateTime.now())) {
+        if (game.getTurnStartedAt() != null && game.getTurnStartedAt().plusSeconds(20).isBefore(LocalDateTime.now())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Your turn has expired, Captain!");
         }
 
