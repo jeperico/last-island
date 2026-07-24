@@ -134,7 +134,7 @@ public final class GameMapper {
 
         MyBoardResponse myBoardResponse = BoardMapper.toMyBoardResponse(myBoard);
         OpponentBoardResponse opponentBoardResponse = opponentBoard != null
-                ? BoardMapper.toOpponentBoardResponse(opponentBoard)
+                ? BoardMapper.toOpponentBoardResponse(opponentBoard, game.getPhase() == GamePhase.FINISHED)
                 : null;
 
         String winnerName = null;

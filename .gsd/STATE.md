@@ -2,7 +2,7 @@
 
 ## Position
 
-Planned — Persist Observation Haki Revealed Cells Across Page Reload
+Plan ready — Reveal opponent ships on game-over panel when game is FINISHED
 
 ## Decisions
 
@@ -18,4 +18,4 @@ Planned — Persist Observation Haki Revealed Cells Across Page Reload
 
 ## Last verification
 
-PASS at 2026-07-23T10:39 — backend 170/176 pass (6 pre-existing HakiConquerorsServiceTest failures unrelated), frontend build clean, all grep checks confirm wiring
+PASS at 2026-07-24T11:48 — backend 171/177 pass (6 pre-existing HakiConquerorsServiceTest failures unrelated), frontend build clean, eslint clean, all 5 grep checks confirm wiring

@@ -1,114 +1,93 @@
-# Cancel Fleet Deployment
+# Reveal Opponent Ships on Game-Over Panel When FINISHED
 
 ## Objective
 
-Allow a player who has placed ships to cancel their deployment (undo), as long as the opponent hasn't placed ships yet. Clears the board server-side and returns the player to the placement screen with ships pre-placed at their previous positions.
+When the game phase is FINISHED, include all opponent ship positions in `OpponentBoardResponse` so the game-over panel can render the full enemy fleet (unhit cells as "ship" type).
 
 ## Files to touch
 
-- **modify** `service/src/main/java/com/last_island/api/domain/board/service/BoardService.java`
-- **modify** `service/src/main/java/com/last_island/api/domain/board/controller/BoardController.java`
-- **modify** `service/src/main/java/com/last_island/api/domain/haki/repository/HakiBattleStateRepository.java`
-- **modify** `service/src/main/java/com/last_island/api/infrastructure/sse/GameEventEmitter.java`
-- **create** `service/src/test/java/com/last_island/api/domain/board/service/BoardServiceCancelDeploymentTest.java`
-- **modify** `client/src/lib/api/board.ts`
-- **modify** `client/src/lib/api/index.ts`
-- **modify** `client/src/types/game-events.ts`
-- **modify** `client/src/lib/game/use-game-events.ts`
-- **modify** `client/src/app/game/[token]/page.tsx`
+- modify `service/src/main/java/com/last_island/api/domain/board/dto/OpponentBoardResponse.java` — add `List<ShipResponse> ships` field
+- modify `service/src/main/java/com/last_island/api/domain/board/mapper/BoardMapper.java` — add overload `toOpponentBoardResponse(Board board, boolean revealShips)` that populates ships when true; original method delegates with `false`
+- modify `service/src/main/java/com/last_island/api/domain/game/mapper/GameMapper.java` — pass `game.getPhase() == GamePhase.FINISHED` to the new BoardMapper overload
+- modify `service/src/test/java/com/last_island/api/domain/game/service/GameServiceTest.java` — add test `getGame_whenFinished_returnsOpponentBoardWithShips`
+- modify `client/src/interfaces/api.ts` — add optional `ships?: ShipResponse[]` to `OpponentBoardResponse`
+- modify `client/src/app/game/[token]/game-over-panel.tsx` — update `buildOpponentBoardCells` signature and logic to mark unhit ship cells as `{ type: "ship" }`; add `ShipResponse` import; update call site
 
 ## Steps
 
-### Backend
+1. **OpponentBoardResponse.java** — Add a fourth field `List<ShipResponse> ships` to the record. Import `ShipResponse`.
 
-1. **Add `deleteByBoardId` to HakiBattleStateRepository** — Add method signature `void deleteByBoardId(UUID boardId);` to the repository interface. Spring Data derives the query automatically.
+2. **BoardMapper.java** — Add overload:
+   ```java
+   public static OpponentBoardResponse toOpponentBoardResponse(Board board, boolean revealShips) {
+       List<ShotCellResponse> shotsFired = board.getShots().stream()
+               .map(shot -> toShotCellResponse(shot, board))
+               .toList();
+       List<ShipResponse> ships = revealShips
+               ? board.getShips().stream().map(BoardMapper::toShipResponse).toList()
+               : null;
+       return new OpponentBoardResponse(board.getId(), board.getOwner().getName(), shotsFired, ships);
+   }
+   ```
+   Update the existing no-arg overload to delegate: `return toOpponentBoardResponse(board, false);`
 
-2. **Add `cancelDeployment` to BoardService** — New public method `cancelDeployment(String token, UUID userId)`:
-   - Fetch game by token (active). 404 if not found.
-   - Validate user is a participant. 403 if not.
-   - Validate phase == PLACING_SHIPS. 409 if not ("Battle is no longer in placement phase").
-   - Identify player's board and opponent's board.
-   - Validate opponent's board has NO ships (`opponentBoard.getShips().isEmpty()`). 409 if not ("Opponent has already deployed their fleet — too late to cancel").
-   - Validate player's board HAS ships (nothing to cancel otherwise). 409 if not.
-   - Clear player's ships: `board.getShips().clear()`.
-   - Delete HakiBattleState for this board: `hakiBattleStateRepository.deleteByBoardId(board.getId())`.
-   - Save game: `gameRepository.save(game)`.
-   - Emit SSE `DEPLOYMENT_CANCELLED` to opponent (after commit).
+3. **GameMapper.java** — At the call site (~line 136), change:
+   ```java
+   OpponentBoardResponse opponentBoardResponse = opponentBoard != null
+           ? BoardMapper.toOpponentBoardResponse(opponentBoard, game.getPhase() == GamePhase.FINISHED)
+           : null;
+   ```
 
-3. **Add SSE event emission** — In `GameEventEmitter.java`, add `emitDeploymentCancelled(String token, UUID opponentId)` that sends event type `DEPLOYMENT_CANCELLED` with no payload (or minimal payload like `{ "player_name": "..." }`).
+4. **GameServiceTest.java** — Add a new test method `getGame_whenFinished_returnsOpponentBoardWithShips` that:
+   - Sets up a game with `GamePhase.FINISHED`
+   - Adds ships to the opponent board
+   - Calls `gameService.getGame(token, userId)`
+   - Asserts `response.opponentBoard().ships()` is non-null, has expected size, and matches the ships placed
 
-4. **Add endpoint to BoardController** — `POST /games/{token}/cancel-deployment`. Extract user from `AuthenticatedUser` principal. Call `boardService.cancelDeployment(token, user.getId())`. Return 200 with no body (or a simple success message).
+5. **client/src/interfaces/api.ts** — Add `ships?: ShipResponse[];` to the `OpponentBoardResponse` interface.
 
-5. **Write unit tests** — `BoardServiceCancelDeploymentTest.java`:
-   - Happy path: player has ships, opponent has none → ships cleared, HakiBattleState deleted.
-   - Opponent already placed: → 409.
-   - Player has no ships: → 409.
-   - Game not in PLACING_SHIPS: → 409.
-   - User not participant: → 403.
-
-### Frontend
-
-6. **Add API function** — In `client/src/lib/api/board.ts`, add `cancelDeployment(gameToken: string)` → `POST /api/games/${gameToken}/cancel-deployment`. Export from index.
-
-7. **Add SSE event type** — In `client/src/types/game-events.ts`, add `DEPLOYMENT_CANCELLED` event type with no data payload (or empty object).
-
-8. **Wire SSE handler** — In `client/src/lib/game/use-game-events.ts`, add listener for `DEPLOYMENT_CANCELLED` that calls a new callback prop `onDeploymentCancelled`.
-
-9. **Update game page** — In `client/src/app/game/[token]/page.tsx`:
-   - Replace the existing "🔄 Redeploy Fleet" button with a "Cancel Deployment" button that calls `cancelDeployment(token)`.
-   - On success: set `hasPlacedShips = false`, set `isRedeploying = true`, and pre-populate the ship placements from the `myBoard.ships` data (map ship positions back to placement entries).
-   - Handle `onDeploymentCancelled` SSE event (from opponent): if we were showing "opponent ready" indicator, reset it to "opponent not ready".
-   - Pass initial placements to `ShipPlacement` component via a new optional prop `initialPlacements`.
-
-10. **Update ShipPlacement component** — Accept optional `initialPlacements` prop (Map of ShipType → {row, col, orientation}). If provided, initialize `placements` state with it so all ships appear pre-placed on the grid ready to re-deploy.
+6. **game-over-panel.tsx** — 
+   - Add `ShipResponse` to the import from `@/lib/api/types`
+   - Change `buildOpponentBoardCells` signature to: `buildOpponentBoardCells(shotsFired: ShotCellResponse[], ships?: ShipResponse[])`
+   - After the existing second-pass loop, add a third pass: if `ships` is defined, iterate each ship using `getShipCells(ship)`, and for each cell key NOT already in the map, set `{ type: "ship" }`
+   - Update call site to pass `gameState.opponentBoard.ships`
 
 ## Verification
 
 ```bash
-# Backend builds and tests pass
-make service-test
+# 1. Backend tests pass
+cd service && mvn test -q
 
-# Frontend builds without errors
-make client-build
+# 2. Frontend builds clean
+cd client && npm run build
 
-# New endpoint exists
-grep -n "cancel-deployment" service/src/main/java/com/last_island/api/domain/board/controller/BoardController.java
+# 3. No new lint errors in touched files
+cd client && npx eslint src/app/game/\[token\]/game-over-panel.tsx src/interfaces/api.ts --no-error-on-unmatched-pattern
 
-# Service method exists
-grep -n "cancelDeployment" service/src/main/java/com/last_island/api/domain/board/service/BoardService.java
+# 4. Confirm ships field in DTO
+grep -n "ships" service/src/main/java/com/last_island/api/domain/board/dto/OpponentBoardResponse.java
 
-# HakiBattleState cleanup
-grep -n "deleteByBoardId" service/src/main/java/com/last_island/api/domain/haki/repository/HakiBattleStateRepository.java
+# 5. Confirm revealShips param in BoardMapper
+grep -n "revealShips" service/src/main/java/com/last_island/api/domain/board/mapper/BoardMapper.java
 
-# SSE event
-grep -n "DEPLOYMENT_CANCELLED\|emitDeploymentCancelled" service/src/main/java/com/last_island/api/infrastructure/sse/GameEventEmitter.java
+# 6. Confirm optional ships field in TS interface
+grep -n "ships?" client/src/interfaces/api.ts
 
-# Test file exists
-test -f service/src/test/java/com/last_island/api/domain/board/service/BoardServiceCancelDeploymentTest.java
+# 7. Confirm ship cell assignment in game-over-panel
+grep -n 'type.*"ship"' client/src/app/game/\[token\]/game-over-panel.tsx
 
-# Frontend API
-grep -n "cancelDeployment" client/src/lib/api/board.ts
-
-# Frontend SSE
-grep -n "DEPLOYMENT_CANCELLED" client/src/types/game-events.ts
-
-# Frontend page wiring
-grep -n "cancelDeployment\|initialPlacements" client/src/app/game/[token]/page.tsx
+# 8. Confirm new test exists
+grep -n "whenFinished_returnsOpponentBoardWithShips" service/src/test/java/com/last_island/api/domain/game/service/GameServiceTest.java
 ```
 
 ## Rollback
 
 ```bash
-git checkout -- service/src/main/java/com/last_island/api/domain/board/service/BoardService.java \
-  service/src/main/java/com/last_island/api/domain/board/controller/BoardController.java \
-  service/src/main/java/com/last_island/api/domain/haki/repository/HakiBattleStateRepository.java \
-  service/src/main/java/com/last_island/api/infrastructure/sse/GameEventEmitter.java \
-  client/src/lib/api/board.ts \
-  client/src/lib/api/index.ts \
-  client/src/types/game-events.ts \
-  client/src/lib/game/use-game-events.ts \
-  client/src/app/game/[token]/page.tsx \
-  client/src/app/game/[token]/ship-placement.tsx
-
-rm -f service/src/test/java/com/last_island/api/domain/board/service/BoardServiceCancelDeploymentTest.java
+git checkout -- \
+  service/src/main/java/com/last_island/api/domain/board/dto/OpponentBoardResponse.java \
+  service/src/main/java/com/last_island/api/domain/board/mapper/BoardMapper.java \
+  service/src/main/java/com/last_island/api/domain/game/mapper/GameMapper.java \
+  service/src/test/java/com/last_island/api/domain/game/service/GameServiceTest.java \
+  client/src/interfaces/api.ts \
+  client/src/app/game/\[token\]/game-over-panel.tsx
 ```

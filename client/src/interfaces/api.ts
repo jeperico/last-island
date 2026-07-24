@@ -108,6 +108,7 @@ export interface OpponentBoardResponse {
   boardId: string;
   ownerName: string;
   shotsFired: ShotCellResponse[];
+  ships?: ShipResponse[];
 }
 
 export interface BoardResponse {

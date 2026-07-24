@@ -7,6 +7,7 @@ import type {
   UserResponse,
   MyBoardResponse,
   ShotCellResponse,
+  ShipResponse,
   ShipType,
 } from "@/lib/api/types";
 import { getShipCells, cellKey, SHIP_SIZES } from "@/lib/game";
@@ -72,6 +73,7 @@ function buildMyBoardCells(myBoard: MyBoardResponse): Map<string, CellState> {
 
 function buildOpponentBoardCells(
   shotsFired: ShotCellResponse[],
+  ships?: ShipResponse[],
 ): Map<string, CellState> {
   const cells = new Map<string, CellState>();
 
@@ -118,6 +120,19 @@ function buildOpponentBoardCells(
       cells.set(key, { type: "miss" });
     } else if (shot.result === "SUNK") {
       cells.set(key, { type: "sunk" });
+    }
+  }
+
+  // Third pass: reveal unhit ship cells (game-over only)
+  if (ships) {
+    for (const ship of ships) {
+      const shipCells = getShipCells(ship.row, ship.col, ship.size, ship.orientation);
+      for (const cell of shipCells) {
+        const key = cellKey(cell.row, cell.col);
+        if (!cells.has(key)) {
+          cells.set(key, { type: "ship" });
+        }
+      }
     }
   }
 
@@ -259,7 +274,7 @@ export function GameOverPanel({ gameState, user, onClose }: GameOverPanelProps) 
     ? buildMyBoardCells(gameState.myBoard)
     : new Map<string, CellState>();
   const opponentBoardCells = gameState.opponentBoard
-    ? buildOpponentBoardCells(gameState.opponentBoard.shotsFired)
+    ? buildOpponentBoardCells(gameState.opponentBoard.shotsFired, gameState.opponentBoard.ships)
     : new Map<string, CellState>();
 
   // Escape key handler

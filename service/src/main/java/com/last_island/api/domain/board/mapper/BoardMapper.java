@@ -44,15 +44,17 @@ public final class BoardMapper {
     }
 
     public static OpponentBoardResponse toOpponentBoardResponse(Board board) {
+        return toOpponentBoardResponse(board, false);
+    }
+
+    public static OpponentBoardResponse toOpponentBoardResponse(Board board, boolean revealShips) {
         List<ShotCellResponse> shotsFired = board.getShots().stream()
                 .map(shot -> toShotCellResponse(shot, board))
                 .toList();
-
-        return new OpponentBoardResponse(
-                board.getId(),
-                board.getOwner().getName(),
-                shotsFired
-        );
+        List<ShipResponse> ships = revealShips
+                ? board.getShips().stream().map(BoardMapper::toShipResponse).toList()
+                : null;
+        return new OpponentBoardResponse(board.getId(), board.getOwner().getName(), shotsFired, ships);
     }
 
     public static ShotCellResponse toShotCellResponse(Shot shot, Board board) {

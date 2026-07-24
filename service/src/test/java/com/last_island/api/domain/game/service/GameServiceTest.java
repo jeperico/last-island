@@ -314,6 +314,43 @@ class GameServiceTest {
         assertThat(ex.getReason()).contains("not a participant");
     }
 
+    @Test
+    void getGame_whenFinished_returnsOpponentBoardWithShips() {
+        Game game = buildInProgressGameWithBoards();
+        game.setPhase(GamePhase.FINISHED);
+
+        // Add ships to the opponent (red) board
+        Ship redShip1 = Ship.builder()
+                .board(game.getRedBoard())
+                .type(ShipType.THOUSAND_SUNNY)
+                .orientation(Orientation.HORIZONTAL)
+                .row(1).col(0).hits(0)
+                .build();
+        redShip1.setId(UUID.randomUUID());
+        Ship redShip2 = Ship.builder()
+                .board(game.getRedBoard())
+                .type(ShipType.POLAR_TANG)
+                .orientation(Orientation.VERTICAL)
+                .row(5).col(5).hits(0)
+                .build();
+        redShip2.setId(UUID.randomUUID());
+        game.getRedBoard().getShips().add(redShip1);
+        game.getRedBoard().getShips().add(redShip2);
+
+        when(gameRepository.findByTokenAndIsActiveTrue("654321")).thenReturn(Optional.of(game));
+        when(hakiProfileRepository.findByUserId(bluePlayer.getId())).thenReturn(Optional.empty());
+        when(hakiProfileRepository.findByUserId(redPlayer.getId())).thenReturn(Optional.empty());
+        when(hakiBattleStateRepository.findByBoardId(game.getBlueBoard().getId())).thenReturn(Optional.empty());
+
+        GameStateResponse response = gameService.getGame("654321", bluePlayer.getId());
+
+        assertThat(response.opponentBoard()).isNotNull();
+        assertThat(response.opponentBoard().ships()).isNotNull();
+        assertThat(response.opponentBoard().ships()).hasSize(2);
+        assertThat(response.opponentBoard().ships().get(0).type()).isEqualTo("THOUSAND_SUNNY");
+        assertThat(response.opponentBoard().ships().get(1).type()).isEqualTo("POLAR_TANG");
+    }
+
     // --- Cancel Game Tests ---
 
     @Test
