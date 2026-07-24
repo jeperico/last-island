@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 
 import Link from "next/link";
 import { useRequireAuth, useAuth } from "@/lib/auth";
-import { useSound } from "@/lib/sound";
 import { useLobbyEvents } from "@/lib/game";
 import {
   createGame,
@@ -49,7 +48,6 @@ import { formatBounty } from "@/lib/format";
 export default function Home() {
   const { user, isLoading } = useRequireAuth();
   const { logout } = useAuth();
-  const { isMuted, toggleMute } = useSound();
   const router = useRouter();
 
   const [error, setError] = useState<string | null>(null);
@@ -237,13 +235,6 @@ export default function Home() {
             </h1>
           </div>
           <div className="flex items-center gap-2">
-            <button
-              onClick={toggleMute}
-              className="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-surface-secondary border border-border text-text-secondary hover:bg-surface-elevated hover:border-primary/40 hover:text-primary transition-colors cursor-pointer"
-              aria-label={isMuted ? "Unmute sound" : "Mute sound"}
-            >
-              {isMuted ? "🔇" : "🔊"}
-            </button>
             <Link
               href="/haki"
               className="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-purple-950/60 border border-purple-500/40 text-purple-300 hover:bg-purple-900/60 hover:border-purple-400 hover:text-purple-200 transition-colors"
