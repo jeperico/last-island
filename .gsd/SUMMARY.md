@@ -179,3 +179,33 @@ Commit: uncommitted
 Implementer: Modified `service/src/main/java/com/last_island/api/domain/board/dto/OpponentBoardResponse.java` (+1 field), `service/src/main/java/com/last_island/api/domain/board/mapper/BoardMapper.java` (+10 lines — revealShips overload), `service/src/main/java/com/last_island/api/domain/game/mapper/GameMapper.java` (+1 line — pass FINISHED flag), `service/src/test/java/com/last_island/api/domain/game/service/GameServiceTest.java` (+30 lines — new test), `client/src/interfaces/api.ts` (+1 line — ships? field), `client/src/app/game/[token]/game-over-panel.tsx` (+12 lines — ShipResponse import, third-pass ship reveal, updated call site). Net: +55 lines across 6 files.
 Reviewer: PASS — build clean, eslint clean, 171/177 backend tests green (6 pre-existing HakiConquerorsServiceTest failures unrelated), all 5 grep checks confirm wiring
 Commit: uncommitted
+
+## 2026-07-24T11:52 — Reveal Opponent Ships on Game-Over Panel When FINISHED
+
+Backend: Added optional `ships` field to `OpponentBoardResponse`, `BoardMapper.toOpponentBoardResponse` overloaded with `revealShips` flag, `GameMapper` passes `FINISHED` phase check. Frontend: `buildOpponentBoardCells` third-pass renders unhit ship cells. +1 test.
+Commit: d9356d1
+
+## 2026-07-24T11:54 — Fix Ships Sunk Count
+
+Replaced greedy heuristic in `countOpponentShipsSunk` with simple count of distinct `sunkShipType` values.
+Commit: c8f8ca7
+
+## 2026-07-24T11:56 — Improve Leaderboard Podium Intuitiveness + Profile Modal Position
+
+Podium: 2-1-3 layout (center spotlight), medal emojis 🥇🥈🥉, size hierarchy (#1 larger). Profile modal: shows `#position` above name.
+Commit: 8accaa9
+
+## 2026-07-24T12:03 — Responsive Game-Over Modal Boards
+
+Boards scale responsively (`scale-[0.55]`→`[0.65]`→`[0.75]`), stack vertically on mobile, player columns hidden below md, modal wider on mobile.
+Commit: c9369b8
+
+## 2026-07-24T12:06 — Move Sound Toggle to Global Floating Button
+
+Created `client/src/components/sound-toggle.tsx`, rendered from providers.tsx. Removed from home page header.
+Commit: 9f1a875
+
+## 2026-07-24T12:12 — 20s Turn Timer, Skip Turn on Expiration
+
+Backend: `TURN_TIMEOUT_SECONDS` 60→20, `BoardService` guard 120→20, `handleTurnExpiration` now skips turn (switches `currentTurn`) instead of ending game. Removed game-level expiration entirely. W.O. only via surrender. Frontend: `CountdownTimer` default 60→20, urgent threshold 15→5. Rewrote `GameExpirationServiceTest`.
+Commit: 8b66d23
