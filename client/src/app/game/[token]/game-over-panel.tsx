@@ -22,10 +22,6 @@ interface GameOverPanelProps {
   onClose: () => void;
 }
 
-// ─── Ship sizes (standard fleet) ─────────────────────────────────────────────
-
-const FLEET_SHIP_SIZES = [5, 4, 3, 3, 2];
-
 // ─── Cell-building helpers ───────────────────────────────────────────────────
 
 function buildMyBoardCells(myBoard: MyBoardResponse): Map<string, CellState> {
@@ -204,25 +200,14 @@ function countMyShipsLost(myBoard: MyBoardResponse): number {
 }
 
 function countOpponentShipsSunk(shotsFired: ShotCellResponse[]): number {
-  // Count cells with SUNK result. Each ship's cells all become SUNK when the ship sinks.
-  // However, some backends mark only the killing-blow cell as SUNK, leaving others as HIT.
-  // So count HIT + SUNK cells and greedily assign to ship sizes.
-  const hitOrSunkCells = shotsFired.filter(
-    (s) => s.result === "SUNK" || s.result === "HIT",
-  ).length;
-
-  // Greedily assign to ships from the standard fleet
-  let remaining = hitOrSunkCells;
-  let count = 0;
-  for (const size of FLEET_SHIP_SIZES) {
-    if (remaining >= size) {
-      remaining -= size;
-      count++;
-    } else {
-      break;
+  // Each sunk ship produces exactly one shot with result SUNK + sunkShipType set.
+  const sunkTypes = new Set<string>();
+  for (const shot of shotsFired) {
+    if (shot.result === "SUNK" && shot.sunkShipType) {
+      sunkTypes.add(shot.sunkShipType);
     }
   }
-  return count;
+  return sunkTypes.size;
 }
 
 // ─── Component ───────────────────────────────────────────────────────────────
