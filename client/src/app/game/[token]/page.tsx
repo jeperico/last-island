@@ -4,8 +4,8 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useRequireAuth, useAuth } from "@/lib/auth";
-import { getGame, cancelGame } from "@/lib/api";
-import type { GamePhase, GameStateResponse } from "@/lib/api/types";
+import { getGame, cancelGame, cancelDeployment } from "@/lib/api";
+import type { GamePhase, GameStateResponse, Orientation } from "@/lib/api/types";
 import { useGameEvents } from "@/lib/game";
 import { useSound } from "@/lib/sound";
 import { ShipPlacement } from "./ship-placement";
@@ -30,6 +30,8 @@ export default function GamePage() {
   const [isRedeploying, setIsRedeploying] = useState(false);
   const [isAssigningArmament, setIsAssigningArmament] = useState(false);
   const [opponentHakiMessage, setOpponentHakiMessage] = useState<string | null>(null);
+  const [initialPlacements, setInitialPlacements] = useState<Map<string, { row: number; col: number; orientation: Orientation }> | undefined>(undefined);
+  const [opponentReady, setOpponentReady] = useState(false);
 
 
   const { swapSoundtrack, resumeGlobalSoundtrack, playLaugh, playSunk, playIncomingHit } = useSound();
@@ -108,6 +110,7 @@ export default function GamePage() {
         refetchGame();
       },
       onShipsPlaced: () => {
+        setOpponentReady(true);
         refetchGame();
       },
       onShotReceived: (data) => {
@@ -150,6 +153,10 @@ export default function GamePage() {
       onArmamentHakiDefended: () => {
         setOpponentHakiMessage("🛡️ Your Armament Haki blocked the attack!");
         setTimeout(() => setOpponentHakiMessage(null), 5000);
+      },
+      onDeploymentCancelled: () => {
+        setOpponentReady(false);
+        refetchGame();
       },
     },
     sseEnabled,
@@ -285,12 +292,19 @@ export default function GamePage() {
             )}
             <ShipPlacement
               gameToken={token}
+              opponentName={
+                gameState.bluePlayerName === user.name
+                  ? gameState.redPlayerName
+                  : gameState.bluePlayerName
+              }
               onPlacementComplete={(gamePhase) => {
                 setIsRedeploying(false);
                 setIsAssigningArmament(false);
+                setInitialPlacements(undefined);
                 handlePlacementComplete(gamePhase);
               }}
               onArmamentStart={() => setIsAssigningArmament(true)}
+              initialPlacements={initialPlacements}
             />
           </div>
         );
@@ -347,14 +361,30 @@ export default function GamePage() {
               </span>
             </div>
 
-            {/* Redeploy button */}
+            {/* Cancel Deployment button */}
             <button
               type="button"
-              onClick={() => setIsRedeploying(true)}
+              onClick={async () => {
+                try {
+                  // Save current ship positions before cancelling
+                  const ships = gameState!.myBoard!.ships;
+                  const placements = new Map<string, { row: number; col: number; orientation: Orientation }>();
+                  for (const ship of ships) {
+                    placements.set(ship.type, { row: ship.row, col: ship.col, orientation: ship.orientation });
+                  }
+                  await cancelDeployment(token);
+                  setInitialPlacements(placements);
+                  setIsRedeploying(true);
+                  refetchGame();
+                } catch {
+                  // If cancel fails (e.g. opponent already placed), just refetch to update UI
+                  refetchGame();
+                }
+              }}
               className="inline-flex items-center gap-2 text-sm text-text-secondary hover:text-primary transition-colors cursor-pointer"
             >
-              <span>🔄</span>
-              <span>Redeploy Fleet</span>
+              <span>↩️</span>
+              <span>Cancel Deployment</span>
             </button>
           </div>
         </div>

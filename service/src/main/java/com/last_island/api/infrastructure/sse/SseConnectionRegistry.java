@@ -1,5 +1,6 @@
 package com.last_island.api.infrastructure.sse;
 
+import com.last_island.api.infrastructure.metrics.GameMetrics;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
@@ -17,6 +18,11 @@ public class SseConnectionRegistry {
     private final ConcurrentHashMap<String, Map<UUID, SseEmitter>> emitters = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, List<GameEvent>> eventBuffers = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, AtomicLong> eventCounters = new ConcurrentHashMap<>();
+    private final GameMetrics gameMetrics;
+
+    public SseConnectionRegistry(GameMetrics gameMetrics) {
+        this.gameMetrics = gameMetrics;
+    }
 
     public SseEmitter register(String gameToken, UUID userId) {
         SseEmitter emitter = new SseEmitter(EMITTER_TIMEOUT);
@@ -34,6 +40,8 @@ public class SseConnectionRegistry {
         GameEvent connectedEvent = GameEvent.of(id, GameEvent.CONNECTED);
         doSend(emitter, connectedEvent);
         bufferEvent(gameToken, connectedEvent);
+
+        gameMetrics.incrementSseConnections();
 
         return emitter;
     }
@@ -74,7 +82,10 @@ public class SseConnectionRegistry {
     public void remove(String gameToken, UUID userId) {
         Map<UUID, SseEmitter> gameEmitters = emitters.get(gameToken);
         if (gameEmitters != null) {
-            gameEmitters.remove(userId);
+            SseEmitter removed = gameEmitters.remove(userId);
+            if (removed != null) {
+                gameMetrics.decrementSseConnections();
+            }
             if (gameEmitters.isEmpty()) {
                 emitters.remove(gameToken);
             }

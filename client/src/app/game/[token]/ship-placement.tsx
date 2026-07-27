@@ -27,8 +27,10 @@ const ROW_LABELS = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J"];
 
 interface ShipPlacementProps {
   gameToken: string;
+  opponentName: string | null;
   onPlacementComplete: (gamePhase: GamePhase) => void;
   onArmamentStart?: () => void;
+  initialPlacements?: Map<string, { row: number; col: number; orientation: Orientation }>;
 }
 
 interface PlacementEntry {
@@ -39,17 +41,33 @@ interface PlacementEntry {
 
 export function ShipPlacement({
   gameToken,
+  opponentName,
   onPlacementComplete,
   onArmamentStart,
+  initialPlacements,
 }: ShipPlacementProps) {
   const fleet = useMemo(() => PIRATE_FLEET, []);
 
   const [selectedShipType, setSelectedShipType] = useState<ShipType | null>(
-    () => PIRATE_FLEET[0] ?? null,
+    () => {
+      if (initialPlacements && initialPlacements.size === PIRATE_FLEET.length) {
+        return null;
+      }
+      return PIRATE_FLEET[0] ?? null;
+    },
   );
   const [orientation, setOrientation] = useState<Orientation>("HORIZONTAL");
   const [placements, setPlacements] = useState<Map<ShipType, PlacementEntry>>(
-    new Map(),
+    () => {
+      if (initialPlacements) {
+        const map = new Map<ShipType, PlacementEntry>();
+        for (const [shipType, placement] of initialPlacements) {
+          map.set(shipType as ShipType, placement);
+        }
+        return map;
+      }
+      return new Map();
+    },
   );
   const [hoveredCell, setHoveredCell] = useState<{
     row: number;
@@ -65,7 +83,6 @@ export function ShipPlacement({
   const [armamentStep, setArmamentStep] = useState(false);
   const [deployedShips, setDeployedShips] = useState<ShipResponse[]>([]);
   const [selectedShipIds, setSelectedShipIds] = useState<string[]>([]);
-  const [deployedGamePhase, setDeployedGamePhase] = useState<GamePhase | "">("");
   const [armamentSubmitting, setArmamentSubmitting] = useState(false);
 
   const occupiedCells = useMemo(() => {
@@ -360,6 +377,28 @@ export function ShipPlacement({
     setError(null);
     setSubmitting(true);
 
+    // If player has armament haki, show selection modal BEFORE sending placeShips
+    if (hakiProfile && hakiProfile.armamentLevel >= 1) {
+      // Build local ship list from placements for display in armament modal
+      const localShips: ShipResponse[] = Array.from(placements.entries()).map(
+        ([shipType, placement]) => ({
+          id: shipType, // Use type as temporary identifier (resolved after placeShips)
+          type: shipType,
+          orientation: placement.orientation,
+          row: placement.row,
+          col: placement.col,
+          size: SHIP_SIZES[shipType],
+        }),
+      );
+      setDeployedShips(localShips);
+      setSelectedShipIds([]);
+      setArmamentStep(true);
+      setSubmitting(false);
+      onArmamentStart?.();
+      return;
+    }
+
+    // No armament — place ships and proceed immediately
     const request: PlaceShipsRequest = {
       ships: Array.from(placements.entries()).map(([shipType, placement]) => ({
         type: shipType,
@@ -371,18 +410,6 @@ export function ShipPlacement({
 
     try {
       const response = await placeShips(gameToken, request);
-
-      // If player has armament haki, show selection step before completing
-      if (hakiProfile && hakiProfile.armamentLevel >= 1) {
-        setDeployedShips(response.ships);
-        setDeployedGamePhase(response.gamePhase);
-        setSelectedShipIds([]);
-        setArmamentStep(true);
-        onArmamentStart?.();
-        return;
-      }
-
-      // No armament — proceed immediately
       onPlacementComplete(response.gamePhase);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to deploy fleet");
@@ -425,32 +452,48 @@ export function ShipPlacement({
     });
   }
 
-  // Step 6: Confirm armament assignment
+  // Step 6: Confirm armament assignment — places ships AND assigns armament
   async function handleArmamentConfirm() {
     setArmamentSubmitting(true);
+    setError(null);
+
+    const request: PlaceShipsRequest = {
+      ships: Array.from(placements.entries()).map(([shipType, placement]) => ({
+        type: shipType,
+        row: placement.row,
+        col: placement.col,
+        orientation: placement.orientation,
+      })),
+    };
+
     try {
-      // Resolve actual ship UUIDs from selectedShipIds (which may be id or type fallback)
-      const resolveShipId = (identifier: string): string => {
-        const ship = deployedShips.find((s) => s.id === identifier || s.type === identifier);
-        return ship?.id ?? identifier;
+      // Step 1: Place ships on the server
+      const response = await placeShips(gameToken, request);
+
+      // Step 2: Resolve selected ship types to actual server-assigned UUIDs
+      const resolveShipId = (shipType: string): string => {
+        const ship = response.ships.find((s) => s.type === shipType);
+        return ship?.id ?? shipType;
       };
 
-      await assignArmament(gameToken, {
-        ship1Id: selectedShipIds[1] ? resolveShipId(selectedShipIds[1]) : resolveShipId(selectedShipIds[0]),
-        ship2Id: selectedShipIds[1] ? resolveShipId(selectedShipIds[0]) : null,
-      });
-    } catch {
-      // Graceful degradation: if assignArmament fails (race condition),
-      // game proceeds without armament protection
+      // Step 3: Assign armament to selected ships
+      try {
+        await assignArmament(gameToken, {
+          ship1Id: selectedShipIds[1] ? resolveShipId(selectedShipIds[1]) : resolveShipId(selectedShipIds[0]),
+          ship2Id: selectedShipIds[1] ? resolveShipId(selectedShipIds[0]) : null,
+        });
+      } catch {
+        // Graceful degradation: if assignArmament fails,
+        // game proceeds without armament protection
+      }
+
+      onPlacementComplete(response.gamePhase);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to deploy fleet");
+      setArmamentStep(false);
     } finally {
       setArmamentSubmitting(false);
-      onPlacementComplete(deployedGamePhase as GamePhase);
     }
-  }
-
-  // Step 7: Skip armament step
-  function handleArmamentSkip() {
-    onPlacementComplete(deployedGamePhase as GamePhase);
   }
 
   function getCellState(
@@ -490,12 +533,12 @@ export function ShipPlacement({
         variant="ghost"
         size="sm"
         onClick={() => setSurrenderOpen(true)}
-        className="absolute bottom-2 left-1/2 -translate-x-1/2 text-xs opacity-70 hover:opacity-100"
+        className="relative mt-3 sm:absolute sm:bottom-2 sm:left-1/2 sm:-translate-x-1/2 text-xs opacity-70 hover:opacity-100"
       >
         🏳️ Surrender
       </Button>
 
-      <div className="relative overflow-hidden flex flex-col gap-4 items-center w-fit bg-surface/80 backdrop-blur-md rounded-2xl p-5 border border-border">
+      <div className="relative overflow-hidden flex flex-col gap-4 items-center w-full max-w-fit bg-surface/80 backdrop-blur-md rounded-2xl p-3 sm:p-5 border border-border">
         {/* Teal accent strip */}
         <div className="h-1 w-full bg-gradient-to-r from-primary/30 via-ocean/20 to-transparent rounded-t-2xl absolute top-0 left-0" />
 
@@ -505,7 +548,9 @@ export function ShipPlacement({
             ⚓ Deploy Your Fleet
           </h1>
           <p className="text-xs text-text-muted mt-0.5">
-            Position your fleet on the sea chart
+            {opponentName
+              ? <>Battle against <span className="text-text-secondary font-medium">{opponentName}</span></>
+              : "Position your fleet on the sea chart"}
           </p>
         </div>
 
@@ -600,11 +645,11 @@ export function ShipPlacement({
               <div className="inline-block">
                 {/* Column labels */}
                 <div className="flex">
-                  <div className="h-8 w-7 sm:w-8" /> {/* Corner spacer */}
+                  <div className="h-8 w-6 sm:w-7 md:w-8" /> {/* Corner spacer */}
                   {Array.from({ length: GRID_SIZE }).map((_, col) => (
                     <div
                       key={col}
-                      className="flex h-8 w-7 sm:w-8 items-center justify-center text-[10px] font-mono text-text-muted"
+                      className="flex h-8 w-6 sm:w-7 md:w-8 items-center justify-center text-[10px] font-mono text-text-muted"
                     >
                       {col + 1}
                     </div>
@@ -615,7 +660,7 @@ export function ShipPlacement({
                 {Array.from({ length: GRID_SIZE }).map((_, row) => (
                   <div key={row} className="flex">
                     {/* Row label */}
-                    <div className="flex h-7 sm:h-8 w-7 sm:w-8 items-center justify-center text-[10px] font-mono text-text-muted">
+                    <div className="flex h-6 sm:h-7 md:h-8 w-6 sm:w-7 md:w-8 items-center justify-center text-[10px] font-mono text-text-muted">
                       {ROW_LABELS[row]}
                     </div>
 
@@ -625,7 +670,7 @@ export function ShipPlacement({
                       return (
                         <div
                           key={col}
-                          className={`h-7 w-7 sm:h-8 sm:w-8 cursor-pointer rounded-[2px] transition-all duration-100 ${
+                          className={`h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8 cursor-pointer rounded-[2px] transition-all duration-100 ${
                             state === "placed"
                               ? "bg-teal-500/50 border border-teal-400/40 shadow-[inset_0_0_4px_rgba(45,212,191,0.3)]"
                               : state === "preview-valid"
@@ -686,7 +731,7 @@ export function ShipPlacement({
       />
 
       {/* Armament Haki selection modal */}
-      <Modal open={armamentStep} onClose={handleArmamentSkip} title="Armament Haki">
+      <Modal open={armamentStep} onClose={() => setArmamentStep(false)} title="Armament Haki">
         <div className="bg-surface-elevated rounded-xl border border-border p-5 flex flex-col gap-4">
           <div className="text-center">
             <h3 className="text-lg font-bold text-text-primary">🛡️ Armament Haki</h3>
@@ -765,13 +810,6 @@ export function ShipPlacement({
               className="w-full bg-red-900 hover:bg-red-800 text-red-100"
             >
               Activate Armament
-            </Button>
-            <Button
-              variant="ghost"
-              onClick={handleArmamentSkip}
-              className="w-full"
-            >
-              Skip
             </Button>
           </div>
         </div>

@@ -51,7 +51,10 @@ export function PlayerProfileModal({ open, onClose, player }: PlayerProfileModal
           </div>
 
           {/* Player name */}
-          <p className="text-xl font-bold text-text-primary">{player.name}</p>
+          <div className="flex flex-col items-center gap-1">
+            <span className="text-sm font-semibold text-text-muted">#{player.position}</span>
+            <p className="text-xl font-bold text-text-primary">{player.name}</p>
+          </div>
 
           {/* Rank badge */}
           <span

@@ -108,4 +108,10 @@ public class GameEventEmitter {
         ));
         registry.send(gameToken, opponentId, event);
     }
+
+    public void emitDeploymentCancelled(String gameToken, UUID opponentId) {
+        long id = registry.nextEventId(gameToken);
+        GameEvent event = GameEvent.of(id, GameEvent.DEPLOYMENT_CANCELLED, Map.of());
+        registry.send(gameToken, opponentId, event);
+    }
 }

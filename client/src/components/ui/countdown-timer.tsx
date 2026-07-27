@@ -9,7 +9,7 @@ interface CountdownTimerProps {
 
 export function CountdownTimer({
   turnStartedAt,
-  turnDurationSeconds = 60,
+  turnDurationSeconds = 20,
 }: CountdownTimerProps) {
   const [remainingSeconds, setRemainingSeconds] = useState<number>(0);
 
@@ -45,7 +45,7 @@ export function CountdownTimer({
   const seconds = remainingSeconds % 60;
   const display = `${minutes}:${seconds.toString().padStart(2, "0")}`;
 
-  const isUrgent = remainingSeconds <= 15 && remainingSeconds > 0;
+  const isUrgent = remainingSeconds <= 5 && remainingSeconds > 0;
 
   return (
     <span

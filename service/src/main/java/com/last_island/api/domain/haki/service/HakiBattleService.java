@@ -1,5 +1,7 @@
 package com.last_island.api.domain.haki.service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.last_island.api.domain.board.entity.Board;
 import com.last_island.api.domain.board.entity.Ship;
 import com.last_island.api.domain.board.entity.Shot;
@@ -14,7 +16,12 @@ import com.last_island.api.domain.haki.entity.HakiProfile;
 import com.last_island.api.domain.haki.enums.CellRevealStatus;
 import com.last_island.api.domain.haki.repository.HakiBattleStateRepository;
 import com.last_island.api.domain.haki.repository.HakiProfileRepository;
+import com.last_island.api.infrastructure.metrics.GameMetrics;
 import com.last_island.api.infrastructure.sse.GameEventEmitter;
+import io.opentelemetry.api.GlobalOpenTelemetry;
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.StatusCode;
+import io.opentelemetry.api.trace.Tracer;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,19 +32,26 @@ import java.util.*;
 @Service
 public class HakiBattleService {
 
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
     private final HakiBattleStateRepository hakiBattleStateRepository;
     private final HakiProfileRepository hakiProfileRepository;
     private final GameRepository gameRepository;
     private final GameEventEmitter gameEventEmitter;
+    private final GameMetrics gameMetrics;
+    private final Tracer tracer;
 
     public HakiBattleService(HakiBattleStateRepository hakiBattleStateRepository,
                              HakiProfileRepository hakiProfileRepository,
                              GameRepository gameRepository,
-                             GameEventEmitter gameEventEmitter) {
+                             GameEventEmitter gameEventEmitter,
+                             GameMetrics gameMetrics) {
         this.hakiBattleStateRepository = hakiBattleStateRepository;
         this.hakiProfileRepository = hakiProfileRepository;
         this.gameRepository = gameRepository;
         this.gameEventEmitter = gameEventEmitter;
+        this.gameMetrics = gameMetrics;
+        this.tracer = GlobalOpenTelemetry.get().getTracer("last-island");
     }
 
     @Transactional
@@ -104,6 +118,11 @@ public class HakiBattleService {
 
     @Transactional
     public void assignArmament(String token, UUID userId, ArmamentAssignmentRequest request) {
+        Span span = tracer.spanBuilder("HakiBattleService.assignArmament")
+                .setAttribute("game.token", token)
+                .setAttribute("player.id", userId.toString())
+                .startSpan();
+        try {
         // Fetch game
         Game game = gameRepository.findByTokenAndIsActiveTrue(token)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Battle not found"));
@@ -177,6 +196,14 @@ public class HakiBattleService {
         state.setArmamentShip2HitsAbsorbed(0);
 
         hakiBattleStateRepository.save(state);
+        gameMetrics.incrementHakiUsage("armament");
+        } catch (Exception e) {
+            span.setStatus(StatusCode.ERROR, e.getMessage());
+            span.recordException(e);
+            throw e;
+        } finally {
+            span.end();
+        }
     }
 
     // --- Armament Haki: Trigger Check ---
@@ -342,6 +369,11 @@ public class HakiBattleService {
 
     @Transactional
     public ConquerorsActivationResponse activateConquerors(String token, UUID userId, ConquerorsActivationRequest request) {
+        Span span = tracer.spanBuilder("HakiBattleService.activateConquerors")
+                .setAttribute("game.token", token)
+                .setAttribute("player.id", userId.toString())
+                .startSpan();
+        try {
         // Fetch game
         Game game = gameRepository.findByTokenAndIsActiveTrue(token)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Battle not found"));
@@ -435,7 +467,15 @@ public class HakiBattleService {
         UUID opponentId = opponentBoard.getOwner().getId();
         gameEventEmitter.emitConquerorsHakiUsed(token, opponentId, skipTurns, effectLevel);
 
+        gameMetrics.incrementHakiUsage("conquerors");
         return new ConquerorsActivationResponse(skipTurns, effectLevel, xPatternShots);
+        } catch (Exception e) {
+            span.setStatus(StatusCode.ERROR, e.getMessage());
+            span.recordException(e);
+            throw e;
+        } finally {
+            span.end();
+        }
     }
 
     // --- Conqueror's Haki: X-pattern resolution ---
@@ -530,6 +570,11 @@ public class HakiBattleService {
 
     @Transactional
     public ObservationResponse activateObservation(String token, UUID userId, ObservationRequest request) {
+        Span span = tracer.spanBuilder("HakiBattleService.activateObservation")
+                .setAttribute("game.token", token)
+                .setAttribute("player.id", userId.toString())
+                .startSpan();
+        try {
         // Fetch game
         Game game = gameRepository.findByTokenAndIsActiveTrue(token)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Battle not found"));
@@ -645,13 +690,33 @@ public class HakiBattleService {
         state.setObservationUsesRemaining(state.getObservationUsesRemaining() - 1);
         state.setObservationUsesConsumed(state.getObservationUsesConsumed() + 1);
         state.setHakiUsedThisTurn(true);
+
+        // Persist revealed cells (accumulate across uses)
+        try {
+            List<RevealedCell> accumulated = state.getRevealedCells() != null
+                    ? OBJECT_MAPPER.readValue(state.getRevealedCells(), new TypeReference<List<RevealedCell>>() {})
+                    : new ArrayList<>();
+            accumulated.addAll(revealedCells);
+            state.setRevealedCells(OBJECT_MAPPER.writeValueAsString(accumulated));
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to persist revealed cells");
+        }
+
         hakiBattleStateRepository.save(state);
 
         // Emit SSE to opponent
         UUID opponentId = opponentBoard.getOwner().getId();
         gameEventEmitter.emitObservationHakiUsed(token, opponentId);
 
+        gameMetrics.incrementHakiUsage("observation");
         return new ObservationResponse(revealedCells, effectLevel);
+        } catch (Exception e) {
+            span.setStatus(StatusCode.ERROR, e.getMessage());
+            span.recordException(e);
+            throw e;
+        } finally {
+            span.end();
+        }
     }
 
     private String determineEffectLevel(HakiBattleState state) {

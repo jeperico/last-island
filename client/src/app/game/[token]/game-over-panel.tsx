@@ -7,6 +7,7 @@ import type {
   UserResponse,
   MyBoardResponse,
   ShotCellResponse,
+  ShipResponse,
   ShipType,
 } from "@/lib/api/types";
 import { getShipCells, cellKey, SHIP_SIZES } from "@/lib/game";
@@ -20,10 +21,6 @@ interface GameOverPanelProps {
   user: UserResponse;
   onClose: () => void;
 }
-
-// ─── Ship sizes (standard fleet) ─────────────────────────────────────────────
-
-const FLEET_SHIP_SIZES = [5, 4, 3, 3, 2];
 
 // ─── Cell-building helpers ───────────────────────────────────────────────────
 
@@ -72,6 +69,7 @@ function buildMyBoardCells(myBoard: MyBoardResponse): Map<string, CellState> {
 
 function buildOpponentBoardCells(
   shotsFired: ShotCellResponse[],
+  ships?: ShipResponse[],
 ): Map<string, CellState> {
   const cells = new Map<string, CellState>();
 
@@ -118,6 +116,19 @@ function buildOpponentBoardCells(
       cells.set(key, { type: "miss" });
     } else if (shot.result === "SUNK") {
       cells.set(key, { type: "sunk" });
+    }
+  }
+
+  // Third pass: reveal unhit ship cells (game-over only)
+  if (ships) {
+    for (const ship of ships) {
+      const shipCells = getShipCells(ship.row, ship.col, ship.size, ship.orientation);
+      for (const cell of shipCells) {
+        const key = cellKey(cell.row, cell.col);
+        if (!cells.has(key)) {
+          cells.set(key, { type: "ship" });
+        }
+      }
     }
   }
 
@@ -189,25 +200,14 @@ function countMyShipsLost(myBoard: MyBoardResponse): number {
 }
 
 function countOpponentShipsSunk(shotsFired: ShotCellResponse[]): number {
-  // Count cells with SUNK result. Each ship's cells all become SUNK when the ship sinks.
-  // However, some backends mark only the killing-blow cell as SUNK, leaving others as HIT.
-  // So count HIT + SUNK cells and greedily assign to ship sizes.
-  const hitOrSunkCells = shotsFired.filter(
-    (s) => s.result === "SUNK" || s.result === "HIT",
-  ).length;
-
-  // Greedily assign to ships from the standard fleet
-  let remaining = hitOrSunkCells;
-  let count = 0;
-  for (const size of FLEET_SHIP_SIZES) {
-    if (remaining >= size) {
-      remaining -= size;
-      count++;
-    } else {
-      break;
+  // Each sunk ship produces exactly one shot with result SUNK + sunkShipType set.
+  const sunkTypes = new Set<string>();
+  for (const shot of shotsFired) {
+    if (shot.result === "SUNK" && shot.sunkShipType) {
+      sunkTypes.add(shot.sunkShipType);
     }
   }
-  return count;
+  return sunkTypes.size;
 }
 
 // ─── Component ───────────────────────────────────────────────────────────────
@@ -259,7 +259,7 @@ export function GameOverPanel({ gameState, user, onClose }: GameOverPanelProps) 
     ? buildMyBoardCells(gameState.myBoard)
     : new Map<string, CellState>();
   const opponentBoardCells = gameState.opponentBoard
-    ? buildOpponentBoardCells(gameState.opponentBoard.shotsFired)
+    ? buildOpponentBoardCells(gameState.opponentBoard.shotsFired, gameState.opponentBoard.ships)
     : new Map<string, CellState>();
 
   // Escape key handler
@@ -308,7 +308,7 @@ export function GameOverPanel({ gameState, user, onClose }: GameOverPanelProps) 
       }}
     >
       <div
-        className="relative w-[90vw] max-w-7xl h-[90vh] max-h-[900px] rounded-xl overflow-hidden border border-border bg-surface"
+        className="relative w-[95vw] md:w-[90vw] max-w-7xl h-[85vh] md:h-[90vh] max-h-[900px] rounded-xl overflow-hidden border border-border bg-surface"
         style={{ animation: closing ? "character-select-out 250ms ease-in forwards" : "character-select-in 300ms ease-out forwards" }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -323,8 +323,9 @@ export function GameOverPanel({ gameState, user, onClose }: GameOverPanelProps) 
         </button>
 
         {/* Three-column grid */}
-        <div className="grid grid-cols-[1fr_2fr_1fr] h-full">
+        <div className="grid grid-cols-1 md:grid-cols-[1fr_2fr_1fr] h-full">
           {/* Left column — My player */}
+          <div className="hidden md:block h-full">
           <PlayerColumn
             name={myName}
             avatar={myAvatar}
@@ -337,6 +338,7 @@ export function GameOverPanel({ gameState, user, onClose }: GameOverPanelProps) 
             armament={myArmament}
             conquerors={myConquerors}
           />
+          </div>
 
           {/* Middle column */}
           <div className="flex flex-col items-center justify-between py-6 px-4 bg-surface-elevated overflow-hidden">
@@ -388,7 +390,7 @@ export function GameOverPanel({ gameState, user, onClose }: GameOverPanelProps) 
 
             {/* Boards section */}
             <div className="flex-1 flex items-center justify-center w-full overflow-hidden">
-              <div className="flex gap-4 justify-center items-center" style={{ transform: "scale(0.7)" }}>
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-center scale-[0.55] sm:scale-[0.65] lg:scale-[0.75] origin-center">
                 {gameState.myBoard && (
                   <BoardGrid title="My Fleet" cells={myBoardCells} />
                 )}
@@ -409,6 +411,7 @@ export function GameOverPanel({ gameState, user, onClose }: GameOverPanelProps) 
           </div>
 
           {/* Right column — Opponent */}
+          <div className="hidden md:block h-full">
           <PlayerColumn
             name={oppName}
             avatar={oppAvatar}
@@ -421,6 +424,7 @@ export function GameOverPanel({ gameState, user, onClose }: GameOverPanelProps) 
             armament={oppArmament}
             conquerors={oppConquerors}
           />
+          </div>
         </div>
       </div>
     </div>

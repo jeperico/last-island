@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 
 import Link from "next/link";
 import { useRequireAuth, useAuth } from "@/lib/auth";
-import { useSound } from "@/lib/sound";
 import { useLobbyEvents } from "@/lib/game";
 import {
   createGame,
@@ -49,7 +48,6 @@ import { formatBounty } from "@/lib/format";
 export default function Home() {
   const { user, isLoading } = useRequireAuth();
   const { logout } = useAuth();
-  const { isMuted, toggleMute } = useSound();
   const router = useRouter();
 
   const [error, setError] = useState<string | null>(null);
@@ -237,13 +235,6 @@ export default function Home() {
             </h1>
           </div>
           <div className="flex items-center gap-2">
-            <button
-              onClick={toggleMute}
-              className="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-surface-secondary border border-border text-text-secondary hover:bg-surface-elevated hover:border-primary/40 hover:text-primary transition-colors cursor-pointer"
-              aria-label={isMuted ? "Unmute sound" : "Mute sound"}
-            >
-              {isMuted ? "🔇" : "🔊"}
-            </button>
             <Link
               href="/haki"
               className="inline-flex items-center justify-center w-9 h-9 rounded-lg bg-purple-950/60 border border-purple-500/40 text-purple-300 hover:bg-purple-900/60 hover:border-purple-400 hover:text-purple-200 transition-colors"
@@ -316,16 +307,22 @@ export default function Home() {
                     {/* Top 3 podium */}
                     {leaderboard.entries.filter(e => e.position <= 3).length > 0 && (
                       <div className="grid grid-cols-3 gap-px bg-border-light">
-                        {[1, 2, 3].map((pos) => {
+                        {[2, 1, 3].map((pos) => {
                           const entry = leaderboard.entries.find(e => e.position === pos);
                           if (!entry) return <div key={pos} className="bg-surface-secondary/30 p-3" />;
                           const avatarBg = entry.avatar
                             ? `/avatars/${entry.avatar.toLowerCase()}/${entry.avatar.toLowerCase()}-bg-02.jpg`
                             : null;
+                          const medalEmoji = pos === 1 ? "🥇" : pos === 2 ? "🥈" : "🥉";
+                          const isFirst = pos === 1;
                           return (
                             <div
                               key={pos}
-                              className={`relative p-3 flex flex-col items-center gap-1.5 overflow-hidden cursor-pointer ${entry.isCurrentUser ? "ring-2 ring-inset ring-primary/50" : ""}`}
+                              className={[
+                                "relative flex flex-col items-center gap-1.5 overflow-hidden cursor-pointer",
+                                isFirst ? "p-2 py-3 sm:p-4 sm:py-5" : "p-3 pt-6",
+                                entry.isCurrentUser ? "ring-2 ring-inset ring-primary/50" : "",
+                              ].filter(Boolean).join(" ")}
                               onClick={() => setProfilePlayer(entry)}
                               role="button"
                               tabIndex={0}
@@ -342,8 +339,12 @@ export default function Home() {
                               )}
                               {/* Color gradient overlay */}
                               <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-black/30" />
-                              <AvatarIcon avatar={entry.avatar} rank={entry.rank} size="lg" className="relative z-10" priority />
-                              <p className="relative z-10 text-sm font-bold text-white truncate max-w-full text-center drop-shadow-md">
+                              {/* Medal badge */}
+                              <span className={`relative z-10 ${isFirst ? "text-2xl" : "text-lg"}`}>{medalEmoji}</span>
+                              <div className="relative z-10 scale-90 sm:scale-100">
+                                <AvatarIcon avatar={entry.avatar} rank={entry.rank} size={isFirst ? "lg" : "md"} priority />
+                              </div>
+                              <p className={`relative z-10 font-bold text-white truncate max-w-full text-center drop-shadow-md ${isFirst ? "text-base" : "text-sm"}`}>
                                 {entry.name}
                               </p>
                               <p className="relative z-10 text-xs font-bold text-secondary drop-shadow-md">

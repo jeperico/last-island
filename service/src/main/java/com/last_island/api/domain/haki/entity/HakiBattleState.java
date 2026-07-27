@@ -67,4 +67,7 @@ public class HakiBattleState extends BaseEntity {
     @Column(name = "opponent_skip_turns", nullable = false)
     @Builder.Default
     private int opponentSkipTurns = 0;
+
+    @Column(name = "revealed_cells")
+    private String revealedCells;
 }

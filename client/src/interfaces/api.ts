@@ -108,6 +108,7 @@ export interface OpponentBoardResponse {
   boardId: string;
   ownerName: string;
   shotsFired: ShotCellResponse[];
+  ships?: ShipResponse[];
 }
 
 export interface BoardResponse {
@@ -148,6 +149,13 @@ export interface GameStateResponse {
   redPlayerObservation: number | null;
   redPlayerArmament: number | null;
   redPlayerConquerors: number | null;
+  observationUsesRemaining: number | null;
+  observationUsesConsumed: number | null;
+  conquerorsUsesRemaining: number | null;
+  conquerorsUsesConsumed: number | null;
+  conquerorsCooldownTurns: number | null;
+  hakiUsedThisTurn: boolean | null;
+  revealedCells: RevealedCell[] | null;
 }
 
 export interface ShotResponse {

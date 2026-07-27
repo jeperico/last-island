@@ -20,8 +20,14 @@ import com.last_island.api.domain.game.repository.GameResultRepository;
 import com.last_island.api.domain.user.entity.User;
 import com.last_island.api.domain.user.service.BountyService;
 import com.last_island.api.domain.haki.dto.ArmamentTriggerResult;
+import com.last_island.api.domain.haki.repository.HakiBattleStateRepository;
 import com.last_island.api.domain.haki.service.HakiBattleService;
+import com.last_island.api.infrastructure.metrics.GameMetrics;
 import com.last_island.api.infrastructure.sse.GameEventEmitter;
+import io.opentelemetry.api.GlobalOpenTelemetry;
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.StatusCode;
+import io.opentelemetry.api.trace.Tracer;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -41,17 +47,28 @@ public class BoardService {
     private final GameEventEmitter gameEventEmitter;
     private final BountyService bountyService;
     private final HakiBattleService hakiBattleService;
+    private final HakiBattleStateRepository hakiBattleStateRepository;
+    private final GameMetrics gameMetrics;
+    private final Tracer tracer;
 
-    public BoardService(GameRepository gameRepository, GameResultRepository gameResultRepository, GameEventEmitter gameEventEmitter, BountyService bountyService, HakiBattleService hakiBattleService) {
+    public BoardService(GameRepository gameRepository, GameResultRepository gameResultRepository, GameEventEmitter gameEventEmitter, BountyService bountyService, HakiBattleService hakiBattleService, HakiBattleStateRepository hakiBattleStateRepository, GameMetrics gameMetrics) {
         this.gameRepository = gameRepository;
         this.gameResultRepository = gameResultRepository;
         this.gameEventEmitter = gameEventEmitter;
         this.bountyService = bountyService;
         this.hakiBattleService = hakiBattleService;
+        this.hakiBattleStateRepository = hakiBattleStateRepository;
+        this.gameMetrics = gameMetrics;
+        this.tracer = GlobalOpenTelemetry.get().getTracer("last-island");
     }
 
     @Transactional
     public BoardResponse placeShips(String token, UUID userId, PlaceShipsRequest request) {
+        Span span = tracer.spanBuilder("BoardService.placeShips")
+                .setAttribute("game.token", token)
+                .setAttribute("player.id", userId.toString())
+                .startSpan();
+        try {
         // 1. Fetch game
         Game game = gameRepository.findByTokenAndIsActiveTrue(token)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Battle not found"));
@@ -175,10 +192,22 @@ public class BoardService {
 
         // 14. Return response
         return BoardMapper.toResponse(board, game.getPhase().name());
+        } catch (Exception e) {
+            span.setStatus(StatusCode.ERROR, e.getMessage());
+            span.recordException(e);
+            throw e;
+        } finally {
+            span.end();
+        }
     }
 
     @Transactional
     public ShotResponse fireShot(String token, UUID userId, ShotRequest request) {
+        Span span = tracer.spanBuilder("BoardService.fireShot")
+                .setAttribute("game.token", token)
+                .setAttribute("player.id", userId.toString())
+                .startSpan();
+        try {
         // 1. Validate coordinates
         if (request.row() < 0 || request.row() > 9 || request.col() < 0 || request.col() > 9) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Coordinates are off the sea chart");
@@ -212,7 +241,7 @@ public class BoardService {
         }
 
         // 5b. Race condition guard — reject shots after turn expired
-        if (game.getTurnStartedAt() != null && game.getTurnStartedAt().plusSeconds(120).isBefore(LocalDateTime.now())) {
+        if (game.getTurnStartedAt() != null && game.getTurnStartedAt().plusSeconds(20).isBefore(LocalDateTime.now())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Your turn has expired, Captain!");
         }
 
@@ -307,6 +336,7 @@ public class BoardService {
                 });
             }
 
+            gameMetrics.incrementShotsFired();
             return new ShotResponse(result, sunkShipType, request.row(), request.col(), true, attacker.getName());
         }
 
@@ -361,8 +391,71 @@ public class BoardService {
         }
 
         // 14. Return response
+        gameMetrics.incrementShotsFired();
         return new ShotResponse(result, sunkShipType, request.row(), request.col(), false, null,
                 armamentTriggered, armamentResult != null ? armamentResult.counterFire() : null,
                 game.getCurrentTurn().getName());
+        } catch (Exception e) {
+            span.setStatus(StatusCode.ERROR, e.getMessage());
+            span.recordException(e);
+            throw e;
+        } finally {
+            span.end();
+        }
+    }
+
+    @Transactional
+    public void cancelDeployment(String token, UUID userId) {
+        // 1. Fetch game
+        Game game = gameRepository.findByTokenAndIsActiveTrue(token)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Battle not found"));
+
+        // 2. Validate user is a participant
+        Board board;
+        Board opponentBoard;
+        if (game.getBlueBoard().getOwner().getId().equals(userId)) {
+            board = game.getBlueBoard();
+            opponentBoard = game.getRedBoard();
+        } else if (game.getRedBoard().getOwner().getId().equals(userId)) {
+            board = game.getRedBoard();
+            opponentBoard = game.getBlueBoard();
+        } else {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You are not a participant in this battle");
+        }
+
+        // 3. Validate phase
+        if (game.getPhase() != GamePhase.PLACING_SHIPS) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Battle is no longer in placement phase");
+        }
+
+        // 4. Validate opponent has NO ships
+        if (!opponentBoard.getShips().isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Opponent has already deployed their fleet — too late to cancel");
+        }
+
+        // 5. Validate player HAS ships (nothing to cancel otherwise)
+        if (board.getShips().isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "No fleet deployed to cancel");
+        }
+
+        // 6. Delete HakiBattleState for this board (must happen before clearing ships due to FK on armament_ship_ids)
+        hakiBattleStateRepository.deleteByBoardId(board.getId());
+
+        // 7. Clear player's ships
+        board.getShips().clear();
+
+        // 8. Save game
+        gameRepository.save(game);
+
+        // 9. Emit SSE DEPLOYMENT_CANCELLED to opponent after commit
+        UUID opponentId = opponentBoard.getOwner().getId();
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    gameEventEmitter.emitDeploymentCancelled(token, opponentId);
+                }
+            });
+        }
     }
 }

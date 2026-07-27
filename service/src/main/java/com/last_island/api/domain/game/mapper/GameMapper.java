@@ -13,9 +13,11 @@ import com.last_island.api.domain.game.dto.GameSummaryResponse;
 import com.last_island.api.domain.game.entity.Game;
 import com.last_island.api.domain.game.entity.GameResult;
 import com.last_island.api.domain.game.enums.GamePhase;
+import com.last_island.api.domain.haki.dto.RevealedCell;
 import com.last_island.api.domain.user.entity.User;
 
 import java.time.Duration;
+import java.util.List;
 import java.util.UUID;
 
 public final class GameMapper {
@@ -67,12 +69,23 @@ public final class GameMapper {
     }
 
     public static GameStateResponse toStateResponse(Game game, UUID userId) {
-        return toStateResponse(game, userId, null, null, null, null, null, null);
+        return toStateResponse(game, userId, null, null, null, null, null, null, null, null, null, null, null, null, null);
     }
 
     public static GameStateResponse toStateResponse(Game game, UUID userId,
                                                     Integer blueObs, Integer blueArm, Integer blueConq,
                                                     Integer redObs, Integer redArm, Integer redConq) {
+        return toStateResponse(game, userId, blueObs, blueArm, blueConq, redObs, redArm, redConq,
+                null, null, null, null, null, null, null);
+    }
+
+    public static GameStateResponse toStateResponse(Game game, UUID userId,
+                                                    Integer blueObs, Integer blueArm, Integer blueConq,
+                                                    Integer redObs, Integer redArm, Integer redConq,
+                                                    Integer obsUsesRemaining, Integer obsUsesConsumed,
+                                                    Integer conqUsesRemaining, Integer conqUsesConsumed,
+                                                    Integer conqCooldownTurns, Boolean hakiUsedThisTurn,
+                                                    List<RevealedCell> revealedCells) {
         String redPlayerName = game.getRedBoard() != null
                 ? game.getRedBoard().getOwner().getName()
                 : null;
@@ -121,7 +134,7 @@ public final class GameMapper {
 
         MyBoardResponse myBoardResponse = BoardMapper.toMyBoardResponse(myBoard);
         OpponentBoardResponse opponentBoardResponse = opponentBoard != null
-                ? BoardMapper.toOpponentBoardResponse(opponentBoard)
+                ? BoardMapper.toOpponentBoardResponse(opponentBoard, game.getPhase() == GamePhase.FINISHED)
                 : null;
 
         String winnerName = null;
@@ -159,7 +172,14 @@ public final class GameMapper {
                 blueConq,
                 redObs,
                 redArm,
-                redConq
+                redConq,
+                obsUsesRemaining,
+                obsUsesConsumed,
+                conqUsesRemaining,
+                conqUsesConsumed,
+                conqCooldownTurns,
+                hakiUsedThisTurn,
+                revealedCells
         );
     }
 

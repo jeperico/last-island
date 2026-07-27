@@ -18,6 +18,7 @@ import com.last_island.api.domain.user.service.BountyService;
 import com.last_island.api.domain.haki.dto.ArmamentTriggerResult;
 import com.last_island.api.domain.haki.dto.CounterFireResult;
 import com.last_island.api.domain.haki.service.HakiBattleService;
+import com.last_island.api.infrastructure.metrics.GameMetrics;
 import com.last_island.api.infrastructure.sse.GameEventEmitter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -54,6 +55,9 @@ class BoardServiceFireShotTest {
 
     @Mock
     private HakiBattleService hakiBattleService;
+
+    @Mock
+    private GameMetrics gameMetrics;
 
     @InjectMocks
     private BoardService boardService;

@@ -2,8 +2,10 @@ package com.last_island.api.domain.game.dto;
 
 import com.last_island.api.domain.board.dto.MyBoardResponse;
 import com.last_island.api.domain.board.dto.OpponentBoardResponse;
+import com.last_island.api.domain.haki.dto.RevealedCell;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 public record GameStateResponse(UUID id, String token, String phase, String bluePlayerName,
@@ -20,5 +22,9 @@ public record GameStateResponse(UUID id, String token, String phase, String blue
                                 Integer bluePlayerObservation, Integer bluePlayerArmament,
                                 Integer bluePlayerConquerors,
                                 Integer redPlayerObservation, Integer redPlayerArmament,
-                                Integer redPlayerConquerors) {
+                                Integer redPlayerConquerors,
+                                Integer observationUsesRemaining, Integer observationUsesConsumed,
+                                Integer conquerorsUsesRemaining, Integer conquerorsUsesConsumed,
+                                Integer conquerorsCooldownTurns, Boolean hakiUsedThisTurn,
+                                List<RevealedCell> revealedCells) {
 }

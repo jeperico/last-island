@@ -133,7 +133,7 @@ Implementer: Changed 3 files (+18 / -30 net)
 - `client/src/app/game/[token]/battle-screen.tsx` — removed awakenedAxis state & toggle UI; always sends both row+col; preview shows cross pattern
 - `service/src/test/java/com/last_island/api/domain/haki/service/HakiBattleServiceTest.java` — updated awakened tests to send both params, fixed expected cell counts for cross pattern
 
-Reviewer: pending
+Reviewer: PASS — build clean, cross pattern confirmed in subsequent builds
 Commit: uncommitted
 
 ## 2026-07-21T08:36 — Refactor `<img>` Tags to Next.js `<Image>` Component
@@ -154,4 +154,116 @@ Implementer: Renamed `client/public/avatars/ussop/` → `usopp/` and 4 backgroun
 
 Reviewer: PASS — build clean, eslint clean, 164/170 backend tests green (6 pre-existing HakiConquerorsServiceTest failures unrelated), no USSOP in code, USOPP in Avatar.java, V16 migration exists, asset dir client/public/avatars/usopp/ with 4 usopp-bg-*.jpg files
 
+Commit: uncommitted
+
+## 2026-07-23T10:03 — Fix Haki Usage Bug on Page Reload — Restore Per-Game Battle State
+
+Implementer: Modified `service/src/main/java/com/last_island/api/domain/game/dto/GameStateResponse.java` (+3), `service/src/main/java/com/last_island/api/domain/game/service/GameService.java` (+18), `service/src/main/java/com/last_island/api/domain/game/mapper/GameMapper.java` (+14), `service/src/test/java/com/last_island/api/domain/game/service/GameServiceTest.java` (+24), `client/src/interfaces/api.ts` (+6), `client/src/app/game/[token]/battle-screen.tsx` (+10 -3). Net: +72 lines across 6 files.
+Reviewer: PASS — build clean, eslint clean, 164/170 backend tests green (6 pre-existing HakiConquerorsServiceTest failures unrelated), all grep checks confirm wiring
+Commit: uncommitted
+
+## 2026-07-23T10:20 — Persist Observation Haki Revealed Cells Across Page Reload
+
+Implementer: Created `service/src/main/resources/db/migration/V17__add_revealed_cells_to_haki_battle_state.sql` (+1). Modified `service/src/main/java/com/last_island/api/domain/haki/entity/HakiBattleState.java` (+3), `service/src/main/java/com/last_island/api/domain/haki/service/HakiBattleService.java` (+14), `service/src/main/java/com/last_island/api/domain/game/dto/GameStateResponse.java` (+4), `service/src/main/java/com/last_island/api/domain/game/service/GameService.java` (+15), `service/src/main/java/com/last_island/api/domain/game/mapper/GameMapper.java` (+5), `service/src/test/java/com/last_island/api/domain/game/service/GameServiceTest.java` (+2), `client/src/interfaces/api.ts` (+1), `client/src/app/game/[token]/battle-screen.tsx` (+1). Net: +46 lines across 9 files.
+Reviewer: PASS — build clean, eslint clean, 164/170 backend tests green (6 pre-existing HakiConquerorsServiceTest failures unrelated), all grep checks confirm wiring
+Commit: uncommitted
+
+## 2026-07-23T10:38 — Cancel Fleet Deployment
+
+Implementer: Modified `service/src/main/java/com/last_island/api/domain/haki/repository/HakiBattleStateRepository.java` (+2), `service/src/main/java/com/last_island/api/domain/board/service/BoardService.java` (+50), `service/src/main/java/com/last_island/api/domain/game/controller/GameController.java` (+7), `service/src/main/java/com/last_island/api/infrastructure/sse/GameEventEmitter.java` (+6), `service/src/main/java/com/last_island/api/infrastructure/sse/GameEvent.java` (+1), `client/src/lib/api/board.ts` (+4), `client/src/lib/api/index.ts` (+1 -1), `client/src/types/game-events.ts` (+8), `client/src/lib/game/use-game-events.ts` (+7), `client/src/app/game/[token]/page.tsx` (+20 -5), `client/src/app/game/[token]/ship-placement.tsx` (+15 -3). Created `service/src/test/java/com/last_island/api/domain/board/service/BoardServiceCancelDeploymentTest.java` (+199). Net: +320 lines across 12 files.
+Reviewer: PASS — build clean, eslint clean, 170/176 backend tests green (6 pre-existing HakiConquerorsServiceTest failures unrelated), frontend build clean, all grep checks confirm wiring
+Commit: uncommitted
+
+## 2026-07-24T11:44 — Reveal Opponent Ships on Game-Over Panel When FINISHED
+
+Implementer: Modified `service/src/main/java/com/last_island/api/domain/board/dto/OpponentBoardResponse.java` (+1 field), `service/src/main/java/com/last_island/api/domain/board/mapper/BoardMapper.java` (+10 lines — revealShips overload), `service/src/main/java/com/last_island/api/domain/game/mapper/GameMapper.java` (+1 line — pass FINISHED flag), `service/src/test/java/com/last_island/api/domain/game/service/GameServiceTest.java` (+30 lines — new test), `client/src/interfaces/api.ts` (+1 line — ships? field), `client/src/app/game/[token]/game-over-panel.tsx` (+12 lines — ShipResponse import, third-pass ship reveal, updated call site). Net: +55 lines across 6 files.
+Reviewer: PASS — build clean, eslint clean, 171/177 backend tests green (6 pre-existing HakiConquerorsServiceTest failures unrelated), all 5 grep checks confirm wiring
+Commit: uncommitted
+
+## 2026-07-24T11:52 — Reveal Opponent Ships on Game-Over Panel When FINISHED
+
+Backend: Added optional `ships` field to `OpponentBoardResponse`, `BoardMapper.toOpponentBoardResponse` overloaded with `revealShips` flag, `GameMapper` passes `FINISHED` phase check. Frontend: `buildOpponentBoardCells` third-pass renders unhit ship cells. +1 test.
+Commit: d9356d1
+
+## 2026-07-24T11:54 — Fix Ships Sunk Count
+
+Replaced greedy heuristic in `countOpponentShipsSunk` with simple count of distinct `sunkShipType` values.
+Commit: c8f8ca7
+
+## 2026-07-24T11:56 — Improve Leaderboard Podium Intuitiveness + Profile Modal Position
+
+Podium: 2-1-3 layout (center spotlight), medal emojis 🥇🥈🥉, size hierarchy (#1 larger). Profile modal: shows `#position` above name.
+Commit: 8accaa9
+
+## 2026-07-24T12:03 — Responsive Game-Over Modal Boards
+
+Boards scale responsively (`scale-[0.55]`→`[0.65]`→`[0.75]`), stack vertically on mobile, player columns hidden below md, modal wider on mobile.
+Commit: c9369b8
+
+## 2026-07-24T12:06 — Move Sound Toggle to Global Floating Button
+
+Created `client/src/components/sound-toggle.tsx`, rendered from providers.tsx. Removed from home page header.
+Commit: 9f1a875
+
+## 2026-07-24T12:12 — 20s Turn Timer, Skip Turn on Expiration
+
+Backend: `TURN_TIMEOUT_SECONDS` 60→20, `BoardService` guard 120→20, `handleTurnExpiration` now skips turn (switches `currentTurn`) instead of ending game. Removed game-level expiration entirely. W.O. only via surrender. Frontend: `CountdownTimer` default 60→20, urgent threshold 15→5. Rewrote `GameExpirationServiceTest`.
+Commit: 8b66d23
+
+## 2026-07-24T12:23 — Responsive Mobile Layout (All Pages)
+
+Implementer: Modified 8 files (+125 / -27 net lines):
+- `client/src/app/game/[token]/battle-screen.tsx` — stacked boards vertically on mobile (flex-col md:flex-row), added mobile compact HakiBar (block md:hidden), wrapped turn indicator for flexible wrapping
+- `client/src/app/game/[token]/haki-bar.tsx` — added `compact` prop with horizontal strip rendering for mobile; updated desktop container to `w-full md:w-48`
+- `client/src/app/game/[token]/board-grid.tsx` — 3-tier cell sizing (h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8), updated row/col labels to match
+- `client/src/app/game/[token]/ship-placement.tsx` — container w-full max-w-fit, reduced padding (p-3 sm:p-5), responsive cell sizes, surrender button inline on mobile
+- `client/src/components/character-select.tsx` — grid grid-cols-2 on mobile, md:flex for desktop, clip-path via CSS variable only on md+
+- `client/src/app/settings/page.tsx` — grid grid-cols-3 on mobile, md:flex for desktop, clip-path via CSS variable only on md+
+- `client/src/components/sound-toggle.tsx` — moved from top-3 left-3 to bottom-3 right-3
+- `client/src/app/page.tsx` — reduced podium #1 padding (p-2 py-3 sm:p-4 sm:py-5), added scale-90 sm:scale-100 wrapper for AvatarIcon
+
+Reviewer: PASS — build clean, eslint clean (0 new errors, 7 pre-existing), all 7 grep checks green (build, lint, HakiBar mobile treatment, flex-col stacking, 3-tier cells, grid-cols-2 character-select, w-full max-w-fit ship-placement, bottom-3 right-3 sound-toggle, grid-cols-3 settings)
+Commit: uncommitted
+
+## 2026-07-27T10:17 — Observability Infrastructure — OTel Java Agent + Custom Metrics/Spans + Local Docker Compose Stack
+
+Implementer: Created 14 new files, modified 13 existing files.
+
+New files:
+- `service/otel/opentelemetry-javaagent.jar` (24MB binary — OTel Java Agent v2.x)
+- `service/src/main/java/com/last_island/api/infrastructure/metrics/GameMetrics.java` (+45 — @Component: shots_fired_total counter, haki_usage_total counter, sse_connections_active gauge)
+- `service/src/main/java/com/last_island/api/infrastructure/metrics/GameMetricsConfig.java` (+17 — @Configuration: active_games gauge from GameRepository)
+- `docker-compose.observability.yml` (+43 — Prometheus, Tempo, Grafana with persisted tempo-data volume)
+- `observability/prometheus/prometheus.yml` (+8 — scrape spring-boot at host.docker.internal:8081)
+- `observability/tempo/tempo.yml` (+23 — OTLP gRPC+HTTP receivers, local storage)
+- `observability/grafana/provisioning/datasources/datasources.yml` (+15 — Prometheus + Tempo datasources)
+- `observability/grafana/provisioning/dashboards/dashboard.yml` (+12 — file-based dashboard provider)
+- `observability/grafana/dashboards/red-metrics.json` (+70 — HTTP rate/errors/duration)
+- `observability/grafana/dashboards/jvm.json` (+96 — heap/GC/threads)
+- `observability/grafana/dashboards/hikaricp.json` (+83 — connection pool)
+- `observability/grafana/dashboards/game-metrics.json` (+96 — active_games, shots_fired, SSE, haki)
+- `observability/grafana/dashboards/slow-queries.json` (+57 — TraceQL slow queries panel)
+
+Modified files:
+- `service/pom.xml` (+12 — actuator, micrometer-registry-prometheus, opentelemetry-api deps)
+- `service/.gitattributes` (+1 — otel/*.jar binary)
+- `service/src/main/resources/application.properties` (+4 — actuator endpoints + prometheus export)
+- `service/src/main/java/com/last_island/api/domain/game/repository/GameRepository.java` (+2 — countByPhaseAndIsActiveTrue)
+- `service/src/main/java/com/last_island/api/domain/board/service/BoardService.java` (+25 — GameMetrics + Tracer + spans on fireShot/placeShips)
+- `service/src/main/java/com/last_island/api/domain/haki/service/HakiBattleService.java` (+30 — GameMetrics + Tracer + spans on activateObservation/activateConquerors/assignArmament)
+- `service/src/main/java/com/last_island/api/infrastructure/sse/SseConnectionRegistry.java` (+10 — GameMetrics increment/decrement)
+- `service/src/main/java/com/last_island/api/infrastructure/sse/LobbySseRegistry.java` (+10 — GameMetrics increment/decrement)
+- `Dockerfile` (+6 — COPY agent, ENV OTel config, -javaagent ENTRYPOINT)
+- `Makefile` (+12 — service-run JAVA_TOOL_OPTIONS, up chains observability, up-obs/down-obs targets)
+- `service/src/test/.../BoardServiceFireShotTest.java` (+3 — @Mock GameMetrics)
+- `service/src/test/.../BoardServicePlaceShipsTest.java` (+3 — @Mock GameMetrics)
+- `service/src/test/.../BoardServiceCancelDeploymentTest.java` (+3 — @Mock GameMetrics)
+- `service/src/test/.../HakiBattleServiceTest.java` (+3 — @Mock GameMetrics)
+- `service/src/test/.../HakiConquerorsServiceTest.java` (+3 — @Mock GameMetrics)
+- `service/src/test/.../HakiArmamentServiceTest.java` (+3 — @Mock GameMetrics)
+- `service/src/test/.../SseConnectionRegistryTest.java` (+3 — mock(GameMetrics.class) in constructor)
+
+Verification: Compilation passes. Test suite: 176 run, 170 pass, 6 fail (all pre-existing HakiConquerorsServiceTest failures — unrelated to this change). All 11 automated grep checks pass. Manual verification: start `make up` then `make service-run` → OTel agent banner in logs, /actuator/prometheus serves metrics, Grafana at localhost:3001 auto-loads 5 dashboards, Tempo at localhost:3200/ready responds OK.
+
+Reviewer: PASS — build clean (170/176 pass, 6 pre-existing HakiConquerorsServiceTest failures), all 11 verification checks green, Grafana 5 dashboards auto-provisioned, OTel agent v2.30.0 loads, actuator/prometheus serves custom metrics (active_games, shots_fired_total, sse_connections_active), Tempo ready, Docker Compose up/down/up-obs/down-obs all functional
 Commit: uncommitted

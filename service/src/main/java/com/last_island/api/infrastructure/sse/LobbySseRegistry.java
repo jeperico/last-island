@@ -1,5 +1,6 @@
 package com.last_island.api.infrastructure.sse;
 
+import com.last_island.api.infrastructure.metrics.GameMetrics;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
@@ -14,6 +15,11 @@ public class LobbySseRegistry {
     private static final long EMITTER_TIMEOUT = 300_000L;
 
     private final ConcurrentHashMap<UUID, SseEmitter> emitters = new ConcurrentHashMap<>();
+    private final GameMetrics gameMetrics;
+
+    public LobbySseRegistry(GameMetrics gameMetrics) {
+        this.gameMetrics = gameMetrics;
+    }
 
     public SseEmitter register(UUID userId) {
         SseEmitter emitter = new SseEmitter(EMITTER_TIMEOUT);
@@ -28,6 +34,8 @@ public class LobbySseRegistry {
         LobbyEvent connectedEvent = LobbyEvent.of(LobbyEvent.LOBBY_CONNECTED);
         doSend(emitter, connectedEvent);
 
+        gameMetrics.incrementSseConnections();
+
         return emitter;
     }
 
@@ -38,7 +46,10 @@ public class LobbySseRegistry {
     }
 
     public void remove(UUID userId) {
-        emitters.remove(userId);
+        SseEmitter removed = emitters.remove(userId);
+        if (removed != null) {
+            gameMetrics.decrementSseConnections();
+        }
     }
 
     // Visible for testing

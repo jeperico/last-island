@@ -1,6 +1,6 @@
 export { register, login, refresh, logout, getProfile } from "./auth";
 export { createGame, joinGame, listGames, getGame, getBattleLog, surrender, cancelGame } from "./games";
-export { placeShips, fireShot } from "./board";
+export { placeShips, fireShot, cancelDeployment } from "./board";
 export { getLeaderboard, updateProfile } from "./users";
 export { getHakiProfile, upgradeHaki, activateObservation, activateConquerors, assignArmament } from "./haki";
 export { ApiError, attemptRefresh } from "./client";
