@@ -320,7 +320,7 @@ export default function Home() {
                               key={pos}
                               className={[
                                 "relative flex flex-col items-center gap-1.5 overflow-hidden cursor-pointer",
-                                isFirst ? "p-4 py-5" : "p-3 pt-6",
+                                isFirst ? "p-2 py-3 sm:p-4 sm:py-5" : "p-3 pt-6",
                                 entry.isCurrentUser ? "ring-2 ring-inset ring-primary/50" : "",
                               ].filter(Boolean).join(" ")}
                               onClick={() => setProfilePlayer(entry)}
@@ -341,7 +341,9 @@ export default function Home() {
                               <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-black/30" />
                               {/* Medal badge */}
                               <span className={`relative z-10 ${isFirst ? "text-2xl" : "text-lg"}`}>{medalEmoji}</span>
-                              <AvatarIcon avatar={entry.avatar} rank={entry.rank} size={isFirst ? "lg" : "md"} className="relative z-10" priority />
+                              <div className="relative z-10 scale-90 sm:scale-100">
+                                <AvatarIcon avatar={entry.avatar} rank={entry.rank} size={isFirst ? "lg" : "md"} priority />
+                              </div>
                               <p className={`relative z-10 font-bold text-white truncate max-w-full text-center drop-shadow-md ${isFirst ? "text-base" : "text-sm"}`}>
                                 {entry.name}
                               </p>

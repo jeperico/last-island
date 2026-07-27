@@ -465,7 +465,7 @@ export function BattleScreen({
 
         {/* Turn indicator */}
         {!readOnly && (
-          <div className="flex items-center gap-3 px-4 py-2 bg-surface-secondary/40 rounded-lg border border-border">
+          <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 px-3 sm:px-4 py-2 bg-surface-secondary/40 rounded-lg border border-border">
             <AvatarIcon avatar={isMyTurn ? myAvatar : opponentAvatar} size="md" />
             <div className="flex items-center gap-2">
               <span className="text-sm text-text-secondary font-medium">
@@ -483,11 +483,11 @@ export function BattleScreen({
           </div>
         )}
 
-        {/* Boards section with Haki sidebar */}
-        <div className="flex items-start justify-center gap-4">
-          {/* Haki Sidebar — left */}
-          {!readOnly && hakiProfile && (
+        {/* Mobile HakiBar — compact horizontal strip */}
+        {!readOnly && hakiProfile && (
+          <div className="block md:hidden w-full">
             <HakiBar
+              compact
               gameToken={gameToken}
               hakiProfile={hakiProfile}
               isMyTurn={isMyTurn}
@@ -504,7 +504,6 @@ export function BattleScreen({
               onCancelObservation={() => setObservationMode(false)}
               conquerorsMode={conquerorsMode}
               onStartConquerors={() => {
-                // Level 3 first use needs targeting for X-pattern (usesLeft === total means first use)
                 const totalConqUses = hakiProfile.conquerorsLevel >= 2 ? 2 : 1;
                 if (hakiProfile.conquerorsLevel >= 3 && conquerorsUsesLeft === totalConqUses) {
                   setConquerorsMode(true);
@@ -514,10 +513,45 @@ export function BattleScreen({
               }}
               onCancelConquerors={() => setConquerorsMode(false)}
             />
+          </div>
+        )}
+
+        {/* Boards section with Haki sidebar */}
+        <div className="flex flex-col md:flex-row items-center md:items-start justify-center gap-4">
+          {/* Haki Sidebar — left (desktop only) */}
+          {!readOnly && hakiProfile && (
+            <div className="hidden md:block">
+              <HakiBar
+                gameToken={gameToken}
+                hakiProfile={hakiProfile}
+                isMyTurn={isMyTurn}
+                hakiUsedThisTurn={hakiUsedThisTurn}
+                observationUsesLeft={observationUsesLeft}
+                conquerorsUsesLeft={conquerorsUsesLeft}
+                conquerorsCooldown={conquerorsCooldown}
+                onHakiUsed={() => setHakiUsedThisTurn(true)}
+                onObservationResult={(cells) => setRevealedCells((prev) => [...prev, ...cells])}
+                onConquerorsResult={() => {}}
+                onError={(msg) => setError(msg)}
+                observationMode={observationMode}
+                onStartObservation={() => setObservationMode(true)}
+                onCancelObservation={() => setObservationMode(false)}
+                conquerorsMode={conquerorsMode}
+                onStartConquerors={() => {
+                  const totalConqUses = hakiProfile.conquerorsLevel >= 2 ? 2 : 1;
+                  if (hakiProfile.conquerorsLevel >= 3 && conquerorsUsesLeft === totalConqUses) {
+                    setConquerorsMode(true);
+                  } else {
+                    handleConquerorsConfirm();
+                  }
+                }}
+                onCancelConquerors={() => setConquerorsMode(false)}
+              />
+            </div>
           )}
 
           {/* Boards row */}
-          <div className="flex flex-wrap items-start justify-center gap-5">
+          <div className="flex flex-col sm:flex-row flex-wrap items-center sm:items-start justify-center gap-4 sm:gap-5">
             {/* My Fleet card */}
             <div className="px-3 py-3 rounded-xl border border-teal-900/40 bg-teal-950/10">
               <BoardGrid title="⚓ My Fleet" cells={myBoardCells} mode="normal" />

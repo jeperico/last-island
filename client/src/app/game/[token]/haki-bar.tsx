@@ -27,6 +27,8 @@ interface HakiBarProps {
   conquerorsMode: boolean;
   onStartConquerors: () => void;
   onCancelConquerors: () => void;
+  // Compact mode for mobile
+  compact?: boolean;
 }
 
 export function HakiBar({
@@ -42,6 +44,7 @@ export function HakiBar({
   conquerorsMode,
   onStartConquerors,
   onCancelConquerors,
+  compact = false,
 }: HakiBarProps) {
   if (!hakiProfile) return null;
 
@@ -59,6 +62,64 @@ export function HakiBar({
     hasConquerors &&
     conquerorsUsesLeft > 0 &&
     conquerorsCooldown === 0;
+
+  // ─── Compact mode (mobile horizontal strip) ───────────────────────────────
+  if (compact) {
+    return (
+      <div className="flex flex-row gap-2 w-full rounded-xl border border-border bg-surface-elevated/80 backdrop-blur-sm p-2 items-center justify-center">
+        {hasObservation && (
+          <button
+            type="button"
+            disabled={!canUseObservation}
+            onClick={observationMode ? onCancelObservation : onStartObservation}
+            className={[
+              "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-medium transition-all",
+              observationMode
+                ? "border-blue-400/60 bg-blue-900/30 text-blue-300"
+                : canUseObservation
+                  ? "border-blue-900/40 bg-blue-950/20 text-blue-400 hover:bg-blue-900/30"
+                  : "border-border bg-surface-secondary/30 text-text-muted opacity-50",
+            ].join(" ")}
+          >
+            <span>👁</span>
+            <span className="flex gap-0.5">
+              {Array.from({ length: hakiProfile!.observationLevel >= 2 ? 2 : 1 }, (_, i) => (
+                <span key={i} className={`inline-block h-1.5 w-1.5 rounded-full ${i < observationUsesLeft ? "bg-blue-400" : "bg-gray-700/60"}`} />
+              ))}
+            </span>
+          </button>
+        )}
+        {hasArmament && (
+          <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-red-900/40 bg-red-950/15 text-xs text-red-400/70">
+            <span>🛡️</span>
+            <span className="text-[10px]">auto</span>
+          </div>
+        )}
+        {hasConquerors && (
+          <button
+            type="button"
+            disabled={!canUseConquerors}
+            onClick={conquerorsMode ? onCancelConquerors : onStartConquerors}
+            className={[
+              "flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-medium transition-all",
+              conquerorsMode
+                ? "border-purple-400/60 bg-purple-900/30 text-purple-300"
+                : canUseConquerors
+                  ? "border-purple-900/40 bg-purple-950/20 text-purple-400 hover:bg-purple-900/30"
+                  : "border-border bg-surface-secondary/30 text-text-muted opacity-50",
+            ].join(" ")}
+          >
+            <span>👑</span>
+            <span className="flex gap-0.5">
+              {Array.from({ length: hakiProfile!.conquerorsLevel >= 2 ? 2 : 1 }, (_, i) => (
+                <span key={i} className={`inline-block h-1.5 w-1.5 rounded-full ${i < conquerorsUsesLeft ? "bg-purple-400" : "bg-gray-700/60"}`} />
+              ))}
+            </span>
+          </button>
+        )}
+      </div>
+    );
+  }
 
   function getObservationInfo(): string {
     if (!hakiProfile) return "";
@@ -95,7 +156,7 @@ export function HakiBar({
   const conqTotalUses = hakiProfile.conquerorsLevel >= 2 ? 2 : 1;
 
   return (
-    <div className="flex flex-col gap-2 w-48 rounded-xl border border-border bg-surface-elevated/80 backdrop-blur-sm p-3">
+    <div className="flex flex-col gap-2 w-full md:w-48 rounded-xl border border-border bg-surface-elevated/80 backdrop-blur-sm p-3">
       {/* Title */}
       <div className="flex items-center gap-1.5 pb-1.5 border-b border-border-light">
         <span className="text-xs font-bold text-text-secondary uppercase tracking-wider">

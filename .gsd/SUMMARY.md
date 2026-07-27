@@ -209,3 +209,18 @@ Commit: 9f1a875
 
 Backend: `TURN_TIMEOUT_SECONDS` 60→20, `BoardService` guard 120→20, `handleTurnExpiration` now skips turn (switches `currentTurn`) instead of ending game. Removed game-level expiration entirely. W.O. only via surrender. Frontend: `CountdownTimer` default 60→20, urgent threshold 15→5. Rewrote `GameExpirationServiceTest`.
 Commit: 8b66d23
+
+## 2026-07-24T12:23 — Responsive Mobile Layout (All Pages)
+
+Implementer: Modified 8 files (+125 / -27 net lines):
+- `client/src/app/game/[token]/battle-screen.tsx` — stacked boards vertically on mobile (flex-col md:flex-row), added mobile compact HakiBar (block md:hidden), wrapped turn indicator for flexible wrapping
+- `client/src/app/game/[token]/haki-bar.tsx` — added `compact` prop with horizontal strip rendering for mobile; updated desktop container to `w-full md:w-48`
+- `client/src/app/game/[token]/board-grid.tsx` — 3-tier cell sizing (h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8), updated row/col labels to match
+- `client/src/app/game/[token]/ship-placement.tsx` — container w-full max-w-fit, reduced padding (p-3 sm:p-5), responsive cell sizes, surrender button inline on mobile
+- `client/src/components/character-select.tsx` — grid grid-cols-2 on mobile, md:flex for desktop, clip-path via CSS variable only on md+
+- `client/src/app/settings/page.tsx` — grid grid-cols-3 on mobile, md:flex for desktop, clip-path via CSS variable only on md+
+- `client/src/components/sound-toggle.tsx` — moved from top-3 left-3 to bottom-3 right-3
+- `client/src/app/page.tsx` — reduced podium #1 padding (p-2 py-3 sm:p-4 sm:py-5), added scale-90 sm:scale-100 wrapper for AvatarIcon
+
+Reviewer: PASS — build clean, eslint clean (0 new errors, 7 pre-existing), all 7 grep checks green (build, lint, HakiBar mobile treatment, flex-col stacking, 3-tier cells, grid-cols-2 character-select, w-full max-w-fit ship-placement, bottom-3 right-3 sound-toggle, grid-cols-3 settings)
+Commit: uncommitted

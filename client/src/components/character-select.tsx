@@ -140,10 +140,11 @@ export function CharacterSelect({
       </h2>
 
       {/* Panels container */}
-      <div className="flex w-full h-[100vh] gap-0.5">
+      <div className="grid grid-cols-2 gap-1 h-[100dvh] md:flex md:h-[100vh] md:gap-0.5">
         {CHARACTER_OPTIONS.map((char, index) => {
           const isSelected = selected === char.key;
           const hasSelection = selected !== null;
+          const clipPath = getClipPath(index, CHARACTER_OPTIONS.length);
 
           return (
             <button
@@ -153,12 +154,12 @@ export function CharacterSelect({
               onMouseEnter={() => {
                 if (!selected && canPlaySound()) playAvatarHover();
               }}
-              className={`group flex-1 relative overflow-hidden transition-all duration-300 cursor-pointer border-2 ${
+              className={`group relative overflow-hidden transition-all duration-300 cursor-pointer border-2 md:flex-1 md:[clip-path:var(--clip)] ${
                 isSelected
                   ? "border-secondary shadow-[0_0_30px_rgba(245,158,11,0.6)]"
                   : "border-transparent"
               }`}
-              style={{ clipPath: getClipPath(index, CHARACTER_OPTIONS.length) }}
+              style={{ "--clip": clipPath } as React.CSSProperties}
               aria-pressed={isSelected}
               aria-label={`Select ${char.name}`}
             >

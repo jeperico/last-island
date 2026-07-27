@@ -2,7 +2,7 @@
 
 ## Position
 
-Idle — ready for next task
+Planning — Responsive Mobile Layout (all pages, 320px–768px)
 
 ## Decisions
 
@@ -19,4 +19,4 @@ Idle — ready for next task
 
 ## Last verification
 
-PASS at 2026-07-24T12:12 — backend 170/176 pass (6 pre-existing HakiConquerorsServiceTest failures unrelated), frontend build clean
+PASS at 2026-07-24T12:30 — build clean, eslint clean (0 new errors, 7 pre-existing), all 7 grep checks green
