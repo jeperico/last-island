@@ -1,0 +1,57 @@
+{
+  "uid": "slow-queries",
+  "title": "Slow Database Queries",
+  "tags": ["last-island", "database", "traces"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "time": { "from": "now-1h", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Slow PostgreSQL Queries (>50ms)",
+      "type": "table",
+      "gridPos": { "h": 12, "w": 24, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "datasource": { "type": "tempo", "uid": "tempo" },
+          "queryType": "traceql",
+          "query": "{span.db.system = \"postgresql\" && duration > 50ms}",
+          "refId": "A"
+        }
+      ],
+      "datasource": { "type": "tempo", "uid": "tempo" }
+    },
+    {
+      "id": 2,
+      "title": "DB Query Duration p95",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 12 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(db_client_connections_create_time_seconds_bucket[5m])) by (le))",
+          "legendFormat": "p95 connection create",
+          "refId": "A"
+        }
+      ],
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "s" } }
+    },
+    {
+      "id": 3,
+      "title": "DB Query Duration p99",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 12 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(db_client_connections_create_time_seconds_bucket[5m])) by (le))",
+          "legendFormat": "p99 connection create",
+          "refId": "A"
+        }
+      ],
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "fieldConfig": { "defaults": { "unit": "s" } }
+    }
+  ]
+}

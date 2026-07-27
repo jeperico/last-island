@@ -22,7 +22,12 @@ import com.last_island.api.domain.user.service.BountyService;
 import com.last_island.api.domain.haki.dto.ArmamentTriggerResult;
 import com.last_island.api.domain.haki.repository.HakiBattleStateRepository;
 import com.last_island.api.domain.haki.service.HakiBattleService;
+import com.last_island.api.infrastructure.metrics.GameMetrics;
 import com.last_island.api.infrastructure.sse.GameEventEmitter;
+import io.opentelemetry.api.GlobalOpenTelemetry;
+import io.opentelemetry.api.trace.Span;
+import io.opentelemetry.api.trace.StatusCode;
+import io.opentelemetry.api.trace.Tracer;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -43,18 +48,27 @@ public class BoardService {
     private final BountyService bountyService;
     private final HakiBattleService hakiBattleService;
     private final HakiBattleStateRepository hakiBattleStateRepository;
+    private final GameMetrics gameMetrics;
+    private final Tracer tracer;
 
-    public BoardService(GameRepository gameRepository, GameResultRepository gameResultRepository, GameEventEmitter gameEventEmitter, BountyService bountyService, HakiBattleService hakiBattleService, HakiBattleStateRepository hakiBattleStateRepository) {
+    public BoardService(GameRepository gameRepository, GameResultRepository gameResultRepository, GameEventEmitter gameEventEmitter, BountyService bountyService, HakiBattleService hakiBattleService, HakiBattleStateRepository hakiBattleStateRepository, GameMetrics gameMetrics) {
         this.gameRepository = gameRepository;
         this.gameResultRepository = gameResultRepository;
         this.gameEventEmitter = gameEventEmitter;
         this.bountyService = bountyService;
         this.hakiBattleService = hakiBattleService;
         this.hakiBattleStateRepository = hakiBattleStateRepository;
+        this.gameMetrics = gameMetrics;
+        this.tracer = GlobalOpenTelemetry.get().getTracer("last-island");
     }
 
     @Transactional
     public BoardResponse placeShips(String token, UUID userId, PlaceShipsRequest request) {
+        Span span = tracer.spanBuilder("BoardService.placeShips")
+                .setAttribute("game.token", token)
+                .setAttribute("player.id", userId.toString())
+                .startSpan();
+        try {
         // 1. Fetch game
         Game game = gameRepository.findByTokenAndIsActiveTrue(token)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Battle not found"));
@@ -178,10 +192,22 @@ public class BoardService {
 
         // 14. Return response
         return BoardMapper.toResponse(board, game.getPhase().name());
+        } catch (Exception e) {
+            span.setStatus(StatusCode.ERROR, e.getMessage());
+            span.recordException(e);
+            throw e;
+        } finally {
+            span.end();
+        }
     }
 
     @Transactional
     public ShotResponse fireShot(String token, UUID userId, ShotRequest request) {
+        Span span = tracer.spanBuilder("BoardService.fireShot")
+                .setAttribute("game.token", token)
+                .setAttribute("player.id", userId.toString())
+                .startSpan();
+        try {
         // 1. Validate coordinates
         if (request.row() < 0 || request.row() > 9 || request.col() < 0 || request.col() > 9) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Coordinates are off the sea chart");
@@ -310,6 +336,7 @@ public class BoardService {
                 });
             }
 
+            gameMetrics.incrementShotsFired();
             return new ShotResponse(result, sunkShipType, request.row(), request.col(), true, attacker.getName());
         }
 
@@ -364,9 +391,17 @@ public class BoardService {
         }
 
         // 14. Return response
+        gameMetrics.incrementShotsFired();
         return new ShotResponse(result, sunkShipType, request.row(), request.col(), false, null,
                 armamentTriggered, armamentResult != null ? armamentResult.counterFire() : null,
                 game.getCurrentTurn().getName());
+        } catch (Exception e) {
+            span.setStatus(StatusCode.ERROR, e.getMessage());
+            span.recordException(e);
+            throw e;
+        } finally {
+            span.end();
+        }
     }
 
     @Transactional

@@ -8,11 +8,13 @@ ENV_FILE = .env.$(ENV)
 
 .PHONY: up down restart logs ps clean
 
-up: ## Start PostgreSQL (ENV=dev|prod)
+up: ## Start PostgreSQL + observability stack (ENV=dev|prod)
 	docker compose --env-file $(ENV_FILE) up -d
+	docker compose -f docker-compose.observability.yml up -d
 
 down: ## Stop containers
 	docker compose --env-file $(ENV_FILE) down
+	docker compose -f docker-compose.observability.yml down
 
 restart: ## Restart containers
 	docker compose --env-file $(ENV_FILE) restart
@@ -25,6 +27,16 @@ ps: ## Show running containers
 
 clean: ## Stop and remove volumes (DESTROYS DATA)
 	docker compose --env-file $(ENV_FILE) down -v
+
+# --- Observability ---
+
+.PHONY: up-obs down-obs
+
+up-obs: ## Start observability stack only (Prometheus, Grafana, Tempo)
+	docker compose -f docker-compose.observability.yml up -d
+
+down-obs: ## Stop observability stack
+	docker compose -f docker-compose.observability.yml down
 
 # --- Database ---
 
@@ -44,7 +56,9 @@ service-build: ## Compile the Spring Boot service
 	cd service && mvn compile -q
 
 service-run: ## Run the API (dev profile, :8081)
-	cd service && export $$(cat ../$(ENV_FILE) | grep -v '^\#' | xargs) && mvn spring-boot:run -Dspring-boot.run.profiles=$(ENV)
+	cd service && export $$(cat ../$(ENV_FILE) | grep -v '^\#' | xargs) && \
+	JAVA_TOOL_OPTIONS="-javaagent:$(PWD)/service/otel/opentelemetry-javaagent.jar -Dotel.exporter.otlp.endpoint=http://localhost:4318 -Dotel.exporter.otlp.protocol=http/protobuf -Dotel.service.name=last-island-api -Dotel.metrics.exporter=none" \
+	mvn spring-boot:run -Dspring-boot.run.profiles=$(ENV)
 
 service-test: ## Run service tests with pretty output
 	@TMP_LOG=$$(mktemp /tmp/.lastisland-test.XXXXXX); \

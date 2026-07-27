@@ -30,4 +30,6 @@ public interface GameRepository extends JpaRepository<Game, UUID> {
 
     @Query("SELECT g FROM Game g WHERE g.phase = 'PLACING_SHIPS' AND g.isActive = true AND g.updatedAt < :placingDeadline")
     List<Game> findExpiredPlacingShipsGames(@Param("placingDeadline") LocalDateTime placingDeadline);
+
+    long countByPhaseAndIsActiveTrue(GamePhase phase);
 }

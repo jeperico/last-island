@@ -20,3 +20,14 @@
 - [ ] REQ-13: Game history / replay
 - [ ] REQ-14: Responsive mobile layout
 - [ ] REQ-15: Sound effects / rank badges
+
+## v3 (Challenge Part 2 — Optimization & Infrastructure)
+
+- [ ] REQ-16: Observability — OTel Java Agent auto-instrumentation (HTTP, JDBC, JVM) on Spring Boot
+- [ ] REQ-17: Observability — Custom Micrometer game metrics (active games, shots/min, SSE connections, haki usage)
+- [ ] REQ-18: Observability — Custom spans on key business methods (fireShot, placeShips, haki actions)
+- [ ] REQ-19: Observability — Local Docker Compose stack (Prometheus + Grafana + Tempo)
+- [ ] REQ-20: Observability — Provisioned Grafana dashboards (RED metrics, JVM, HikariCP/DB, game metrics, slow queries panel)
+- [ ] REQ-21: Observability — Prod wiring to Grafana Cloud (OTLP export via env vars on Render)
+- [ ] REQ-22: Resilience — implement at least one of: caching / rate limiting / load testing / infra improvement
+- [ ] REQ-23: Kubernetes — deploy app to local kind cluster, 2 replicas, Ingress/LoadBalancer, sticky sessions

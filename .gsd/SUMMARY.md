@@ -224,3 +224,46 @@ Implementer: Modified 8 files (+125 / -27 net lines):
 
 Reviewer: PASS — build clean, eslint clean (0 new errors, 7 pre-existing), all 7 grep checks green (build, lint, HakiBar mobile treatment, flex-col stacking, 3-tier cells, grid-cols-2 character-select, w-full max-w-fit ship-placement, bottom-3 right-3 sound-toggle, grid-cols-3 settings)
 Commit: uncommitted
+
+## 2026-07-27T10:17 — Observability Infrastructure — OTel Java Agent + Custom Metrics/Spans + Local Docker Compose Stack
+
+Implementer: Created 14 new files, modified 13 existing files.
+
+New files:
+- `service/otel/opentelemetry-javaagent.jar` (24MB binary — OTel Java Agent v2.x)
+- `service/src/main/java/com/last_island/api/infrastructure/metrics/GameMetrics.java` (+45 — @Component: shots_fired_total counter, haki_usage_total counter, sse_connections_active gauge)
+- `service/src/main/java/com/last_island/api/infrastructure/metrics/GameMetricsConfig.java` (+17 — @Configuration: active_games gauge from GameRepository)
+- `docker-compose.observability.yml` (+43 — Prometheus, Tempo, Grafana with persisted tempo-data volume)
+- `observability/prometheus/prometheus.yml` (+8 — scrape spring-boot at host.docker.internal:8081)
+- `observability/tempo/tempo.yml` (+23 — OTLP gRPC+HTTP receivers, local storage)
+- `observability/grafana/provisioning/datasources/datasources.yml` (+15 — Prometheus + Tempo datasources)
+- `observability/grafana/provisioning/dashboards/dashboard.yml` (+12 — file-based dashboard provider)
+- `observability/grafana/dashboards/red-metrics.json` (+70 — HTTP rate/errors/duration)
+- `observability/grafana/dashboards/jvm.json` (+96 — heap/GC/threads)
+- `observability/grafana/dashboards/hikaricp.json` (+83 — connection pool)
+- `observability/grafana/dashboards/game-metrics.json` (+96 — active_games, shots_fired, SSE, haki)
+- `observability/grafana/dashboards/slow-queries.json` (+57 — TraceQL slow queries panel)
+
+Modified files:
+- `service/pom.xml` (+12 — actuator, micrometer-registry-prometheus, opentelemetry-api deps)
+- `service/.gitattributes` (+1 — otel/*.jar binary)
+- `service/src/main/resources/application.properties` (+4 — actuator endpoints + prometheus export)
+- `service/src/main/java/com/last_island/api/domain/game/repository/GameRepository.java` (+2 — countByPhaseAndIsActiveTrue)
+- `service/src/main/java/com/last_island/api/domain/board/service/BoardService.java` (+25 — GameMetrics + Tracer + spans on fireShot/placeShips)
+- `service/src/main/java/com/last_island/api/domain/haki/service/HakiBattleService.java` (+30 — GameMetrics + Tracer + spans on activateObservation/activateConquerors/assignArmament)
+- `service/src/main/java/com/last_island/api/infrastructure/sse/SseConnectionRegistry.java` (+10 — GameMetrics increment/decrement)
+- `service/src/main/java/com/last_island/api/infrastructure/sse/LobbySseRegistry.java` (+10 — GameMetrics increment/decrement)
+- `Dockerfile` (+6 — COPY agent, ENV OTel config, -javaagent ENTRYPOINT)
+- `Makefile` (+12 — service-run JAVA_TOOL_OPTIONS, up chains observability, up-obs/down-obs targets)
+- `service/src/test/.../BoardServiceFireShotTest.java` (+3 — @Mock GameMetrics)
+- `service/src/test/.../BoardServicePlaceShipsTest.java` (+3 — @Mock GameMetrics)
+- `service/src/test/.../BoardServiceCancelDeploymentTest.java` (+3 — @Mock GameMetrics)
+- `service/src/test/.../HakiBattleServiceTest.java` (+3 — @Mock GameMetrics)
+- `service/src/test/.../HakiConquerorsServiceTest.java` (+3 — @Mock GameMetrics)
+- `service/src/test/.../HakiArmamentServiceTest.java` (+3 — @Mock GameMetrics)
+- `service/src/test/.../SseConnectionRegistryTest.java` (+3 — mock(GameMetrics.class) in constructor)
+
+Verification: Compilation passes. Test suite: 176 run, 170 pass, 6 fail (all pre-existing HakiConquerorsServiceTest failures — unrelated to this change). All 11 automated grep checks pass. Manual verification: start `make up` then `make service-run` → OTel agent banner in logs, /actuator/prometheus serves metrics, Grafana at localhost:3001 auto-loads 5 dashboards, Tempo at localhost:3200/ready responds OK.
+
+Reviewer: PASS — build clean (170/176 pass, 6 pre-existing HakiConquerorsServiceTest failures), all 11 verification checks green, Grafana 5 dashboards auto-provisioned, OTel agent v2.30.0 loads, actuator/prometheus serves custom metrics (active_games, shots_fired_total, sse_connections_active), Tempo ready, Docker Compose up/down/up-obs/down-obs all functional
+Commit: uncommitted

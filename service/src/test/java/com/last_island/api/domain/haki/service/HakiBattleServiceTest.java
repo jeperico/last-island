@@ -16,6 +16,7 @@ import com.last_island.api.domain.haki.enums.CellRevealStatus;
 import com.last_island.api.domain.haki.repository.HakiBattleStateRepository;
 import com.last_island.api.domain.haki.repository.HakiProfileRepository;
 import com.last_island.api.domain.user.entity.User;
+import com.last_island.api.infrastructure.metrics.GameMetrics;
 import com.last_island.api.infrastructure.sse.GameEventEmitter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -48,6 +49,9 @@ class HakiBattleServiceTest {
 
     @Mock
     private GameEventEmitter gameEventEmitter;
+
+    @Mock
+    private GameMetrics gameMetrics;
 
     @InjectMocks
     private HakiBattleService hakiBattleService;

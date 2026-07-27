@@ -1,5 +1,6 @@
 package com.last_island.api.infrastructure.sse;
 
+import com.last_island.api.infrastructure.metrics.GameMetrics;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -10,6 +11,7 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNoException;
+import static org.mockito.Mockito.mock;
 
 class SseConnectionRegistryTest {
 
@@ -17,7 +19,7 @@ class SseConnectionRegistryTest {
 
     @BeforeEach
     void setUp() {
-        registry = new SseConnectionRegistry();
+        registry = new SseConnectionRegistry(mock(GameMetrics.class));
     }
 
     @Test

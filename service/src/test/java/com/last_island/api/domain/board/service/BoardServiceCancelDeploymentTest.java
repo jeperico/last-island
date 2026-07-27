@@ -12,6 +12,7 @@ import com.last_island.api.domain.user.entity.User;
 import com.last_island.api.domain.user.service.BountyService;
 import com.last_island.api.domain.haki.repository.HakiBattleStateRepository;
 import com.last_island.api.domain.haki.service.HakiBattleService;
+import com.last_island.api.infrastructure.metrics.GameMetrics;
 import com.last_island.api.infrastructure.sse.GameEventEmitter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -49,6 +50,9 @@ class BoardServiceCancelDeploymentTest {
 
     @Mock
     private HakiBattleStateRepository hakiBattleStateRepository;
+
+    @Mock
+    private GameMetrics gameMetrics;
 
     @InjectMocks
     private BoardService boardService;
