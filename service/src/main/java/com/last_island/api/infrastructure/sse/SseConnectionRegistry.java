@@ -27,13 +27,40 @@ public class SseConnectionRegistry {
     public SseEmitter register(String gameToken, UUID userId) {
         SseEmitter emitter = new SseEmitter(EMITTER_TIMEOUT);
 
-        emitters.computeIfAbsent(gameToken, k -> new ConcurrentHashMap<>()).put(userId, emitter);
+        Map<UUID, SseEmitter> gameEmitters = emitters.computeIfAbsent(gameToken, k -> new ConcurrentHashMap<>());
+
+        // Complete old emitter before replacing to keep the counter accurate
+        SseEmitter oldEmitter = gameEmitters.get(userId);
+        if (oldEmitter != null) {
+            gameEmitters.remove(userId);
+            gameMetrics.decrementSseConnections();
+            try {
+                oldEmitter.complete();
+            } catch (IllegalStateException e) {
+                // Already completed — safe to ignore
+            }
+        }
+
+        gameEmitters.put(userId, emitter);
         eventCounters.computeIfAbsent(gameToken, k -> new AtomicLong(0));
         eventBuffers.computeIfAbsent(gameToken, k -> Collections.synchronizedList(new ArrayList<>()));
 
-        emitter.onCompletion(() -> remove(gameToken, userId));
-        emitter.onTimeout(() -> remove(gameToken, userId));
-        emitter.onError(e -> remove(gameToken, userId));
+        final SseEmitter thisEmitter = emitter;
+        emitter.onCompletion(() -> {
+            if (gameEmitters.get(userId) == thisEmitter) {
+                remove(gameToken, userId);
+            }
+        });
+        emitter.onTimeout(() -> {
+            if (gameEmitters.get(userId) == thisEmitter) {
+                remove(gameToken, userId);
+            }
+        });
+        emitter.onError(e -> {
+            if (gameEmitters.get(userId) == thisEmitter) {
+                remove(gameToken, userId);
+            }
+        });
 
         // Send CONNECTED event immediately
         long id = eventCounters.get(gameToken).incrementAndGet();
@@ -96,11 +123,30 @@ public class SseConnectionRegistry {
         Map<UUID, SseEmitter> gameEmitters = emitters.remove(gameToken);
         if (gameEmitters != null) {
             for (SseEmitter emitter : gameEmitters.values()) {
-                emitter.complete();
+                gameMetrics.decrementSseConnections();
+                try {
+                    emitter.complete();
+                } catch (IllegalStateException e) {
+                    // Already completed — safe to ignore
+                }
             }
         }
         eventBuffers.remove(gameToken);
         eventCounters.remove(gameToken);
+    }
+
+    public void sendHeartbeatToAll() {
+        for (Map<UUID, SseEmitter> gameEmitters : emitters.values()) {
+            for (SseEmitter emitter : gameEmitters.values()) {
+                synchronized (emitter) {
+                    try {
+                        emitter.send(SseEmitter.event().comment("heartbeat"));
+                    } catch (IOException | IllegalStateException e) {
+                        // Broken emitter — will be cleaned up by callbacks
+                    }
+                }
+            }
+        }
     }
 
     public void replayEvents(String gameToken, UUID userId, long lastEventId) {

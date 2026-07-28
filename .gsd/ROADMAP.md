@@ -31,10 +31,10 @@
 - Global floating sound toggle (2026-07-24) — 9f1a875
 - 20s turn timer, skip turn on expiration, W.O. only via surrender (2026-07-24) — 8b66d23
 - Responsive mobile layout for all pages (2026-07-27) — e6fbc0b
+- Observability infra — OTel Java Agent, custom metrics/spans, local Grafana/Prometheus/Tempo stack (2026-07-27) — ae208bd
 
 ## Next
 
-1. Observability — OTel instrumentation + custom game metrics + local Grafana/Prometheus/Tempo stack + dashboards
-2. Observability — Prod wiring to Grafana Cloud (Render)
-3. Resilience improvement (caching / rate limiting / load test / infra)
-4. Kubernetes deployment (kind, 2 replicas, Ingress, sticky sessions)
+1. Observability — Prod wiring to Grafana Cloud (Render)
+2. Resilience improvement (caching / rate limiting / load test / infra)
+3. Kubernetes deployment (kind, 2 replicas, Ingress, sticky sessions)

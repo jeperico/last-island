@@ -24,11 +24,36 @@ public class LobbySseRegistry {
     public SseEmitter register(UUID userId) {
         SseEmitter emitter = new SseEmitter(EMITTER_TIMEOUT);
 
+        // Complete old emitter before replacing to keep the counter accurate
+        SseEmitter oldEmitter = emitters.get(userId);
+        if (oldEmitter != null) {
+            emitters.remove(userId);
+            gameMetrics.decrementSseConnections();
+            try {
+                oldEmitter.complete();
+            } catch (IllegalStateException e) {
+                // Already completed — safe to ignore
+            }
+        }
+
         emitters.put(userId, emitter);
 
-        emitter.onCompletion(() -> remove(userId));
-        emitter.onTimeout(() -> remove(userId));
-        emitter.onError(e -> remove(userId));
+        final SseEmitter thisEmitter = emitter;
+        emitter.onCompletion(() -> {
+            if (emitters.get(userId) == thisEmitter) {
+                remove(userId);
+            }
+        });
+        emitter.onTimeout(() -> {
+            if (emitters.get(userId) == thisEmitter) {
+                remove(userId);
+            }
+        });
+        emitter.onError(e -> {
+            if (emitters.get(userId) == thisEmitter) {
+                remove(userId);
+            }
+        });
 
         // Send LOBBY_CONNECTED event immediately
         LobbyEvent connectedEvent = LobbyEvent.of(LobbyEvent.LOBBY_CONNECTED);
@@ -49,6 +74,18 @@ public class LobbySseRegistry {
         SseEmitter removed = emitters.remove(userId);
         if (removed != null) {
             gameMetrics.decrementSseConnections();
+        }
+    }
+
+    public void sendHeartbeatToAll() {
+        for (SseEmitter emitter : emitters.values()) {
+            synchronized (emitter) {
+                try {
+                    emitter.send(SseEmitter.event().comment("heartbeat"));
+                } catch (IOException | IllegalStateException e) {
+                    // Broken emitter — will be cleaned up by callbacks
+                }
+            }
         }
     }
 

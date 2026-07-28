@@ -3,6 +3,9 @@ package com.last_island.api.infrastructure.sse;
 import com.last_island.api.infrastructure.metrics.GameMetrics;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.List;
@@ -11,15 +14,19 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatNoException;
-import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.*;
 
+@ExtendWith(MockitoExtension.class)
 class SseConnectionRegistryTest {
+
+    @Mock
+    private GameMetrics gameMetrics;
 
     private SseConnectionRegistry registry;
 
     @BeforeEach
     void setUp() {
-        registry = new SseConnectionRegistry(mock(GameMetrics.class));
+        registry = new SseConnectionRegistry(gameMetrics);
     }
 
     @Test
@@ -31,6 +38,41 @@ class SseConnectionRegistryTest {
 
         assertThat(emitter).isNotNull();
         assertThat(registry.getGameEmitters(gameToken)).containsKey(userId);
+    }
+
+    @Test
+    void register_sameUserTwice_completesOldEmitter() {
+        String gameToken = "123456";
+        UUID userId = UUID.randomUUID();
+
+        registry.register(gameToken, userId);
+        registry.register(gameToken, userId);
+
+        // Increment called twice (once per register), decrement called once (old emitter cleanup)
+        verify(gameMetrics, times(2)).incrementSseConnections();
+        verify(gameMetrics, times(1)).decrementSseConnections();
+
+        // Only one emitter remains in the map
+        assertThat(registry.getGameEmitters(gameToken)).hasSize(1);
+        assertThat(registry.getGameEmitters(gameToken)).containsKey(userId);
+    }
+
+    @Test
+    void removeGame_decrementsCounterPerPlayer() {
+        String gameToken = "123456";
+        UUID player1 = UUID.randomUUID();
+        UUID player2 = UUID.randomUUID();
+
+        registry.register(gameToken, player1);
+        registry.register(gameToken, player2);
+
+        // Reset so we can verify removeGame decrements cleanly
+        reset(gameMetrics);
+
+        registry.removeGame(gameToken);
+
+        verify(gameMetrics, times(2)).decrementSseConnections();
+        assertThat(registry.getGameEmitters(gameToken)).isNull();
     }
 
     @Test
