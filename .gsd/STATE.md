@@ -2,7 +2,7 @@
 
 ## Position
 
-Implementing — Fix SSE connection leak and add heartbeat keepalive (counter leak on reconnect, removeGame decrement omission, 15s heartbeat scheduler).
+Planned — k6 Load Test Suite (stress test simulating 100 concurrent users through full game flows with configurable delays, think-times, and varied usage patterns).
 
 ## Decisions
 
@@ -31,4 +31,4 @@ Implementing — Fix SSE connection leak and add heartbeat keepalive (counter le
 
 ## Last verification
 
-PASS at 2026-07-28T15:14 — build clean (177/183 pass, 6 pre-existing HakiConquerorsServiceTest failures), all 10 verification checks green, old emitter complete+decrement in both registries, reference equality guards, heartbeat via SSE comment, @Scheduled(fixedRate=15000), client build passes
+PASS at 2026-07-28T17:18 — all 10 PLAN.md verification checks green, 5 ship placements validated (no overlaps, within bounds, correct sizes), all endpoint paths match controllers, k6-valid JS (no Node/TS APIs), builds clean, Makefile targets correct, Prometheus remote write configured

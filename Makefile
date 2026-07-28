@@ -220,6 +220,17 @@ status: ## Show project status
 	echo "  Branch: $$(git branch --show-current)"; \
 	echo "  Last commit: $$(git log --oneline -1)"
 
+# --- Load Testing ---
+
+.PHONY: loadtest loadtest-smoke
+
+loadtest-smoke: ## Run k6 smoke test (2 VUs, 1 game, quick validation)
+	k6 run loadtest/scenarios/smoke.js
+
+loadtest: ## Run k6 stress test (100 VUs, 50 games, Prometheus export)
+	K6_PROMETHEUS_RW_SERVER_URL=http://localhost:9090/api/v1/write \
+	k6 run --out experimental-prometheus-rw loadtest/scenarios/stress.js
+
 # --- Help ---
 
 .PHONY: help

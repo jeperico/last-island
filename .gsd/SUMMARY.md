@@ -279,3 +279,28 @@ Commit: uncommitted
 Implementer: Modified `service/src/main/java/com/last_island/api/infrastructure/sse/SseConnectionRegistry.java` (+60 −20 net: register() completes old emitter before replacing, callbacks use reference equality guard, removeGame() decrements counter per emitter, added sendHeartbeatToAll()). Modified `service/src/main/java/com/last_island/api/infrastructure/sse/LobbySseRegistry.java` (+30 −5 net: register() completes old emitter before replacing, callbacks use reference equality guard, added sendHeartbeatToAll()). Created `service/src/main/java/com/last_island/api/infrastructure/sse/SseHeartbeatScheduler.java` (+22 — @Component with @Scheduled(fixedRate=15000) calling both registries). Modified `service/src/test/java/com/last_island/api/infrastructure/sse/SseConnectionRegistryTest.java` (+70 net: added register_sameUserTwice_completesOldEmitter and removeGame_decrementsCounterPerPlayer tests, switched to @Mock GameMetrics). Created `service/src/test/java/com/last_island/api/infrastructure/sse/LobbySseRegistryTest.java` (+75 — tests for reconnect counter stability). Created `service/src/test/java/com/last_island/api/infrastructure/sse/SseHeartbeatSchedulerTest.java` (+30 — verifies scheduler calls heartbeat on both registries). Net: +287 lines across 6 files.
 Reviewer: PASS — build clean (177/183 pass, 6 pre-existing HakiConquerorsServiceTest failures), all 10 verification checks green, old emitter complete+decrement in both registries, reference equality guards, heartbeat via SSE comment, @Scheduled(fixedRate=15000), client build passes
 Commit: uncommitted
+
+## 2026-07-28T17:12 — k6 Load Test Suite — Full Game Flow Simulation
+
+Implementer: Created 10 files, modified 2 existing files.
+
+New files:
+- `loadtest/config.js` (+56 — shared config: base URL, stages, thresholds, think-time ranges, avatars, haki probability, timeouts)
+- `loadtest/helpers/http.js` (+62 — authenticated HTTP wrapper with cookie extraction, jsonParams, authGet/authPost/authPut)
+- `loadtest/helpers/auth.js` (+87 — registerUser/loginUser with cookie extraction and k6 checks)
+- `loadtest/helpers/ships.js` (+82 — 5 valid ship placement variants, getRandomPlacement(), SHIP_SIZES map)
+- `loadtest/helpers/shots.js` (+32 — Fisher-Yates shuffle, createShotQueue() for 100 cells)
+- `loadtest/helpers/delays.js` (+49 — 8 named sleep functions with randomized durations from config)
+- `loadtest/scenarios/game-flow.js` (+330 — runGameAsCreator/runGameAsJoiner: full lifecycle auth→settings→pairing→placement→battle with haki)
+- `loadtest/scenarios/smoke.js` (+37 — 2 VUs, 1 game, per-vu-iterations executor)
+- `loadtest/scenarios/stress.js` (+38 — ramping-vus 10→50→100→50→0 over 10m, Prometheus remote write)
+- `loadtest/README.md` (+152 — prerequisites, quick start, configuration, architecture, pairing strategy, think-times, interpreting results, Prometheus integration, limitations, troubleshooting)
+
+Modified files:
+- `Makefile` (+10 — loadtest-smoke and loadtest targets with Prometheus env var)
+- `docker-compose.observability.yml` (+3 — command array with --web.enable-remote-write-receiver for Prometheus)
+
+Net: +938 lines across 12 files. All 10 verification checks pass (file existence, Makefile targets, Prometheus flag, thresholds, Math.random delays, 5+ ship variants, __VU pairing, README sections).
+
+Reviewer: PASS — build clean, eslint clean, all 10 verification checks green, 5 ship placements validated (no overlaps, within bounds, correct sizes), all endpoint paths match controllers (auth/register, auth/login, users/me, games CRUD, shots, haki/observation), k6-valid JS (no Node/TS APIs, no require/process/Buffer), Makefile targets correct, Prometheus remote write configured, pairing via odd/even __VU split confirmed, think-times present (8 randomized delay functions), thresholds defined (p95<500ms, fail rate<5%, checks>95%)
+Commit: uncommitted
