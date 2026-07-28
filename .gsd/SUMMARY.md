@@ -267,3 +267,15 @@ Verification: Compilation passes. Test suite: 176 run, 170 pass, 6 fail (all pre
 
 Reviewer: PASS — build clean (170/176 pass, 6 pre-existing HakiConquerorsServiceTest failures), all 11 verification checks green, Grafana 5 dashboards auto-provisioned, OTel agent v2.30.0 loads, actuator/prometheus serves custom metrics (active_games, shots_fired_total, sse_connections_active), Tempo ready, Docker Compose up/down/up-obs/down-obs all functional
 Commit: uncommitted
+
+## 2026-07-28T14:41 — Consolidate 5 Grafana Dashboards into Single Unified Dashboard
+
+Implementer: Created `observability/grafana/dashboards/last-island.json` (+665 lines — unified dashboard with 4 rows, 22 content panels, 7 stat panels with thresholds, uri template variable, TraceQL slow queries table). Deleted `observability/grafana/dashboards/red-metrics.json`, `jvm.json`, `hikaricp.json`, `game-metrics.json`, `slow-queries.json`. Net: +665 −402 lines, 6 files touched (1 created, 5 deleted).
+Reviewer: PASS — build clean, eslint clean, all 12 plan verification checks green, client build passes, 4 rows confirmed (⚡🎮🔍💾), 7 stat panels with correct thresholds, 52 datasource refs (all uid prometheus/tempo), provisioning config unchanged, old 5 files deleted
+Commit: uncommitted
+
+## 2026-07-28T15:11 — Fix SSE Connection Leak and Add Heartbeat Keepalive
+
+Implementer: Modified `service/src/main/java/com/last_island/api/infrastructure/sse/SseConnectionRegistry.java` (+60 −20 net: register() completes old emitter before replacing, callbacks use reference equality guard, removeGame() decrements counter per emitter, added sendHeartbeatToAll()). Modified `service/src/main/java/com/last_island/api/infrastructure/sse/LobbySseRegistry.java` (+30 −5 net: register() completes old emitter before replacing, callbacks use reference equality guard, added sendHeartbeatToAll()). Created `service/src/main/java/com/last_island/api/infrastructure/sse/SseHeartbeatScheduler.java` (+22 — @Component with @Scheduled(fixedRate=15000) calling both registries). Modified `service/src/test/java/com/last_island/api/infrastructure/sse/SseConnectionRegistryTest.java` (+70 net: added register_sameUserTwice_completesOldEmitter and removeGame_decrementsCounterPerPlayer tests, switched to @Mock GameMetrics). Created `service/src/test/java/com/last_island/api/infrastructure/sse/LobbySseRegistryTest.java` (+75 — tests for reconnect counter stability). Created `service/src/test/java/com/last_island/api/infrastructure/sse/SseHeartbeatSchedulerTest.java` (+30 — verifies scheduler calls heartbeat on both registries). Net: +287 lines across 6 files.
+Reviewer: PASS — build clean (177/183 pass, 6 pre-existing HakiConquerorsServiceTest failures), all 10 verification checks green, old emitter complete+decrement in both registries, reference equality guards, heartbeat via SSE comment, @Scheduled(fixedRate=15000), client build passes
+Commit: uncommitted

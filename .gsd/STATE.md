@@ -2,7 +2,7 @@
 
 ## Position
 
-Planned — Challenge Part 2, Task 1: Observability infra setup (OTel Java Agent + custom metrics/spans + local Docker Compose: Prometheus + Grafana + Tempo). PLAN.md written, ready for implementation.
+Implementing — Fix SSE connection leak and add heartbeat keepalive (counter leak on reconnect, removeGame decrement omission, 15s heartbeat scheduler).
 
 ## Decisions
 
@@ -31,4 +31,4 @@ Planned — Challenge Part 2, Task 1: Observability infra setup (OTel Java Agent
 
 ## Last verification
 
-PASS at 2026-07-27T10:25 — build clean (170/176 pass, 6 pre-existing HakiConquerorsServiceTest failures), all 11 verification checks green, Grafana 5 dashboards auto-provisioned, OTel agent v2.30.0 loads, actuator/prometheus serves custom metrics (active_games, shots_fired_total, sse_connections_active), Tempo ready, Docker Compose up/down/up-obs/down-obs all functional
+PASS at 2026-07-28T15:14 — build clean (177/183 pass, 6 pre-existing HakiConquerorsServiceTest failures), all 10 verification checks green, old emitter complete+decrement in both registries, reference equality guards, heartbeat via SSE comment, @Scheduled(fixedRate=15000), client build passes
