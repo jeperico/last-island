@@ -90,5 +90,16 @@
     "- TESTING.md: service/docs/TESTING.md",
     "- Run tests: cd /home/perico/work/last-island/service && ./mvnw test"
   ],
-  "tools": ["read", "write", "shell", "glob", "grep", "code"]
+  "tools": ["read", "write", "shell", "glob", "grep", "code", "@postgresql"],
+  "allowedTools": ["read", "glob", "grep", "code", "@postgresql"],
+  "mcpServers": {
+    "postgresql": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-postgres",
+        "postgresql://lastisland:dev_password@localhost:5433/lastisland_dev"
+      ]
+    }
+  }
 }
