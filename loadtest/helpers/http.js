@@ -42,9 +42,14 @@ export function authGet(path, accessToken) {
 
 /**
  * Authenticated POST request with JSON body.
+ * Set expectedStatuses to mark certain non-2xx as expected (won't count as failures).
  */
-export function authPost(path, body, accessToken) {
-  return http.post(`${BASE_URL}${path}`, JSON.stringify(body), jsonParams(accessToken));
+export function authPost(path, body, accessToken, params = {}) {
+  const p = jsonParams(accessToken);
+  if (params.expectedStatuses) {
+    p.responseCallback = http.expectedStatuses(200, 201, ...params.expectedStatuses);
+  }
+  return http.post(`${BASE_URL}${path}`, JSON.stringify(body), p);
 }
 
 /**

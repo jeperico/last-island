@@ -130,7 +130,7 @@ export function runGameAsJoiner(vuId, iteration) {
         const games = data.content || [];
         // Find a WAITING_OPPONENT game to join
         for (const game of games) {
-          const joinRes = authPost(`/games/${game.token}`, {}, user.accessToken);
+          const joinRes = authPost(`/games/${game.token}`, {}, user.accessToken, { expectedStatuses: [400, 409] });
           if (joinRes.status === 200) {
             gameToken = game.token;
             break;
@@ -225,7 +225,7 @@ function runPlacementAndBattle(vuId, gameToken, user) {
       }
 
       // Check if it's my turn
-      if (state.currentTurnPlayerName !== user.userName) {
+      if (state.current_turn_player_name !== user.userName) {
         // Not my turn — poll and wait
         const turnDeadline = Date.now() + TURN_POLL_TIMEOUT_S * 1000;
         let myTurn = false;
@@ -238,7 +238,7 @@ function runPlacementAndBattle(vuId, gameToken, user) {
               gameOver = true;
               break;
             }
-            if (pollState.currentTurnPlayerName === user.userName) {
+            if (pollState.current_turn_player_name === user.userName) {
               myTurn = true;
               break;
             }
@@ -261,7 +261,7 @@ function runPlacementAndBattle(vuId, gameToken, user) {
           col: hakiCol,
           revealRowIndex: null,
           revealColIndex: null,
-        }, user.accessToken);
+        }, user.accessToken, { expectedStatuses: [400, 409] });
         // Handle gracefully — 400/409 means already used or not your turn
         if (hakiRes.status === 200) {
           hakiUsed = true;
@@ -274,13 +274,13 @@ function runPlacementAndBattle(vuId, gameToken, user) {
       const shotRes = authPost(`/games/${gameToken}/shots`, {
         row: target.row,
         col: target.col,
-      }, user.accessToken);
+      }, user.accessToken, { expectedStatuses: [400, 409] });
 
       if (shotRes.status === 200) {
         shotCount++;
         const shotData = shotRes.json();
 
-        if (shotData.gameOver) {
+        if (shotData.game_over) {
           gameOver = true;
           break;
         }
@@ -296,12 +296,12 @@ function runPlacementAndBattle(vuId, gameToken, user) {
             const nextRes = authPost(`/games/${gameToken}/shots`, {
               row: nextTarget.row,
               col: nextTarget.col,
-            }, user.accessToken);
+            }, user.accessToken, { expectedStatuses: [400, 409] });
 
             if (nextRes.status === 200) {
               shotCount++;
               const nextData = nextRes.json();
-              if (nextData.gameOver) {
+              if (nextData.game_over) {
                 gameOver = true;
                 break;
               }

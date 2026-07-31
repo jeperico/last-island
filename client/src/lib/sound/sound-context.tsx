@@ -63,22 +63,21 @@ const SoundContext = createContext<SoundContextValue | null>(null);
 // ─── Provider ────────────────────────────────────────────────────────────────
 
 export function SoundProvider({ children }: { children: React.ReactNode }) {
-  const [isMuted, setIsMuted] = useState(() => {
-    if (typeof window === "undefined") return false;
-    return localStorage.getItem("sound_muted") === "true";
-  });
+  const [isMuted, setIsMuted] = useState(false);
+  const [musicVolume, setMusicVolumeState] = useState(DEFAULT_MUSIC_VOLUME);
+  const [sfxVolume, setSfxVolumeState] = useState(DEFAULT_SFX_VOLUME);
 
-  const [musicVolume, setMusicVolumeState] = useState(() => {
-    if (typeof window === "undefined") return DEFAULT_MUSIC_VOLUME;
-    const saved = localStorage.getItem("music_volume");
-    return saved !== null ? parseFloat(saved) : DEFAULT_MUSIC_VOLUME;
-  });
+  // Hydrate from localStorage after mount to avoid SSR mismatch
+  useEffect(() => {
+    const savedMuted = localStorage.getItem("sound_muted");
+    if (savedMuted === "true") setIsMuted(true);
 
-  const [sfxVolume, setSfxVolumeState] = useState(() => {
-    if (typeof window === "undefined") return DEFAULT_SFX_VOLUME;
-    const saved = localStorage.getItem("sfx_volume");
-    return saved !== null ? parseFloat(saved) : DEFAULT_SFX_VOLUME;
-  });
+    const savedMusic = localStorage.getItem("music_volume");
+    if (savedMusic !== null) setMusicVolumeState(parseFloat(savedMusic));
+
+    const savedSfx = localStorage.getItem("sfx_volume");
+    if (savedSfx !== null) setSfxVolumeState(parseFloat(savedSfx));
+  }, []);
 
   const soundtrackRef = useRef<HTMLAudioElement | null>(null);
   const currentTrackRef = useRef<string>(GLOBAL_SOUNDTRACK);
@@ -239,6 +238,14 @@ export function SoundProvider({ children }: { children: React.ReactNode }) {
     setIsMuted((prev) => {
       const next = !prev;
       localStorage.setItem("sound_muted", String(next));
+      // Play/pause soundtrack directly in click handler (user gesture context)
+      const soundtrack = soundtrackRef.current;
+      if (soundtrack) {
+        soundtrack.muted = next;
+        if (!next && soundtrack.paused) {
+          soundtrack.play().catch(() => {});
+        }
+      }
       return next;
     });
   }, []);
