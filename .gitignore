@@ -7,3 +7,6 @@
 
 # MCP settings (contains DB credentials)
 .kiro/settings/
+
+# GSD agent configs (contain DB credentials)
+.kiro/agents/gsd*.json
