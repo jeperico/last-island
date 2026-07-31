@@ -4,3 +4,6 @@
 .env
 # Keep .env.example tracked as a template
 !.env.example
+
+# MCP settings (contains DB credentials)
+.kiro/settings/
