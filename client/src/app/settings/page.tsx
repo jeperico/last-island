@@ -139,7 +139,7 @@ export default function SettingsPage() {
 
         {/* Avatar Selection */}
         <div className="rounded-xl border border-border bg-surface p-5">
-          <div className="grid grid-cols-3 gap-1 h-80 md:flex md:gap-1 md:h-48 sm:h-56">
+          <div className="flex gap-1 h-48 sm:h-56">
             {AVATAR_OPTIONS.map((option, index) => {
               const isSelected = user.avatar === option.key;
               const clipPath =
@@ -154,12 +154,12 @@ export default function SettingsPage() {
                   type="button"
                   onClick={() => handleAvatarChange(option.key)}
                   disabled={savingAvatar !== null}
-                  className={`group relative flex-1 overflow-hidden transition-all duration-300 cursor-pointer border-2 md:[clip-path:var(--clip)] ${
+                  className={`group relative flex-1 overflow-hidden transition-all duration-300 cursor-pointer border-2 ${
                     isSelected
                       ? "border-primary shadow-[0_0_20px_rgba(59,130,246,0.5)]"
                       : "border-transparent hover:border-primary/40"
                   } ${savingAvatar !== null ? "opacity-60" : ""}`}
-                  style={{ "--clip": clipPath } as React.CSSProperties}
+                  style={{ clipPath }}
                 >
                   {savingAvatar === option.key && (
                     <div className="absolute inset-0 flex items-center justify-center bg-black/60 z-20">

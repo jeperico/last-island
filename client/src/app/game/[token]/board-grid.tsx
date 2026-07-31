@@ -25,7 +25,7 @@ function cellKey(row: number, col: number): string {
 
 function getCellClasses(state: CellState, interactive: boolean, isPreview: boolean, mode: "normal" | "observation" | "conquerors"): string {
   const base =
-    "board-cell h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8 flex items-center justify-center text-xs font-bold rounded-[2px] transition-all duration-200";
+    "board-cell h-7 w-7 sm:h-8 sm:w-8 flex items-center justify-center text-xs font-bold rounded-[2px] transition-all duration-200";
 
   // Preview cells for observation/conquerors
   if (isPreview) {
@@ -111,11 +111,11 @@ export function BoardGrid({
         <div className={disabled ? "pointer-events-none opacity-60" : ""}>
           {/* Column labels */}
           <div className="flex">
-            <div className="h-6 w-5 sm:w-6" /> {/* Spacer for row labels */}
+            <div className="h-6 w-6" /> {/* Spacer for row labels */}
             {COL_LABELS.map((label) => (
               <div
                 key={label}
-                className="flex h-6 w-6 sm:w-7 md:w-8 items-center justify-center text-xs font-mono font-medium text-text-muted"
+                className="flex h-6 w-7 sm:w-8 items-center justify-center text-xs font-mono font-medium text-text-muted"
               >
                 {label}
               </div>
@@ -125,7 +125,7 @@ export function BoardGrid({
           {ROW_LABELS.map((rowLabel, rowIdx) => (
             <div key={rowLabel} className="flex">
               {/* Row label */}
-              <div className="flex h-6 sm:h-7 md:h-8 w-5 sm:w-6 items-center justify-center text-xs font-mono font-medium text-text-muted">
+              <div className="flex h-7 sm:h-8 w-6 items-center justify-center text-xs font-mono font-medium text-text-muted">
                 {rowLabel}
               </div>
               {/* Cells */}

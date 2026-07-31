@@ -533,12 +533,12 @@ export function ShipPlacement({
         variant="ghost"
         size="sm"
         onClick={() => setSurrenderOpen(true)}
-        className="relative mt-3 sm:absolute sm:bottom-2 sm:left-1/2 sm:-translate-x-1/2 text-xs opacity-70 hover:opacity-100"
+        className="absolute bottom-2 left-1/2 -translate-x-1/2 text-xs opacity-70 hover:opacity-100"
       >
         🏳️ Surrender
       </Button>
 
-      <div className="relative overflow-hidden flex flex-col gap-4 items-center w-full max-w-fit bg-surface/80 backdrop-blur-md rounded-2xl p-3 sm:p-5 border border-border">
+      <div className="relative overflow-hidden flex flex-col gap-4 items-center w-fit bg-surface/80 backdrop-blur-md rounded-2xl p-5 border border-border">
         {/* Teal accent strip */}
         <div className="h-1 w-full bg-gradient-to-r from-primary/30 via-ocean/20 to-transparent rounded-t-2xl absolute top-0 left-0" />
 
@@ -645,11 +645,11 @@ export function ShipPlacement({
               <div className="inline-block">
                 {/* Column labels */}
                 <div className="flex">
-                  <div className="h-8 w-6 sm:w-7 md:w-8" /> {/* Corner spacer */}
+                  <div className="h-8 w-7 sm:w-8" /> {/* Corner spacer */}
                   {Array.from({ length: GRID_SIZE }).map((_, col) => (
                     <div
                       key={col}
-                      className="flex h-8 w-6 sm:w-7 md:w-8 items-center justify-center text-[10px] font-mono text-text-muted"
+                      className="flex h-8 w-7 sm:w-8 items-center justify-center text-[10px] font-mono text-text-muted"
                     >
                       {col + 1}
                     </div>
@@ -660,7 +660,7 @@ export function ShipPlacement({
                 {Array.from({ length: GRID_SIZE }).map((_, row) => (
                   <div key={row} className="flex">
                     {/* Row label */}
-                    <div className="flex h-6 sm:h-7 md:h-8 w-6 sm:w-7 md:w-8 items-center justify-center text-[10px] font-mono text-text-muted">
+                    <div className="flex h-7 sm:h-8 w-7 sm:w-8 items-center justify-center text-[10px] font-mono text-text-muted">
                       {ROW_LABELS[row]}
                     </div>
 
@@ -670,7 +670,7 @@ export function ShipPlacement({
                       return (
                         <div
                           key={col}
-                          className={`h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8 cursor-pointer rounded-[2px] transition-all duration-100 ${
+                          className={`h-7 w-7 sm:h-8 sm:w-8 cursor-pointer rounded-[2px] transition-all duration-100 ${
                             state === "placed"
                               ? "bg-teal-500/50 border border-teal-400/40 shadow-[inset_0_0_4px_rgba(45,212,191,0.3)]"
                               : state === "preview-valid"
